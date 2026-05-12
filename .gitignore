@@ -1,0 +1,23 @@
+node_modules/
+dist/
+.env
+*.env.local
+
+# WhatsApp session - nunca subir a git
+apps/api/baileys_auth_info/
+apps/api/whatsapp-session/
+
+# Logs
+*.log
+npm-debug.log*
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Build
+apps/web/dist/
+apps/api/dist/
+
+# Prisma
+apps/api/prisma/migrations/migration_lock.toml

@@ -1,0 +1,174 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ─── Enums ───────────────────────────────────────────────────────────────────
+
+enum TipoPropiedad {
+  CASA
+  DEPARTAMENTO
+  LOCAL
+  TERRENO
+  OFICINA
+}
+
+enum TipoPersona {
+  PROPIETARIO
+  INQUILINO
+  INTERESADO
+  GARANTE
+}
+
+enum TipoVinculo {
+  ALQUILER
+  VENTA
+  ADMINISTRACION
+}
+
+enum Indice {
+  ICL
+  IPC
+  UVA
+}
+
+enum TipoPago {
+  ALQUILER
+  EXPENSA
+  SERVICIO
+  HONORARIO
+  DEPOSITO
+  OTRO
+}
+
+enum Moneda {
+  ARS
+  USD
+}
+
+enum EstadoPago {
+  PENDIENTE
+  PAGADO
+  VENCIDO
+  MORA
+  ANULADO
+}
+
+enum Canal {
+  WHATSAPP
+  EMAIL
+  PRESENCIAL
+}
+
+enum TipoMensaje {
+  ENTRANTE
+  SALIENTE
+  SISTEMA
+}
+
+// ─── Models ──────────────────────────────────────────────────────────────────
+
+model Propiedad {
+  id           String        @id @default(cuid())
+  direccion    String
+  tipo         TipoPropiedad
+  superficie   Float?
+  enAlquiler   Boolean       @default(false)
+  enVenta      Boolean       @default(false)
+  administrada Boolean       @default(false)
+  alquilerBase Float?
+  indiceActual Indice?
+  valorVenta   Float?
+  notas        String?
+  vinculos     Vinculo[]
+  pagos        Pago[]
+  inboxItems   InboxItem[]
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
+}
+
+model Persona {
+  id         String      @id @default(cuid())
+  nombre     String
+  apellido   String
+  dni        String?     @unique
+  whatsapp   String?
+  email      String?
+  tipo       TipoPersona
+  notas      String?
+  vinculos   Vinculo[]
+  pagos      Pago[]
+  inboxItems InboxItem[]
+  createdAt  DateTime    @default(now())
+  updatedAt  DateTime    @updatedAt
+}
+
+model Vinculo {
+  id                   String      @id @default(cuid())
+  propiedadId          String
+  personaId            String
+  tipo                 TipoVinculo
+  fechaInicio          DateTime
+  fechaFin             DateTime?
+  alquilerInicial      Float?
+  alquilerActual       Float?
+  indice               Indice?
+  periodicidad         Int         @default(3)
+  proximaActualizacion DateTime?
+  activo               Boolean     @default(true)
+  notas                String?
+  propiedad            Propiedad   @relation(fields: [propiedadId], references: [id])
+  persona              Persona     @relation(fields: [personaId], references: [id])
+  pagos                Pago[]
+  createdAt            DateTime    @default(now())
+  updatedAt            DateTime    @updatedAt
+}
+
+model Pago {
+  id                 String     @id @default(cuid())
+  tipo               TipoPago
+  concepto           String
+  monto              Float
+  moneda             Moneda     @default(ARS)
+  periodo            String?
+  estado             EstadoPago @default(PENDIENTE)
+  fechaVencimiento   DateTime
+  fechaPago          DateTime?
+  comprobanteEnviado Boolean    @default(false)
+  propiedadId        String?
+  personaId          String?
+  vinculoId          String?
+  propiedad          Propiedad? @relation(fields: [propiedadId], references: [id])
+  persona            Persona?   @relation(fields: [personaId], references: [id])
+  vinculo            Vinculo?   @relation(fields: [vinculoId], references: [id])
+  createdAt          DateTime   @default(now())
+  updatedAt          DateTime   @updatedAt
+}
+
+model InboxItem {
+  id          String      @id @default(cuid())
+  canal       Canal
+  mensaje     String
+  tipo        TipoMensaje
+  leido       Boolean     @default(false)
+  propiedadId String?
+  personaId   String?
+  propiedad   Propiedad?  @relation(fields: [propiedadId], references: [id])
+  persona     Persona?    @relation(fields: [personaId], references: [id])
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+}
+
+model Usuario {
+  id        String   @id @default(cuid())
+  nombre    String
+  email     String   @unique
+  password  String
+  activo    Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}

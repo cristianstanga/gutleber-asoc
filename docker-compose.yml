@@ -1,0 +1,24 @@
+version: "3.9"
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: gutleber_postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: gutleber
+      POSTGRES_PASSWORD: gutleber2026
+      POSTGRES_DB: gutleber_db
+    ports:
+      - "5433:5432"
+    volumes:
+      - gutleber_pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U gutleber -d gutleber_db"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+volumes:
+  gutleber_pgdata:
+    name: gutleber_pgdata

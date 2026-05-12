@@ -1,0 +1,65 @@
+version: "3.9"
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: gutleber_postgres
+    restart: always
+    environment:
+      POSTGRES_USER: ${DB_USER}
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
+      POSTGRES_DB: gutleber_db
+    volumes:
+      - gutleber_pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USER}"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  api:
+    image: ghcr.io/cristianstanga/gutleber-asoc/api:latest
+    container_name: gutleber_api
+    restart: always
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      DATABASE_URL: postgresql://${DB_USER}:${DB_PASSWORD}@postgres:5432/gutleber_db
+      JWT_SECRET: ${JWT_SECRET}
+      JWT_EXPIRES_IN: 7d
+      PORT: 3001
+      NODE_ENV: production
+      CORS_ORIGIN: https://${DOMAIN}
+      WA_SESSION_PATH: /app/baileys_auth_info
+    volumes:
+      - gutleber_wa:/app/baileys_auth_info
+    expose:
+      - "3001"
+
+  web:
+    image: ghcr.io/cristianstanga/gutleber-asoc/web:latest
+    container_name: gutleber_web
+    restart: always
+    depends_on:
+      - api
+    expose:
+      - "80"
+
+  nginx:
+    image: nginx:alpine
+    container_name: gutleber_nginx
+    restart: always
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/conf.d/default.conf:ro
+      - ./nginx/certs:/etc/nginx/certs:ro
+    depends_on:
+      - web
+      - api
+
+volumes:
+  gutleber_pgdata:
+  gutleber_wa:
