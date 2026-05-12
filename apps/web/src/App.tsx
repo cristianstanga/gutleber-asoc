@@ -5,6 +5,7 @@ import Login from './pages/Login'
 import Dashboard from './pages/Dashboard'
 import Propiedades from './pages/Propiedades'
 import Personas from './pages/Personas'
+import Contratos from './pages/Contratos'
 import Pagos from './pages/Pagos'
 import Inbox from './pages/Inbox'
 import WhatsAppStatus from './pages/WhatsAppStatus'
@@ -31,6 +32,7 @@ export default function App() {
           <Route path="dashboard" element={<Dashboard />} />
           <Route path="propiedades" element={<Propiedades />} />
           <Route path="personas" element={<Personas />} />
+          <Route path="contratos" element={<Contratos />} />
           <Route path="pagos" element={<Pagos />} />
           <Route path="inbox" element={<Inbox />} />
           <Route path="whatsapp" element={<WhatsAppStatus />} />

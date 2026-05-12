@@ -1,5 +1,5 @@
 import { NavLink } from 'react-router-dom'
-import { LayoutDashboard, Building2, Users, CreditCard, MessageSquare, Smartphone, LogOut } from 'lucide-react'
+import { LayoutDashboard, Building2, Users, FileText, CreditCard, MessageSquare, Smartphone, LogOut } from 'lucide-react'
 import { useAuthStore } from '../store/auth'
 import { useQuery } from '@tanstack/react-query'
 import { api } from '../lib/api'
@@ -8,6 +8,7 @@ const nav = [
   { to: '/dashboard',    label: 'Dashboard',    Icon: LayoutDashboard },
   { to: '/propiedades',  label: 'Propiedades',  Icon: Building2 },
   { to: '/personas',     label: 'Personas',     Icon: Users },
+  { to: '/contratos',    label: 'Contratos',    Icon: FileText },
   { to: '/pagos',        label: 'Pagos',        Icon: CreditCard },
   { to: '/inbox',        label: 'Inbox',        Icon: MessageSquare, badge: true },
   { to: '/whatsapp',     label: 'WhatsApp',     Icon: Smartphone },
