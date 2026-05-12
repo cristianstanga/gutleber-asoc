@@ -54,8 +54,18 @@ export default function Pagos() {
     setTimeout(() => setToast(''), 3000)
   }
 
-  function descargarPDF(id: string) {
-    window.open(`/api/pagos/${id}/pdf`, '_blank')
+  async function descargarPDF(id: string, periodo?: string) {
+    try {
+      const response = await api.get(`/pagos/${id}/pdf`, { responseType: 'blob' })
+      const url = URL.createObjectURL(new Blob([response.data], { type: 'application/pdf' }))
+      const a = document.createElement('a')
+      a.href = url
+      a.download = `recibo-${periodo || id}.pdf`
+      a.click()
+      URL.revokeObjectURL(url)
+    } catch {
+      mostrarToast('Error al generar el PDF')
+    }
   }
 
   return (
@@ -142,7 +152,7 @@ export default function Pagos() {
                       </button>
                     )}
                     <button
-                      onClick={() => descargarPDF(p.id)}
+                      onClick={() => descargarPDF(p.id, p.periodo ?? undefined)}
                       title="Descargar PDF"
                       className="p-1.5 rounded hover:bg-crema text-piedra transition-colors"
                     >

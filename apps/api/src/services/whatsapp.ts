@@ -72,7 +72,6 @@ export async function initWhatsApp() {
           msg.message.extendedTextMessage?.text ||
           '[media]'
 
-        // Buscar persona por whatsapp
         const persona = await prisma.persona.findFirst({ where: { whatsapp: from } })
 
         await prisma.inboxItem.create({
@@ -85,6 +84,9 @@ export async function initWhatsApp() {
         })
 
         logger.info(`📨 Mensaje de ${from}: ${texto.substring(0, 60)}`)
+
+        // Bot: responder consultas de propiedades
+        await responderBot(from, texto.toLowerCase().trim())
       }
     }
   })
@@ -110,6 +112,69 @@ export async function sendPDF(to: string, buffer: Buffer, filename: string) {
     mimetype: 'application/pdf',
     fileName: filename,
   })
+}
+
+// ─── Bot de propiedades ──────────────────────────────────────────────────────
+
+const formatARS = (n: number) =>
+  new Intl.NumberFormat('es-AR', { style: 'currency', currency: 'ARS', maximumFractionDigits: 0 }).format(n)
+
+async function responderBot(from: string, texto: string) {
+  // Palabras clave que activan el bot
+  const quiereAlquiler = /alquiler|alquilar|alquilo/.test(texto)
+  const quiereVenta = /venta|vender|comprar|compra/.test(texto)
+  const quierePropiedades = /propiedad|propiedades|disponible|dispon/.test(texto)
+  const esSaludo = /^(hola|buenas|buen dia|buenas tardes|buenas noches|hey|hi)/.test(texto)
+
+  if (esSaludo) {
+    await sendText(from,
+      `¡Hola! 👋 Soy el asistente de *Gutleber & Asoc.*\n\n` +
+      `Podés consultarme:\n` +
+      `• *propiedades en alquiler*\n` +
+      `• *propiedades en venta*\n` +
+      `• *todas las propiedades*\n\n` +
+      `¿En qué te puedo ayudar?`
+    )
+    return
+  }
+
+  if (!quiereAlquiler && !quiereVenta && !quierePropiedades) return
+
+  const where: Record<string, unknown> = {}
+  if (quiereAlquiler && !quiereVenta) where.enAlquiler = true
+  if (quiereVenta && !quiereAlquiler) where.enVenta = true
+
+  const propiedades = await prisma.propiedad.findMany({
+    where,
+    include: { imagenes: { orderBy: { orden: 'asc' }, take: 1 } },
+    take: 5,
+  })
+
+  if (propiedades.length === 0) {
+    await sendText(from, 'Por el momento no tenemos propiedades disponibles con esas características. Te contactamos cuando tengamos novedades. 🏠')
+    return
+  }
+
+  const tipoLabel: Record<string, string> = {
+    CASA: 'Casa', DEPARTAMENTO: 'Dpto.', LOCAL: 'Local', TERRENO: 'Terreno', OFICINA: 'Oficina',
+  }
+
+  const lista = propiedades.map((p, i) => {
+    const lineas = [`*${i + 1}. ${tipoLabel[p.tipo] || p.tipo} — ${p.direccion}*`]
+    if (p.superficie) lineas.push(`📐 ${p.superficie} m²`)
+    if (p.enAlquiler && p.alquilerBase) lineas.push(`💰 Alquiler: ${formatARS(p.alquilerBase)}`)
+    if (p.enVenta && p.valorVenta) lineas.push(`💰 Venta: USD ${p.valorVenta.toLocaleString('es-AR')}`)
+    if (p.descripcion) lineas.push(`ℹ️ ${p.descripcion.substring(0, 80)}`)
+    return lineas.join('\n')
+  }).join('\n\n')
+
+  const titulo = quiereAlquiler && !quiereVenta
+    ? '🏠 *Propiedades en alquiler disponibles:*'
+    : quiereVenta && !quiereAlquiler
+    ? '🏠 *Propiedades en venta disponibles:*'
+    : '🏠 *Propiedades disponibles:*'
+
+  await sendText(from, `${titulo}\n\n${lista}\n\n_Para más información respondé con el número de la propiedad que te interesa._`)
 }
 
 export async function restartClient() {

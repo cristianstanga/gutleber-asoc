@@ -1,6 +1,7 @@
 import 'dotenv/config'
 import express from 'express'
 import cors from 'cors'
+import path from 'path'
 import { PrismaClient } from '@prisma/client'
 import pino from 'pino'
 
@@ -14,6 +15,7 @@ import inboxRouter from './routes/inbox'
 import whatsappRouter from './routes/whatsapp'
 import indicesRouter from './routes/indices'
 import { initCron } from './services/cron'
+import { initWhatsApp } from './services/whatsapp'
 import { authMiddleware } from './middleware/auth'
 
 export const prisma = new PrismaClient()
@@ -24,6 +26,7 @@ const PORT = process.env.PORT || 3001
 
 app.use(cors({ origin: process.env.CORS_ORIGIN || 'http://localhost:5173', credentials: true }))
 app.use(express.json())
+app.use('/uploads', express.static(path.join(process.cwd(), 'uploads')))
 
 // Health check (sin auth)
 app.get('/health', (_req, res) => res.json({ ok: true, ts: new Date().toISOString() }))
@@ -44,6 +47,7 @@ app.use('/api/indices', authMiddleware, indicesRouter)
 app.listen(PORT, () => {
   logger.info(`🏢 Gutleber API corriendo en http://localhost:${PORT}`)
   initCron()
+  initWhatsApp().catch((err) => logger.error({ err }, 'Error iniciando WhatsApp'))
 })
 
 process.on('SIGTERM', async () => {

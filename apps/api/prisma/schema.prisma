@@ -73,22 +73,35 @@ enum TipoMensaje {
 // ─── Models ──────────────────────────────────────────────────────────────────
 
 model Propiedad {
-  id           String        @id @default(cuid())
-  direccion    String
-  tipo         TipoPropiedad
-  superficie   Float?
-  enAlquiler   Boolean       @default(false)
-  enVenta      Boolean       @default(false)
-  administrada Boolean       @default(false)
-  alquilerBase Float?
-  indiceActual Indice?
-  valorVenta   Float?
-  notas        String?
-  vinculos     Vinculo[]
-  pagos        Pago[]
-  inboxItems   InboxItem[]
-  createdAt    DateTime      @default(now())
-  updatedAt    DateTime      @updatedAt
+  id               String            @id @default(cuid())
+  direccion        String
+  tipo             TipoPropiedad
+  superficie       Float?
+  enAlquiler       Boolean           @default(false)
+  enVenta          Boolean           @default(false)
+  administrada     Boolean           @default(false)
+  alquilerBase     Float?
+  indiceActual     Indice?
+  valorVenta       Float?
+  descripcion      String?
+  notas            String?
+  instagramPostId  String?
+  imagenes         PropiedadImagen[]
+  vinculos         Vinculo[]
+  pagos            Pago[]
+  inboxItems       InboxItem[]
+  createdAt        DateTime          @default(now())
+  updatedAt        DateTime          @updatedAt
+}
+
+model PropiedadImagen {
+  id          String    @id @default(cuid())
+  propiedadId String
+  url         String
+  nombre      String
+  orden       Int       @default(0)
+  propiedad   Propiedad @relation(fields: [propiedadId], references: [id], onDelete: Cascade)
+  createdAt   DateTime  @default(now())
 }
 
 model Persona {
