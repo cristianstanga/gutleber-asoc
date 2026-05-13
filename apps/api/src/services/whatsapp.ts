@@ -39,15 +39,16 @@ function tiempoEscritura(texto: string): number {
   return ms
 }
 
-/** Muestra "escribiendo..." en WhatsApp y espera */
-async function mostrarEscribiendo(jid: string, textoAEnviar: string) {
+/** Muestra "escribiendo..." en WhatsApp y espera.
+ *  Recibe el remoteJid ORIGINAL (puede ser @s.whatsapp.net o @lid). */
+async function mostrarEscribiendo(remoteJid: string, textoAEnviar: string) {
   if (!sock || !isConnected) return
   try {
-    await sock.sendPresenceUpdate('composing', jid)
+    await sock.sendPresenceUpdate('composing', remoteJid)
     await delay(tiempoEscritura(textoAEnviar), tiempoEscritura(textoAEnviar) + 500)
-    await sock.sendPresenceUpdate('paused', jid)
+    await sock.sendPresenceUpdate('paused', remoteJid)
   } catch {
-    // No es crítico si falla
+    // No es crítico si falla — WhatsApp @lid puede no soportar presencia
   }
 }
 
@@ -95,21 +96,30 @@ export async function initWhatsApp() {
   sock.ev.on('messages.upsert', async ({ messages }) => {
     for (const msg of messages) {
       if (!msg.key.fromMe && msg.message) {
-        const from = msg.key.remoteJid?.replace('@s.whatsapp.net', '') || ''
-        const jid = `${from}@s.whatsapp.net`
+        // JID original completo — SIEMPRE usar este para enviar, nunca reconstruirlo
+        const remoteJid = msg.key.remoteJid || ''
+
+        // Número limpio para la DB (sin @s.whatsapp.net ni @lid)
+        const from = remoteJid.split('@')[0]
 
         const texto =
           msg.message.conversation ||
           msg.message.extendedTextMessage?.text ||
           '[media]'
 
-        logger.info(`📨 Mensaje de ${from}: ${texto.substring(0, 60)}`)
+        logger.info(`📨 [${remoteJid}] ${texto.substring(0, 60)}`)
 
-        // Buscar persona existente
-        const persona = await prisma.persona.findFirst({ where: { whatsapp: from } })
+        // Buscar persona existente (buscar por número limpio Y por JID completo)
+        const persona = await prisma.persona.findFirst({
+          where: { OR: [{ whatsapp: from }, { whatsapp: remoteJid }] }
+        })
 
-        // Obtener o crear conversación
+        // Obtener o crear conversación (clave única = número limpio)
         let conv = await prisma.conversacion.findUnique({ where: { numero: from } })
+        if (!conv) {
+          // También buscar si ya existe con el JID completo (migración de datos viejos)
+          conv = await prisma.conversacion.findFirst({ where: { numero: remoteJid } })
+        }
         if (!conv) {
           conv = await prisma.conversacion.create({
             data: {
@@ -143,11 +153,11 @@ export async function initWhatsApp() {
             const respuesta = await procesarMensaje(from, texto)
 
             if (respuesta.texto) {
-              // Mostrar "escribiendo..." proporcional al largo del texto
-              await mostrarEscribiendo(jid, respuesta.texto)
+              // Mostrar "escribiendo..." — usar remoteJid original
+              await mostrarEscribiendo(remoteJid, respuesta.texto)
 
-              // Enviar texto
-              await sendText(from, respuesta.texto)
+              // Enviar texto — usar remoteJid original (no reconstruir)
+              await sendText(remoteJid, respuesta.texto)
 
               // Guardar en historial
               await prisma.inboxItem.create({
@@ -168,9 +178,9 @@ export async function initWhatsApp() {
               })
             }
 
-            // Enviar media (fotos y videos) si las hay
+            // Enviar media (fotos y videos) si las hay — usar remoteJid original
             if (respuesta.media && respuesta.media.length > 0) {
-              await enviarMedia(from, conv.id, persona?.id, respuesta.media)
+              await enviarMedia(remoteJid, from, conv.id, persona?.id, respuesta.media)
             }
 
           } catch (err) {
@@ -185,33 +195,29 @@ export async function initWhatsApp() {
 // ── Enviar lista de media (fotos + videos) ────────────────────────────────────
 
 async function enviarMedia(
-  to: string,
+  remoteJid: string,   // JID original completo para enviar por WhatsApp
+  numero: string,      // número limpio para guardar en DB
   conversacionId: string,
   personaId: string | undefined,
   items: MediaItem[]
 ) {
   for (const item of items) {
-    // Pausa breve entre cada archivo para no saturar
     await delay(700, 1500)
-
     try {
       if (item.tipo === 'imagen') {
-        await sendImageUrl(to, item.url, item.caption)
+        await sendImageUrl(remoteJid, item.url, item.caption)
       } else {
-        await sendVideoUrl(to, item.url, item.caption)
+        await sendVideoUrl(remoteJid, item.url, item.caption)
       }
-
-      // Guardar en historial
       const descripcion = item.tipo === 'imagen'
         ? `[Foto enviada]${item.caption ? ` — ${item.caption}` : ''}`
         : `[Video enviado]${item.caption ? ` — ${item.caption}` : ''}`
-
       await prisma.inboxItem.create({
         data: {
           canal: 'WHATSAPP',
           mensaje: descripcion,
           tipo: 'SALIENTE',
-          numero: to,
+          numero,
           conversacionId,
           personaId,
           leido: true,
@@ -230,8 +236,17 @@ export async function sendText(to: string, message: string) {
     logger.warn('WhatsApp no conectado — mensaje no enviado')
     return
   }
+  // Si ya tiene @ (JID completo como @s.whatsapp.net o @lid), usar tal cual.
+  // Si es solo número, agregar @s.whatsapp.net
   const jid = to.includes('@') ? to : `${to}@s.whatsapp.net`
-  await sock.sendMessage(jid, { text: message })
+  logger.info(`📤 Enviando a ${jid}: ${message.substring(0, 50)}...`)
+  try {
+    await sock.sendMessage(jid, { text: message })
+    logger.info(`✅ Enviado OK a ${jid}`)
+  } catch (err) {
+    logger.error({ err, jid }, '❌ Error en sock.sendMessage (texto)')
+    throw err
+  }
 }
 
 /** Envía imagen desde URL pública (Unsplash, uploads, etc.) */
@@ -241,7 +256,14 @@ export async function sendImageUrl(to: string, url: string, caption?: string) {
     return
   }
   const jid = to.includes('@') ? to : `${to}@s.whatsapp.net`
-  await sock.sendMessage(jid, { image: { url }, caption: caption || '' })
+  logger.info(`📤 Enviando imagen a ${jid}: ${url.substring(0, 60)}`)
+  try {
+    await sock.sendMessage(jid, { image: { url }, caption: caption || '' })
+    logger.info(`✅ Imagen enviada OK a ${jid}`)
+  } catch (err) {
+    logger.error({ err, jid, url }, '❌ Error enviando imagen')
+    throw err
+  }
 }
 
 /** Envía video desde URL pública */
@@ -251,7 +273,14 @@ export async function sendVideoUrl(to: string, url: string, caption?: string) {
     return
   }
   const jid = to.includes('@') ? to : `${to}@s.whatsapp.net`
-  await sock.sendMessage(jid, { video: { url }, caption: caption || '' })
+  logger.info(`📤 Enviando video a ${jid}: ${url.substring(0, 60)}`)
+  try {
+    await sock.sendMessage(jid, { video: { url }, caption: caption || '' })
+    logger.info(`✅ Video enviado OK a ${jid}`)
+  } catch (err) {
+    logger.error({ err, jid, url }, '❌ Error enviando video')
+    throw err
+  }
 }
 
 /** Envía imagen desde Buffer (para imágenes generadas en memoria, ej. con Sharp) */
