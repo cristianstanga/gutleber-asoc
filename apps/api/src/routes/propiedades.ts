@@ -4,6 +4,8 @@ import path from 'path'
 import { prisma } from '../index'
 import { upload, uploadVideo, getPublicUrl } from '../services/upload'
 import { publicarPropiedad } from '../services/instagram'
+import { generarTarjeta } from '../services/tarjeta'
+import { sendImage } from '../services/whatsapp'
 
 const router = Router()
 
@@ -140,6 +142,71 @@ router.delete('/:id/videos/:videoId', async (req, res) => {
 
   await prisma.propiedadVideo.delete({ where: { id: req.params.videoId } })
   res.json({ ok: true })
+})
+
+// ─── Tarjeta con datos superpuestos ──────────────────────────────────────────
+
+// GET /:id/tarjeta → devuelve la imagen como JPEG (para preview en el sistema)
+router.get('/:id/tarjeta', async (req, res) => {
+  const prop = await prisma.propiedad.findUnique({
+    where: { id: req.params.id },
+    include: { imagenes: { orderBy: { orden: 'asc' }, take: 1 } },
+  })
+  if (!prop) return res.status(404).json({ error: 'Propiedad no encontrada' })
+  if (prop.imagenes.length === 0)
+    return res.status(400).json({ error: 'La propiedad no tiene imágenes para generar tarjeta' })
+
+  try {
+    const buffer = await generarTarjeta({
+      imagenUrl: prop.imagenes[0].url,
+      tipo: prop.tipo,
+      direccion: prop.direccion,
+      superficie: prop.superficie,
+      enAlquiler: prop.enAlquiler,
+      enVenta: prop.enVenta,
+      alquilerBase: prop.alquilerBase,
+      valorVenta: prop.valorVenta,
+      descripcion: prop.descripcion,
+    })
+    res.set('Content-Type', 'image/jpeg')
+    res.send(buffer)
+  } catch (err: unknown) {
+    const msg = err instanceof Error ? err.message : 'Error generando tarjeta'
+    res.status(500).json({ error: msg })
+  }
+})
+
+// POST /:id/tarjeta/whatsapp → genera y envía por WhatsApp al número indicado
+router.post('/:id/tarjeta/whatsapp', async (req, res) => {
+  const { numero } = req.body
+  if (!numero) return res.status(400).json({ error: 'Falta el número de WhatsApp destino' })
+
+  const prop = await prisma.propiedad.findUnique({
+    where: { id: req.params.id },
+    include: { imagenes: { orderBy: { orden: 'asc' }, take: 1 } },
+  })
+  if (!prop) return res.status(404).json({ error: 'Propiedad no encontrada' })
+  if (prop.imagenes.length === 0)
+    return res.status(400).json({ error: 'La propiedad no tiene imágenes' })
+
+  try {
+    const buffer = await generarTarjeta({
+      imagenUrl: prop.imagenes[0].url,
+      tipo: prop.tipo,
+      direccion: prop.direccion,
+      superficie: prop.superficie,
+      enAlquiler: prop.enAlquiler,
+      enVenta: prop.enVenta,
+      alquilerBase: prop.alquilerBase,
+      valorVenta: prop.valorVenta,
+      descripcion: prop.descripcion,
+    })
+    await sendImage(numero, buffer, prop.direccion)
+    res.json({ ok: true })
+  } catch (err: unknown) {
+    const msg = err instanceof Error ? err.message : 'Error'
+    res.status(500).json({ error: msg })
+  }
 })
 
 // ─── Instagram ────────────────────────────────────────────────────────────────

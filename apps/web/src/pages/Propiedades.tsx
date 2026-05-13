@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { Building2, MapPin, Ruler, Tag, Pencil, Trash2, Instagram, Images, X, ChevronLeft } from 'lucide-react'
+import { Building2, MapPin, Ruler, Tag, Pencil, Trash2, Instagram, Images, X, ChevronLeft, ImageIcon } from 'lucide-react'
 import { api, formatARS } from '../lib/api'
 import FormPropiedad from '../components/FormPropiedad'
 import ImageUpload from '../components/ImageUpload'
@@ -154,6 +154,25 @@ export default function Propiedades() {
 
           {/* Sidebar acciones */}
           <div className="space-y-4">
+            <div className="card p-5 space-y-3">
+              <h3 className="font-semibold text-carbon text-sm">Tarjeta con datos</h3>
+              {prop.imagenes.length > 0 ? (
+                <>
+                  <a
+                    href={`${import.meta.env.VITE_API_URL || 'http://localhost:3001'}/api/propiedades/${prop.id}/tarjeta`}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="btn-secondary w-full flex items-center justify-center gap-2"
+                  >
+                    <ImageIcon size={15} /> Ver tarjeta generada
+                  </a>
+                  <p className="text-[11px] text-arena text-center">Foto con precio, dirección y branding superpuesto</p>
+                </>
+              ) : (
+                <p className="text-[11px] text-arena">Subí una foto para generar la tarjeta.</p>
+              )}
+            </div>
+
             <div className="card p-5">
               <h3 className="font-semibold text-carbon mb-3 text-sm">Publicar</h3>
               <button
