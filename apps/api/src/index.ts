@@ -8,6 +8,7 @@ import pino from 'pino'
 import authRouter from './routes/auth'
 import dashboardRouter from './routes/dashboard'
 import propiedadesRouter from './routes/propiedades'
+import tarjetaPublicaRouter from './routes/tarjeta-publica'
 import personasRouter from './routes/personas'
 import vinculosRouter from './routes/vinculos'
 import pagosRouter from './routes/pagos'
@@ -34,6 +35,9 @@ app.get('/health', (_req, res) => res.json({ ok: true, ts: new Date().toISOStrin
 
 // Auth (sin middleware)
 app.use('/api/auth', authRouter)
+
+// Tarjeta pública (sin auth — para preview y compartir)
+app.use('/api/public', tarjetaPublicaRouter)
 
 // Rutas protegidas
 app.use('/api/dashboard', authMiddleware, dashboardRouter)

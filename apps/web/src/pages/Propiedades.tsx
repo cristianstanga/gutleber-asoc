@@ -157,17 +157,26 @@ export default function Propiedades() {
             <div className="card p-5 space-y-3">
               <h3 className="font-semibold text-carbon text-sm">Tarjeta con datos</h3>
               {prop.imagenes.length > 0 ? (
-                <>
+                <div className="space-y-2">
                   <a
-                    href={`${import.meta.env.VITE_API_URL || 'http://localhost:3001'}/api/propiedades/${prop.id}/tarjeta`}
+                    href={`${import.meta.env.VITE_API_URL || 'http://localhost:3001'}/api/public/tarjeta/${prop.id}/preview`}
                     target="_blank"
                     rel="noreferrer"
-                    className="btn-secondary w-full flex items-center justify-center gap-2"
+                    className="btn-primary w-full flex items-center justify-center gap-2"
                   >
-                    <ImageIcon size={15} /> Ver tarjeta generada
+                    <ImageIcon size={15} /> Ver tarjeta (preview)
                   </a>
-                  <p className="text-[11px] text-arena text-center">Foto con precio, dirección y branding superpuesto</p>
-                </>
+                  <a
+                    href={`${import.meta.env.VITE_API_URL || 'http://localhost:3001'}/api/public/tarjeta/${prop.id}`}
+                    target="_blank"
+                    rel="noreferrer"
+                    download
+                    className="btn-secondary w-full flex items-center justify-center gap-2 text-sm"
+                  >
+                    ⬇ Descargar JPEG
+                  </a>
+                  <p className="text-[11px] text-arena text-center">1080×1080 px · listo para WhatsApp e Instagram</p>
+                </div>
               ) : (
                 <p className="text-[11px] text-arena">Subí una foto para generar la tarjeta.</p>
               )}
