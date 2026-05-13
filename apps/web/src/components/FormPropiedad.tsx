@@ -8,6 +8,11 @@ interface Propiedad {
   direccion: string
   tipo: string
   superficie?: number | ''
+  dormitorios?: number | ''
+  banos?: number | ''
+  cochera?: boolean
+  antiguedad?: number | ''
+  piso?: string
   enAlquiler: boolean
   enVenta: boolean
   administrada: boolean
@@ -20,6 +25,7 @@ interface Propiedad {
 
 const vacía: Propiedad = {
   direccion: '', tipo: 'DEPARTAMENTO', superficie: '',
+  dormitorios: '', banos: '', cochera: false, antiguedad: '', piso: '',
   enAlquiler: false, enVenta: false, administrada: false,
   alquilerBase: '', indiceActual: '', valorVenta: '', descripcion: '', notas: '',
 }
@@ -55,6 +61,10 @@ export default function FormPropiedad({ propiedad, onClose }: Props) {
     const data = {
       ...form,
       superficie: form.superficie !== '' ? Number(form.superficie) : undefined,
+      dormitorios: form.dormitorios !== '' ? Number(form.dormitorios) : undefined,
+      banos: form.banos !== '' ? Number(form.banos) : undefined,
+      antiguedad: form.antiguedad !== '' ? Number(form.antiguedad) : undefined,
+      piso: form.piso || undefined,
       alquilerBase: form.alquilerBase !== '' ? Number(form.alquilerBase) : undefined,
       valorVenta: form.valorVenta !== '' ? Number(form.valorVenta) : undefined,
       indiceActual: form.indiceActual || undefined,
@@ -110,6 +120,62 @@ export default function FormPropiedad({ propiedad, onClose }: Props) {
                 placeholder="65"
               />
             </div>
+          </div>
+
+          {/* Atributos: dormitorios, baños, cochera, antigüedad, piso */}
+          <div>
+            <label className="form-label">Características</label>
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className="text-[11px] text-piedra mb-1 block">Dormitorios</label>
+                <input
+                  type="number" min="0" max="20"
+                  className="form-input"
+                  value={form.dormitorios}
+                  onChange={(e) => set('dormitorios', e.target.value === '' ? '' : Number(e.target.value))}
+                  placeholder="2"
+                />
+              </div>
+              <div>
+                <label className="text-[11px] text-piedra mb-1 block">Baños</label>
+                <input
+                  type="number" min="0" max="10"
+                  className="form-input"
+                  value={form.banos}
+                  onChange={(e) => set('banos', e.target.value === '' ? '' : Number(e.target.value))}
+                  placeholder="1"
+                />
+              </div>
+              <div>
+                <label className="text-[11px] text-piedra mb-1 block">Piso / Unidad</label>
+                <input
+                  type="text"
+                  className="form-input"
+                  value={form.piso || ''}
+                  onChange={(e) => set('piso', e.target.value)}
+                  placeholder="3°B, PB, etc."
+                />
+              </div>
+              <div>
+                <label className="text-[11px] text-piedra mb-1 block">Antigüedad (años)</label>
+                <input
+                  type="number" min="0" max="200"
+                  className="form-input"
+                  value={form.antiguedad}
+                  onChange={(e) => set('antiguedad', e.target.value === '' ? '' : Number(e.target.value))}
+                  placeholder="10"
+                />
+              </div>
+            </div>
+            <label className="flex items-center gap-2 cursor-pointer text-sm text-carbon mt-3">
+              <input
+                type="checkbox"
+                checked={!!form.cochera}
+                onChange={(e) => set('cochera', e.target.checked)}
+                className="rounded border-arena accent-piedra"
+              />
+              Incluye cochera / garaje
+            </label>
           </div>
 
           {/* Estados */}

@@ -87,6 +87,11 @@ model Propiedad {
   direccion        String
   tipo             TipoPropiedad
   superficie       Float?
+  dormitorios      Int?
+  banos            Int?
+  cochera          Boolean           @default(false)
+  antiguedad       Int?              // años
+  piso             String?           // "3°B", "PB", etc.
   enAlquiler       Boolean           @default(false)
   enVenta          Boolean           @default(false)
   administrada     Boolean           @default(false)

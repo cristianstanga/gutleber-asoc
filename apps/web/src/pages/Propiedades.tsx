@@ -13,6 +13,11 @@ interface Propiedad {
   direccion: string
   tipo: string
   superficie?: number
+  dormitorios?: number
+  banos?: number
+  cochera?: boolean
+  antiguedad?: number
+  piso?: string
   enAlquiler: boolean
   enVenta: boolean
   administrada: boolean
@@ -24,7 +29,7 @@ interface Propiedad {
   instagramPostId?: string
   imagenes: Imagen[]
   videos: VideoItem[]
-  vinculos?: Array<{ persona: { nombre: string; apellido: string }; alquilerActual?: number }>
+  vinculos?: Array<{ id: string; persona: { nombre: string; apellido: string }; alquilerActual?: number; tipo: string }>
 }
 
 const tipoLabel: Record<string, string> = {
@@ -107,13 +112,46 @@ export default function Propiedades() {
                 {prop.instagramPostId && <span className="badge-gray flex items-center gap-1"><Instagram size={10} /> Publicada</span>}
               </div>
 
-              <div className="grid grid-cols-2 gap-4 text-sm">
+              {/* Atributos físicos */}
+              <div className="flex flex-wrap gap-3 text-sm mb-2">
                 {prop.superficie && (
-                  <div className="flex items-center gap-2">
-                    <Ruler size={14} className="text-arena" />
-                    <span className="text-carbon">{prop.superficie} m²</span>
+                  <div className="flex items-center gap-1.5 bg-crema px-2.5 py-1 rounded-full">
+                    <Ruler size={12} className="text-piedra" />
+                    <span className="text-carbon text-xs">{prop.superficie} m²</span>
                   </div>
                 )}
+                {prop.dormitorios && (
+                  <div className="flex items-center gap-1.5 bg-crema px-2.5 py-1 rounded-full">
+                    <span className="text-xs">🛏</span>
+                    <span className="text-carbon text-xs">{prop.dormitorios} dorm.</span>
+                  </div>
+                )}
+                {prop.banos && (
+                  <div className="flex items-center gap-1.5 bg-crema px-2.5 py-1 rounded-full">
+                    <span className="text-xs">🚿</span>
+                    <span className="text-carbon text-xs">{prop.banos} baño{prop.banos > 1 ? 's' : ''}</span>
+                  </div>
+                )}
+                {prop.cochera && (
+                  <div className="flex items-center gap-1.5 bg-crema px-2.5 py-1 rounded-full">
+                    <span className="text-xs">🚗</span>
+                    <span className="text-carbon text-xs">Cochera</span>
+                  </div>
+                )}
+                {prop.piso && (
+                  <div className="flex items-center gap-1.5 bg-crema px-2.5 py-1 rounded-full">
+                    <span className="text-carbon text-xs">Piso {prop.piso}</span>
+                  </div>
+                )}
+                {prop.antiguedad && (
+                  <div className="flex items-center gap-1.5 bg-crema px-2.5 py-1 rounded-full">
+                    <span className="text-carbon text-xs">{prop.antiguedad} años</span>
+                  </div>
+                )}
+              </div>
+
+              {/* Precio */}
+              <div className="flex flex-wrap gap-4 text-sm">
                 {prop.enAlquiler && prop.alquilerBase && (
                   <div className="flex items-center gap-2">
                     <span className="text-arena">Alquiler:</span>
@@ -205,12 +243,24 @@ export default function Propiedades() {
             </div>
 
             {prop.vinculos && prop.vinculos.length > 0 && (
-              <div className="card p-5">
-                <h3 className="font-semibold text-carbon mb-3 text-sm">Inquilino actual</h3>
+              <div className="card p-5 space-y-3">
+                <h3 className="font-semibold text-carbon text-sm">Contratos activos</h3>
                 {prop.vinculos.map((v, i) => (
-                  <div key={i}>
-                    <p className="text-sm text-carbon font-semibold">{v.persona.nombre} {v.persona.apellido}</p>
-                    {v.alquilerActual && <p className="text-xs text-piedra">{formatARS(v.alquilerActual)}/mes</p>}
+                  <div key={i} className="space-y-2">
+                    <div>
+                      <p className="text-sm text-carbon font-semibold">{v.persona.nombre} {v.persona.apellido}</p>
+                      {v.alquilerActual && <p className="text-xs text-piedra">{formatARS(v.alquilerActual)}/mes</p>}
+                    </div>
+                    {v.tipo === 'ALQUILER' && (
+                      <a
+                        href={`${import.meta.env.VITE_API_URL || 'http://localhost:3001'}/api/vinculos/${v.id}/contrato`}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="btn-secondary w-full flex items-center justify-center gap-1.5 text-xs"
+                      >
+                        📄 Descargar contrato PDF
+                      </a>
+                    )}
                   </div>
                 ))}
               </div>
