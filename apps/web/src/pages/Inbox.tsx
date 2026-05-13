@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import {
   MessageSquare, Send, Search, User, Building2,
-  Clock, CheckCheck, TrendingUp, Tag
+  CheckCheck, TrendingUp, Trash2, AlertTriangle, ExternalLink
 } from 'lucide-react'
 import { api, formatARS } from '../lib/api'
 
@@ -65,6 +65,7 @@ export default function Inbox() {
   const [busqueda, setBusqueda] = useState('')
   const [texto, setTexto] = useState('')
   const [enviando, setEnviando] = useState(false)
+  const [confirmDelete, setConfirmDelete] = useState(false)
   const chatRef = useRef<HTMLDivElement>(null)
 
   // Lista de conversaciones
@@ -109,6 +110,15 @@ export default function Inbox() {
     mutationFn: (data: object) => api.patch(`/conversaciones/${convSeleccionada}`, data),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['conversacion', convSeleccionada] })
+      qc.invalidateQueries({ queryKey: ['conversaciones'] })
+    },
+  })
+
+  const eliminarConv = useMutation({
+    mutationFn: (id: string) => api.delete(`/conversaciones/${id}`),
+    onSuccess: () => {
+      setConvSeleccionada(null)
+      setConfirmDelete(false)
       qc.invalidateQueries({ queryKey: ['conversaciones'] })
     },
   })
@@ -457,6 +467,63 @@ export default function Inbox() {
                   }
                 </div>
               )}
+              {conv.telefonoReal && (
+                <a
+                  href={`https://wa.me/${conv.telefonoReal}`}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="btn-secondary w-full text-xs flex items-center justify-center gap-1.5"
+                >
+                  <ExternalLink size={12} /> Abrir en WhatsApp
+                </a>
+              )}
+            </div>
+
+            {/* Zona de peligro */}
+            <div className="pt-3 border-t border-red-100">
+              <button
+                onClick={() => setConfirmDelete(true)}
+                className="w-full text-xs flex items-center justify-center gap-1.5 text-red-500 hover:text-red-700 hover:bg-red-50 py-1.5 rounded transition-colors"
+              >
+                <Trash2 size={12} /> Eliminar conversación
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── Modal de confirmación de eliminación ─────────────────────────── */}
+      {confirmDelete && conv && (
+        <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-xl shadow-2xl w-full max-w-sm p-6">
+            <div className="flex items-center gap-3 mb-4">
+              <div className="w-10 h-10 rounded-full bg-red-100 flex items-center justify-center shrink-0">
+                <AlertTriangle size={20} className="text-red-500" />
+              </div>
+              <div>
+                <p className="font-semibold text-carbon text-sm">¿Eliminar conversación?</p>
+                <p className="text-xs text-piedra">
+                  Se borrarán todos los mensajes de{' '}
+                  <strong>{conv.nombreCapturado || conv.pushName || conv.numero}</strong>.
+                  Esta acción no se puede deshacer.
+                </p>
+              </div>
+            </div>
+            <div className="flex gap-2">
+              <button
+                onClick={() => setConfirmDelete(false)}
+                className="flex-1 btn-secondary text-sm"
+                disabled={eliminarConv.isPending}
+              >
+                Cancelar
+              </button>
+              <button
+                onClick={() => eliminarConv.mutate(conv.id)}
+                disabled={eliminarConv.isPending}
+                className="flex-1 text-sm bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded-lg font-semibold transition-colors disabled:opacity-50"
+              >
+                {eliminarConv.isPending ? 'Eliminando...' : 'Sí, eliminar'}
+              </button>
             </div>
           </div>
         </div>

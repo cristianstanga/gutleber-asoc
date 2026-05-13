@@ -49,7 +49,9 @@ router.post('/:id/mensaje', async (req, res) => {
   const conv = await prisma.conversacion.findUnique({ where: { id: req.params.id } })
   if (!conv) return res.status(404).json({ error: 'Conversación no encontrada' })
 
-  await sendText(conv.numero, mensaje)
+  // Usar jid completo si está disponible (evita bug con @lid)
+  const destinatario = conv.jid || conv.numero
+  await sendText(destinatario, mensaje)
 
   const item = await prisma.inboxItem.create({
     data: {
@@ -85,6 +87,18 @@ router.patch('/:id', async (req, res) => {
     include: { persona: true, propiedadInteres: true },
   })
   res.json(conv)
+})
+
+// Eliminar conversación (y todos sus mensajes por cascade)
+router.delete('/:id', async (req, res) => {
+  try {
+    // Primero borrar InboxItems (no hay cascade automático en Prisma sin onDelete)
+    await prisma.inboxItem.deleteMany({ where: { conversacionId: req.params.id } })
+    await prisma.conversacion.delete({ where: { id: req.params.id } })
+    res.json({ ok: true })
+  } catch {
+    res.status(404).json({ error: 'Conversación no encontrada' })
+  }
 })
 
 // Resumen: total no leídos

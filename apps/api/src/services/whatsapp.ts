@@ -167,6 +167,7 @@ export async function initWhatsApp() {
           conv = await prisma.conversacion.create({
             data: {
               numero: from,
+              jid: remoteJid,
               personaId: persona?.id,
               pushName,
               fotoPerfilUrl,
@@ -178,6 +179,7 @@ export async function initWhatsApp() {
         } else {
           // Actualizar datos de contacto si tenemos nueva info
           const updateContacto: Record<string, unknown> = {}
+          if (!conv.jid) updateContacto.jid = remoteJid
           if (pushName && !conv.pushName) updateContacto.pushName = pushName
           if (fotoPerfilUrl && !conv.fotoPerfilUrl) updateContacto.fotoPerfilUrl = fotoPerfilUrl
           if (telefonoReal && !conv.telefonoReal) updateContacto.telefonoReal = telefonoReal

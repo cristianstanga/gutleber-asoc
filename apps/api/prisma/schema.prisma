@@ -189,6 +189,7 @@ model Pago {
 model Conversacion {
   id                  String              @id @default(cuid())
   numero              String              @unique  // JID limpio (sin @...) o LID
+  jid                 String?             // JID completo original (ej: 263358938919057@lid o @s.whatsapp.net)
   personaId           String?
   etapa               EtapaConversacion   @default(NUEVO)
   tipoInteres         String?             // ALQUILER | VENTA | null
