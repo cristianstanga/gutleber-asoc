@@ -22,6 +22,9 @@ interface Conversacion {
   etapa: string
   tipoInteres?: string
   nombreCapturado?: string
+  pushName?: string          // nombre del perfil de WhatsApp
+  fotoPerfilUrl?: string     // foto de perfil de WhatsApp
+  telefonoReal?: string      // teléfono real (si era @lid)
   presupuesto?: number
   notas?: string
   ultimoMensaje: string
@@ -162,9 +165,14 @@ export default function Inbox() {
           {convsFiltradas.map((c) => {
             const noLeidos = c._count?.mensajes || 0
             const ultimoMsg = c.mensajes?.[0]
-            const nombre = c.nombreCapturado || c.persona
-              ? `${c.persona?.nombre || ''} ${c.persona?.apellido || ''}`.trim()
-              : c.numero
+            // Prioridad de nombre: persona registrada > nombre que dijo > pushName WA > número
+            const nombre =
+              (c.persona ? `${c.persona.nombre} ${c.persona.apellido}`.trim() : null) ||
+              c.nombreCapturado ||
+              c.pushName ||
+              c.telefonoReal ||
+              c.numero
+            const iniciales = nombre.split(' ').map(w => w[0]).join('').toUpperCase().slice(0, 2)
             const activa = convSeleccionada === c.id
 
             return (
@@ -176,14 +184,20 @@ export default function Inbox() {
                 }`}
               >
                 <div className="flex items-start gap-2">
-                  {/* Avatar */}
-                  <div className="w-9 h-9 rounded-full bg-crema border border-arena flex items-center justify-center shrink-0 mt-0.5">
-                    <User size={16} className="text-piedra" />
+                  {/* Avatar con foto de perfil WA */}
+                  <div className="w-9 h-9 rounded-full shrink-0 mt-0.5 overflow-hidden bg-crema border border-arena flex items-center justify-center">
+                    {c.fotoPerfilUrl ? (
+                      <img src={c.fotoPerfilUrl} alt={nombre} className="w-full h-full object-cover" />
+                    ) : iniciales && iniciales !== '' ? (
+                      <span className="text-xs font-bold text-piedra">{iniciales}</span>
+                    ) : (
+                      <User size={16} className="text-piedra" />
+                    )}
                   </div>
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center justify-between">
                       <p className={`text-sm truncate ${noLeidos > 0 ? 'font-bold text-carbon' : 'font-semibold text-carbon'}`}>
-                        {nombre || c.numero}
+                        {nombre}
                       </p>
                       <span className="text-[10px] text-arena shrink-0 ml-1">
                         {formatHora(c.ultimoMensaje)}
@@ -191,7 +205,7 @@ export default function Inbox() {
                     </div>
                     <div className="flex items-center justify-between mt-0.5">
                       <p className="text-xs text-arena truncate max-w-[140px]">
-                        {ultimoMsg?.mensaje || 'Sin mensajes'}
+                        {ultimoMsg?.mensaje?.replace(/^\[.*?\]\s*—?\s*/, '') || 'Sin mensajes'}
                       </p>
                       {noLeidos > 0 && (
                         <span className="bg-piedra text-white text-[10px] rounded-full w-4 h-4 flex items-center justify-center font-bold shrink-0">
@@ -216,16 +230,27 @@ export default function Inbox() {
           {/* Header del chat */}
           <div className="bg-white border-b border-arena px-5 py-3 flex items-center justify-between">
             <div className="flex items-center gap-3">
-              <div className="w-9 h-9 rounded-full bg-crema border border-arena flex items-center justify-center">
-                <User size={16} className="text-piedra" />
+              {/* Avatar con foto WA */}
+              <div className="w-10 h-10 rounded-full overflow-hidden bg-crema border border-arena flex items-center justify-center shrink-0">
+                {conv.fotoPerfilUrl ? (
+                  <img src={conv.fotoPerfilUrl} alt="" className="w-full h-full object-cover" />
+                ) : (
+                  <User size={18} className="text-piedra" />
+                )}
               </div>
               <div>
                 <p className="font-semibold text-carbon text-sm">
-                  {conv.nombreCapturado || conv.persona
-                    ? `${conv.persona?.nombre || conv.nombreCapturado} ${conv.persona?.apellido || ''}`.trim()
+                  {(conv.persona
+                    ? `${conv.persona.nombre} ${conv.persona.apellido}`.trim()
+                    : conv.nombreCapturado || conv.pushName) || conv.numero}
+                </p>
+                <p className="text-xs text-arena">
+                  {conv.telefonoReal
+                    ? `+${conv.telefonoReal}`
+                    : conv.pushName && conv.pushName !== conv.nombreCapturado
+                    ? conv.pushName
                     : conv.numero}
                 </p>
-                <p className="text-xs text-arena">{conv.numero}</p>
               </div>
             </div>
             <span className={`px-2 py-1 rounded text-xs font-semibold ${ETAPA_COLOR[conv.etapa] || ''}`}>
@@ -309,31 +334,59 @@ export default function Inbox() {
       {/* ── Panel derecho: info del contacto ─────────────────────────────── */}
       {conv && (
         <div className="w-64 bg-white border-l border-arena flex flex-col overflow-y-auto shrink-0">
-          <div className="px-4 py-4 border-b border-crema">
-            <p className="text-xs text-piedra uppercase tracking-wide font-semibold">Contacto</p>
+          {/* Cabecera con foto grande */}
+          <div className="px-4 py-5 border-b border-crema flex flex-col items-center text-center">
+            <div className="w-16 h-16 rounded-full overflow-hidden bg-crema border-2 border-arena mb-2">
+              {conv.fotoPerfilUrl ? (
+                <img src={conv.fotoPerfilUrl} alt="" className="w-full h-full object-cover" />
+              ) : (
+                <div className="w-full h-full flex items-center justify-center">
+                  <User size={28} className="text-piedra" />
+                </div>
+              )}
+            </div>
+            <p className="font-semibold text-carbon text-sm leading-tight">
+              {(conv.persona
+                ? `${conv.persona.nombre} ${conv.persona.apellido}`.trim()
+                : conv.nombreCapturado || conv.pushName) || '—'}
+            </p>
+            {conv.pushName && conv.pushName !== conv.nombreCapturado && !conv.persona && (
+              <p className="text-[11px] text-arena mt-0.5">{conv.pushName}</p>
+            )}
           </div>
 
           <div className="px-4 py-4 space-y-4">
-            {/* Datos capturados */}
+            {/* Datos de contacto */}
             <div className="space-y-2">
-              {(conv.nombreCapturado || conv.persona) && (
-                <div>
-                  <p className="text-[10px] text-arena uppercase tracking-wide">Nombre</p>
-                  <p className="text-sm font-semibold text-carbon">
-                    {conv.persona
-                      ? `${conv.persona.nombre} ${conv.persona.apellido}`
-                      : conv.nombreCapturado}
-                  </p>
-                </div>
-              )}
+              {/* Teléfono real (si se pudo resolver) */}
               <div>
                 <p className="text-[10px] text-arena uppercase tracking-wide">WhatsApp</p>
-                <p className="text-sm text-carbon">+{conv.numero}</p>
+                {conv.telefonoReal ? (
+                  <a
+                    href={`https://wa.me/${conv.telefonoReal}`}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="text-sm text-carbon hover:text-piedra transition-colors"
+                  >
+                    +{conv.telefonoReal}
+                  </a>
+                ) : (
+                  <p className="text-sm text-carbon font-mono text-xs">{conv.numero}</p>
+                )}
               </div>
+
               {conv.persona?.email && (
                 <div>
                   <p className="text-[10px] text-arena uppercase tracking-wide">Email</p>
                   <p className="text-sm text-carbon">{conv.persona.email}</p>
+                </div>
+              )}
+
+              {/* Nombre declarado en la conversación */}
+              {conv.nombreCapturado && conv.nombreCapturado !== conv.pushName && (
+                <div>
+                  <p className="text-[10px] text-arena uppercase tracking-wide">Nombre declarado</p>
+                  <p className="text-sm text-carbon">{conv.nombreCapturado}</p>
                 </div>
               )}
             </div>

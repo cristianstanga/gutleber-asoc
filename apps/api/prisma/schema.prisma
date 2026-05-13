@@ -188,12 +188,15 @@ model Pago {
 
 model Conversacion {
   id                  String              @id @default(cuid())
-  numero              String              @unique
+  numero              String              @unique  // JID limpio (sin @...) o LID
   personaId           String?
   etapa               EtapaConversacion   @default(NUEVO)
   tipoInteres         String?             // ALQUILER | VENTA | null
   propiedadInteresId  String?
-  nombreCapturado     String?
+  nombreCapturado     String?             // nombre que el cliente dijo
+  pushName            String?             // nombre de perfil de WhatsApp
+  fotoPerfilUrl       String?             // URL de la foto de perfil de WA
+  telefonoReal        String?             // número real si el JID es @lid
   presupuesto         Float?
   notas               String?
   ultimoMensaje       DateTime            @default(now())

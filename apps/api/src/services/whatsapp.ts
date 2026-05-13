@@ -9,6 +9,9 @@ import path from 'path'
 import { prisma, logger } from '../index'
 import { procesarMensaje, MediaItem } from './agente'
 
+// Mapa en memoria: LID o JID → número de teléfono real (se llena con contacts.upsert)
+const contactPhoneMap = new Map<string, string>()
+
 const SESSION_PATH = process.env.WA_SESSION_PATH || path.join(process.cwd(), 'baileys_auth_info')
 
 let sock: ReturnType<typeof makeWASocket> | null = null
@@ -70,6 +73,23 @@ export async function initWhatsApp() {
 
   sock.ev.on('creds.update', saveCreds)
 
+  // ── Captura contactos para resolver LID → número real ──────────────────────
+  sock.ev.on('contacts.upsert', (contacts) => {
+    for (const c of contacts) {
+      // c.id puede ser @s.whatsapp.net o @lid
+      // c.notify es el nombre push, c.name es el nombre guardado en agenda
+      if (c.id) {
+        const num = c.id.split('@')[0]
+        // Si el JID es @s.whatsapp.net → el número ES el teléfono real
+        if (c.id.endsWith('@s.whatsapp.net') && num) {
+          // Mapear también por posibles LIDs relacionados
+          contactPhoneMap.set(c.id, num)
+        }
+      }
+    }
+    logger.info(`📇 Contactos actualizados: ${contacts.length} registros`)
+  })
+
   sock.ev.on('connection.update', ({ connection, lastDisconnect, qr }) => {
     if (qr) {
       qrCode = qr
@@ -102,33 +122,72 @@ export async function initWhatsApp() {
         // Número limpio para la DB (sin @s.whatsapp.net ni @lid)
         const from = remoteJid.split('@')[0]
 
+        // Nombre de perfil de WhatsApp (pushName viene gratis en cada mensaje)
+        const pushName = msg.pushName || null
+
+        // Teléfono real: si es @s.whatsapp.net el número limpio ES el teléfono
+        // Si es @lid, intentamos resolver del mapa de contactos
+        let telefonoReal: string | null = null
+        if (remoteJid.endsWith('@s.whatsapp.net')) {
+          telefonoReal = from
+        } else if (remoteJid.endsWith('@lid')) {
+          telefonoReal = contactPhoneMap.get(remoteJid) || null
+        }
+
         const texto =
           msg.message.conversation ||
           msg.message.extendedTextMessage?.text ||
           '[media]'
 
-        logger.info(`📨 [${remoteJid}] ${texto.substring(0, 60)}`)
+        logger.info(`📨 [${remoteJid}] pushName="${pushName}" tel="${telefonoReal}" → ${texto.substring(0, 50)}`)
 
-        // Buscar persona existente (buscar por número limpio Y por JID completo)
+        // Buscar persona existente por teléfono real o número limpio
+        const busquedaWA = [from, remoteJid, telefonoReal].filter(Boolean) as string[]
         const persona = await prisma.persona.findFirst({
-          where: { OR: [{ whatsapp: from }, { whatsapp: remoteJid }] }
+          where: { whatsapp: { in: busquedaWA } }
         })
 
-        // Obtener o crear conversación (clave única = número limpio)
+        // Obtener o crear conversación
         let conv = await prisma.conversacion.findUnique({ where: { numero: from } })
         if (!conv) {
-          // También buscar si ya existe con el JID completo (migración de datos viejos)
           conv = await prisma.conversacion.findFirst({ where: { numero: remoteJid } })
         }
+
+        // Intentar obtener foto de perfil (puede fallar si la privacidad lo bloquea)
+        let fotoPerfilUrl: string | null = null
+        if (!conv?.fotoPerfilUrl) {
+          try {
+            fotoPerfilUrl = await sock!.profilePictureUrl(remoteJid, 'image') ?? null
+          } catch {
+            // Sin foto de perfil o privacidad bloqueada — no es crítico
+          }
+        }
+
         if (!conv) {
           conv = await prisma.conversacion.create({
             data: {
               numero: from,
               personaId: persona?.id,
-              nombreCapturado: persona ? `${persona.nombre} ${persona.apellido}` : null,
+              pushName,
+              fotoPerfilUrl,
+              telefonoReal,
+              nombreCapturado: persona ? `${persona.nombre} ${persona.apellido}` : (pushName || null),
               ultimoMensaje: new Date(),
             },
           })
+        } else {
+          // Actualizar datos de contacto si tenemos nueva info
+          const updateContacto: Record<string, unknown> = {}
+          if (pushName && !conv.pushName) updateContacto.pushName = pushName
+          if (fotoPerfilUrl && !conv.fotoPerfilUrl) updateContacto.fotoPerfilUrl = fotoPerfilUrl
+          if (telefonoReal && !conv.telefonoReal) updateContacto.telefonoReal = telefonoReal
+          if (pushName && !conv.nombreCapturado) updateContacto.nombreCapturado = pushName
+          if (Object.keys(updateContacto).length > 0) {
+            conv = await prisma.conversacion.update({
+              where: { id: conv.id },
+              data: updateContacto,
+            })
+          }
         }
 
         // Guardar mensaje entrante
