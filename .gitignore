@@ -21,3 +21,7 @@ apps/api/dist/
 
 # Prisma
 apps/api/prisma/migrations/migration_lock.toml
+
+# Uploads (archivos subidos por usuarios — no subir a git)
+apps/api/uploads/*
+!apps/api/uploads/.gitkeep
