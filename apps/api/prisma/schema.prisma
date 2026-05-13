@@ -70,6 +70,16 @@ enum TipoMensaje {
   SISTEMA
 }
 
+enum EtapaConversacion {
+  NUEVO           // primer contacto
+  CONSULTANDO     // está preguntando, identificando qué busca
+  INTERESADO      // mostró interés en una propiedad específica
+  RECOPILANDO     // estamos pidiendo sus datos
+  VISITA_PENDIENTE // quiere visitar, falta confirmar
+  CLIENTE         // ya es cliente activo
+  INACTIVO        // no respondió o cerró
+}
+
 // ─── Models ──────────────────────────────────────────────────────────────────
 
 model Propiedad {
@@ -86,12 +96,13 @@ model Propiedad {
   descripcion      String?
   notas            String?
   instagramPostId  String?
-  imagenes         PropiedadImagen[]
-  vinculos         Vinculo[]
-  pagos            Pago[]
-  inboxItems       InboxItem[]
-  createdAt        DateTime          @default(now())
-  updatedAt        DateTime          @updatedAt
+  imagenes              PropiedadImagen[]
+  vinculos              Vinculo[]
+  pagos                 Pago[]
+  inboxItems            InboxItem[]
+  conversacionesInteres Conversacion[]
+  createdAt             DateTime          @default(now())
+  updatedAt             DateTime          @updatedAt
 }
 
 model PropiedadImagen {
@@ -113,11 +124,12 @@ model Persona {
   email      String?
   tipo       TipoPersona
   notas      String?
-  vinculos   Vinculo[]
-  pagos      Pago[]
-  inboxItems InboxItem[]
-  createdAt  DateTime    @default(now())
-  updatedAt  DateTime    @updatedAt
+  vinculos       Vinculo[]
+  pagos          Pago[]
+  inboxItems     InboxItem[]
+  conversaciones Conversacion[]
+  createdAt      DateTime    @default(now())
+  updatedAt      DateTime    @updatedAt
 }
 
 model Vinculo {
@@ -162,18 +174,39 @@ model Pago {
   updatedAt          DateTime   @updatedAt
 }
 
+model Conversacion {
+  id                  String              @id @default(cuid())
+  numero              String              @unique
+  personaId           String?
+  etapa               EtapaConversacion   @default(NUEVO)
+  tipoInteres         String?             // ALQUILER | VENTA | null
+  propiedadInteresId  String?
+  nombreCapturado     String?
+  presupuesto         Float?
+  notas               String?
+  ultimoMensaje       DateTime            @default(now())
+  persona             Persona?            @relation(fields: [personaId], references: [id])
+  propiedadInteres    Propiedad?          @relation(fields: [propiedadInteresId], references: [id])
+  mensajes            InboxItem[]
+  createdAt           DateTime            @default(now())
+  updatedAt           DateTime            @updatedAt
+}
+
 model InboxItem {
-  id          String      @id @default(cuid())
-  canal       Canal
-  mensaje     String
-  tipo        TipoMensaje
-  leido       Boolean     @default(false)
-  propiedadId String?
-  personaId   String?
-  propiedad   Propiedad?  @relation(fields: [propiedadId], references: [id])
-  persona     Persona?    @relation(fields: [personaId], references: [id])
-  createdAt   DateTime    @default(now())
-  updatedAt   DateTime    @updatedAt
+  id               String        @id @default(cuid())
+  canal            Canal
+  mensaje          String
+  tipo             TipoMensaje
+  leido            Boolean       @default(false)
+  numero           String?
+  conversacionId   String?
+  propiedadId      String?
+  personaId        String?
+  conversacion     Conversacion? @relation(fields: [conversacionId], references: [id])
+  propiedad        Propiedad?    @relation(fields: [propiedadId], references: [id])
+  persona          Persona?      @relation(fields: [personaId], references: [id])
+  createdAt        DateTime      @default(now())
+  updatedAt        DateTime      @updatedAt
 }
 
 model Usuario {

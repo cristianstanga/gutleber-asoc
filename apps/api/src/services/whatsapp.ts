@@ -7,6 +7,7 @@ import makeWASocket, {
 import { Boom } from '@hapi/boom'
 import path from 'path'
 import { prisma, logger } from '../index'
+import { procesarMensaje } from './agente'
 
 const SESSION_PATH = process.env.WA_SESSION_PATH || path.join(process.cwd(), 'baileys_auth_info')
 
@@ -32,7 +33,7 @@ export async function initWhatsApp() {
       creds: state.creds,
       keys: makeCacheableSignalKeyStore(state.keys, logger as any),
     },
-    printQRInTerminal: true,
+    printQRInTerminal: false,
     logger: logger as any,
   })
 
@@ -41,9 +42,8 @@ export async function initWhatsApp() {
   sock.ev.on('connection.update', ({ connection, lastDisconnect, qr }) => {
     if (qr) {
       qrCode = qr
-      logger.info('📱 QR listo — escaneá desde el sistema o la terminal')
+      logger.info('📱 QR listo — escaneá desde el sistema')
     }
-
     if (connection === 'close') {
       isConnected = false
       qrCode = null
@@ -54,7 +54,6 @@ export async function initWhatsApp() {
         setTimeout(initWhatsApp, 5000)
       }
     }
-
     if (connection === 'open') {
       isConnected = true
       qrCode = null
@@ -62,7 +61,7 @@ export async function initWhatsApp() {
     }
   })
 
-  // Escuchar mensajes entrantes
+  // ── Mensajes entrantes ──────────────────────────────────────────────────────
   sock.ev.on('messages.upsert', async ({ messages }) => {
     for (const msg of messages) {
       if (!msg.key.fromMe && msg.message) {
@@ -72,29 +71,75 @@ export async function initWhatsApp() {
           msg.message.extendedTextMessage?.text ||
           '[media]'
 
+        logger.info(`📨 Mensaje de ${from}: ${texto.substring(0, 60)}`)
+
+        // Buscar persona existente
         const persona = await prisma.persona.findFirst({ where: { whatsapp: from } })
 
+        // Obtener o crear conversación
+        let conv = await prisma.conversacion.findUnique({ where: { numero: from } })
+        if (!conv) {
+          conv = await prisma.conversacion.create({
+            data: {
+              numero: from,
+              personaId: persona?.id,
+              nombreCapturado: persona ? `${persona.nombre} ${persona.apellido}` : null,
+              ultimoMensaje: new Date(),
+            },
+          })
+        }
+
+        // Guardar mensaje en InboxItem
         await prisma.inboxItem.create({
           data: {
             canal: 'WHATSAPP',
             mensaje: texto,
             tipo: 'ENTRANTE',
+            numero: from,
+            conversacionId: conv.id,
             personaId: persona?.id,
           },
         })
 
-        logger.info(`📨 Mensaje de ${from}: ${texto.substring(0, 60)}`)
+        // Procesar con el agente si no es media
+        if (texto !== '[media]') {
+          try {
+            const respuesta = await procesarMensaje(from, texto)
+            if (respuesta) {
+              await sendText(from, respuesta)
+              // Guardar respuesta del agente
+              await prisma.inboxItem.create({
+                data: {
+                  canal: 'WHATSAPP',
+                  mensaje: respuesta,
+                  tipo: 'SALIENTE',
+                  numero: from,
+                  conversacionId: conv.id,
+                  personaId: persona?.id,
+                  leido: true,
+                },
+              })
 
-        // Bot: responder consultas de propiedades
-        await responderBot(from, texto.toLowerCase().trim())
+              // Actualizar ultimoMensaje de la conversación
+              await prisma.conversacion.update({
+                where: { id: conv.id },
+                data: { ultimoMensaje: new Date() },
+              })
+            }
+          } catch (err) {
+            logger.error({ err }, 'Error en agente WhatsApp')
+          }
+        }
       }
     }
   })
 }
 
+// ── Envío ───────────────────────────────────────────────────────────────────
+
 export async function sendText(to: string, message: string) {
   if (!sock || !isConnected) {
-    logger.warn('WhatsApp no conectado — no se pudo enviar mensaje')
+    logger.warn('WhatsApp no conectado — mensaje no enviado')
     return
   }
   const jid = to.includes('@') ? to : `${to}@s.whatsapp.net`
@@ -103,7 +148,7 @@ export async function sendText(to: string, message: string) {
 
 export async function sendPDF(to: string, buffer: Buffer, filename: string) {
   if (!sock || !isConnected) {
-    logger.warn('WhatsApp no conectado — no se pudo enviar PDF')
+    logger.warn('WhatsApp no conectado — PDF no enviado')
     return
   }
   const jid = to.includes('@') ? to : `${to}@s.whatsapp.net`
@@ -114,74 +159,14 @@ export async function sendPDF(to: string, buffer: Buffer, filename: string) {
   })
 }
 
-// ─── Bot de propiedades ──────────────────────────────────────────────────────
-
-const formatARS = (n: number) =>
-  new Intl.NumberFormat('es-AR', { style: 'currency', currency: 'ARS', maximumFractionDigits: 0 }).format(n)
-
-async function responderBot(from: string, texto: string) {
-  // Palabras clave que activan el bot
-  const quiereAlquiler = /alquiler|alquilar|alquilo/.test(texto)
-  const quiereVenta = /venta|vender|comprar|compra/.test(texto)
-  const quierePropiedades = /propiedad|propiedades|disponible|dispon/.test(texto)
-  const esSaludo = /^(hola|buenas|buen dia|buenas tardes|buenas noches|hey|hi)/.test(texto)
-
-  if (esSaludo) {
-    await sendText(from,
-      `¡Hola! 👋 Soy el asistente de *Gutleber & Asoc.*\n\n` +
-      `Podés consultarme:\n` +
-      `• *propiedades en alquiler*\n` +
-      `• *propiedades en venta*\n` +
-      `• *todas las propiedades*\n\n` +
-      `¿En qué te puedo ayudar?`
-    )
-    return
-  }
-
-  if (!quiereAlquiler && !quiereVenta && !quierePropiedades) return
-
-  const where: Record<string, unknown> = {}
-  if (quiereAlquiler && !quiereVenta) where.enAlquiler = true
-  if (quiereVenta && !quiereAlquiler) where.enVenta = true
-
-  const propiedades = await prisma.propiedad.findMany({
-    where,
-    include: { imagenes: { orderBy: { orden: 'asc' }, take: 1 } },
-    take: 5,
-  })
-
-  if (propiedades.length === 0) {
-    await sendText(from, 'Por el momento no tenemos propiedades disponibles con esas características. Te contactamos cuando tengamos novedades. 🏠')
-    return
-  }
-
-  const tipoLabel: Record<string, string> = {
-    CASA: 'Casa', DEPARTAMENTO: 'Dpto.', LOCAL: 'Local', TERRENO: 'Terreno', OFICINA: 'Oficina',
-  }
-
-  const lista = propiedades.map((p, i) => {
-    const lineas = [`*${i + 1}. ${tipoLabel[p.tipo] || p.tipo} — ${p.direccion}*`]
-    if (p.superficie) lineas.push(`📐 ${p.superficie} m²`)
-    if (p.enAlquiler && p.alquilerBase) lineas.push(`💰 Alquiler: ${formatARS(p.alquilerBase)}`)
-    if (p.enVenta && p.valorVenta) lineas.push(`💰 Venta: USD ${p.valorVenta.toLocaleString('es-AR')}`)
-    if (p.descripcion) lineas.push(`ℹ️ ${p.descripcion.substring(0, 80)}`)
-    return lineas.join('\n')
-  }).join('\n\n')
-
-  const titulo = quiereAlquiler && !quiereVenta
-    ? '🏠 *Propiedades en alquiler disponibles:*'
-    : quiereVenta && !quiereAlquiler
-    ? '🏠 *Propiedades en venta disponibles:*'
-    : '🏠 *Propiedades disponibles:*'
-
-  await sendText(from, `${titulo}\n\n${lista}\n\n_Para más información respondé con el número de la propiedad que te interesa._`)
+export async function sendImage(to: string, buffer: Buffer, caption?: string) {
+  if (!sock || !isConnected) return
+  const jid = to.includes('@') ? to : `${to}@s.whatsapp.net`
+  await sock.sendMessage(jid, { image: buffer, caption })
 }
 
 export async function restartClient() {
-  if (sock) {
-    sock.end(undefined)
-    sock = null
-  }
+  if (sock) { sock.end(undefined); sock = null }
   isConnected = false
   qrCode = null
   await initWhatsApp()

@@ -1,0 +1,96 @@
+import { Router } from 'express'
+import { prisma } from '../index'
+import { sendText } from '../services/whatsapp'
+
+const router = Router()
+
+// Lista de conversaciones (ordenadas por último mensaje)
+router.get('/', async (_req, res) => {
+  const convs = await prisma.conversacion.findMany({
+    include: {
+      persona: true,
+      propiedadInteres: { select: { id: true, direccion: true } },
+      mensajes: {
+        orderBy: { createdAt: 'desc' },
+        take: 1,
+        select: { mensaje: true, tipo: true, createdAt: true },
+      },
+      _count: { select: { mensajes: { where: { leido: false, tipo: 'ENTRANTE' } } } },
+    },
+    orderBy: { ultimoMensaje: 'desc' },
+  })
+  res.json(convs)
+})
+
+// Detalle de conversación con todos los mensajes
+router.get('/:id', async (req, res) => {
+  const conv = await prisma.conversacion.findUnique({
+    where: { id: req.params.id },
+    include: {
+      persona: true,
+      propiedadInteres: true,
+      mensajes: { orderBy: { createdAt: 'asc' } },
+    },
+  })
+  if (!conv) return res.status(404).json({ error: 'Conversación no encontrada' })
+
+  // Marcar mensajes como leídos
+  await prisma.inboxItem.updateMany({
+    where: { conversacionId: req.params.id, leido: false },
+    data: { leido: true },
+  })
+
+  res.json(conv)
+})
+
+// Enviar mensaje manual desde el sistema
+router.post('/:id/mensaje', async (req, res) => {
+  const { mensaje } = req.body
+  const conv = await prisma.conversacion.findUnique({ where: { id: req.params.id } })
+  if (!conv) return res.status(404).json({ error: 'Conversación no encontrada' })
+
+  await sendText(conv.numero, mensaje)
+
+  const item = await prisma.inboxItem.create({
+    data: {
+      canal: 'WHATSAPP',
+      mensaje,
+      tipo: 'SALIENTE',
+      numero: conv.numero,
+      conversacionId: conv.id,
+      personaId: conv.personaId,
+      leido: true,
+    },
+  })
+
+  await prisma.conversacion.update({
+    where: { id: conv.id },
+    data: { ultimoMensaje: new Date() },
+  })
+
+  res.status(201).json(item)
+})
+
+// Actualizar datos de la conversación (etapa, notas, vincular persona)
+router.patch('/:id', async (req, res) => {
+  const { etapa, notas, personaId, propiedadInteresId } = req.body
+  const conv = await prisma.conversacion.update({
+    where: { id: req.params.id },
+    data: {
+      ...(etapa ? { etapa } : {}),
+      ...(notas !== undefined ? { notas } : {}),
+      ...(personaId !== undefined ? { personaId } : {}),
+      ...(propiedadInteresId !== undefined ? { propiedadInteresId } : {}),
+    },
+    include: { persona: true, propiedadInteres: true },
+  })
+  res.json(conv)
+})
+
+// Resumen: total no leídos
+router.get('/resumen/noLeidos', async (_req, res) => {
+  const count = await prisma.inboxItem.count({ where: { leido: false, tipo: 'ENTRANTE' } })
+  res.json({ count })
+})
+
+export default router

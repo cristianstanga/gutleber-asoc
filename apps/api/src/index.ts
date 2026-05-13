@@ -14,6 +14,7 @@ import pagosRouter from './routes/pagos'
 import inboxRouter from './routes/inbox'
 import whatsappRouter from './routes/whatsapp'
 import indicesRouter from './routes/indices'
+import conversacionesRouter from './routes/conversaciones'
 import { initCron } from './services/cron'
 import { initWhatsApp } from './services/whatsapp'
 import { authMiddleware } from './middleware/auth'
@@ -43,6 +44,7 @@ app.use('/api/pagos', authMiddleware, pagosRouter)
 app.use('/api/inbox', authMiddleware, inboxRouter)
 app.use('/api/whatsapp', authMiddleware, whatsappRouter)
 app.use('/api/indices', authMiddleware, indicesRouter)
+app.use('/api/conversaciones', authMiddleware, conversacionesRouter)
 
 app.listen(PORT, () => {
   logger.info(`🏢 Gutleber API corriendo en http://localhost:${PORT}`)
