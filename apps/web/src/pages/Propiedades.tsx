@@ -6,6 +6,7 @@ import FormPropiedad from '../components/FormPropiedad'
 import ImageUpload from '../components/ImageUpload'
 
 interface Imagen { id: string; url: string; orden: number }
+interface VideoItem { id: string; url: string; orden: number; titulo?: string }
 
 interface Propiedad {
   id: string
@@ -22,6 +23,7 @@ interface Propiedad {
   notas?: string
   instagramPostId?: string
   imagenes: Imagen[]
+  videos: VideoItem[]
   vinculos?: Array<{ persona: { nombre: string; apellido: string }; alquilerActual?: number }>
 }
 
@@ -135,13 +137,18 @@ export default function Propiedades() {
               )}
             </div>
 
-            {/* Fotos */}
+            {/* Fotos y Videos */}
             <div className="card p-6">
               <div className="flex items-center gap-2 mb-4">
                 <Images size={16} className="text-piedra" />
-                <h3 className="font-semibold text-carbon">Fotos ({prop.imagenes.length})</h3>
+                <h3 className="font-semibold text-carbon">
+                  Multimedia
+                  <span className="text-arena font-normal text-xs ml-2">
+                    {prop.imagenes.length} foto{prop.imagenes.length !== 1 ? 's' : ''} · {(prop.videos || []).length} video{(prop.videos || []).length !== 1 ? 's' : ''}
+                  </span>
+                </h3>
               </div>
-              <ImageUpload propiedadId={prop.id} imagenes={prop.imagenes} />
+              <ImageUpload propiedadId={prop.id} imagenes={prop.imagenes} videos={prop.videos || []} />
             </div>
           </div>
 

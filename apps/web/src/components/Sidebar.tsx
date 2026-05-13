@@ -11,17 +11,21 @@ const nav = [
   { to: '/contratos',    label: 'Contratos',    Icon: FileText },
   { to: '/pagos',        label: 'Pagos',        Icon: CreditCard },
   { to: '/indices',      label: 'Índices',      Icon: TrendingUp },
-  { to: '/inbox',        label: 'Inbox',        Icon: MessageSquare, badge: true },
+  { to: '/inbox',        label: 'WhatsApp CRM', Icon: MessageSquare, badge: true },
   { to: '/whatsapp',     label: 'WhatsApp',     Icon: Smartphone },
 ]
 
 export default function Sidebar() {
   const { usuario, logout } = useAuthStore()
 
-  const { data: inboxCount } = useQuery({
-    queryKey: ['inbox-count'],
-    queryFn: () => api.get('/inbox?leido=false').then(r => r.data.length as number),
-    refetchInterval: 30_000,
+  // Cuenta de mensajes no leídos desde conversaciones (más preciso)
+  const { data: noLeidos = 0 } = useQuery<number>({
+    queryKey: ['conversaciones-no-leidos'],
+    queryFn: async () => {
+      const r = await api.get('/conversaciones/resumen/noLeidos')
+      return r.data.count as number
+    },
+    refetchInterval: 10_000, // refresca cada 10 segundos
   })
 
   return (
@@ -49,11 +53,11 @@ export default function Sidebar() {
           >
             <Icon size={16} />
             <span className="flex-1">{label}</span>
-            {badge && inboxCount ? (
-              <span className="bg-red-500 text-white text-[10px] rounded-full w-4 h-4 flex items-center justify-center font-bold">
-                {inboxCount > 9 ? '9+' : inboxCount}
+            {badge && noLeidos > 0 && (
+              <span className="bg-red-500 text-white text-[10px] rounded-full min-w-[16px] h-4 flex items-center justify-center font-bold px-1">
+                {noLeidos > 99 ? '99+' : noLeidos}
               </span>
-            ) : null}
+            )}
           </NavLink>
         ))}
       </nav>

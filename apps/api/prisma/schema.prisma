@@ -97,6 +97,7 @@ model Propiedad {
   notas            String?
   instagramPostId  String?
   imagenes              PropiedadImagen[]
+  videos                PropiedadVideo[]
   vinculos              Vinculo[]
   pagos                 Pago[]
   inboxItems            InboxItem[]
@@ -110,6 +111,17 @@ model PropiedadImagen {
   propiedadId String
   url         String
   nombre      String
+  orden       Int       @default(0)
+  propiedad   Propiedad @relation(fields: [propiedadId], references: [id], onDelete: Cascade)
+  createdAt   DateTime  @default(now())
+}
+
+model PropiedadVideo {
+  id          String    @id @default(cuid())
+  propiedadId String
+  url         String
+  nombre      String    // filename en disco
+  titulo      String?   // título opcional
   orden       Int       @default(0)
   propiedad   Propiedad @relation(fields: [propiedadId], references: [id], onDelete: Cascade)
   createdAt   DateTime  @default(now())

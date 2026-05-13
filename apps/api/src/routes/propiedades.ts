@@ -2,13 +2,14 @@ import { Router } from 'express'
 import fs from 'fs'
 import path from 'path'
 import { prisma } from '../index'
-import { upload, getPublicUrl } from '../services/upload'
+import { upload, uploadVideo, getPublicUrl } from '../services/upload'
 import { publicarPropiedad } from '../services/instagram'
 
 const router = Router()
 
 const includeCompleto = {
   imagenes: { orderBy: { orden: 'asc' as const } },
+  videos: { orderBy: { orden: 'asc' as const } },
   vinculos: { where: { activo: true }, include: { persona: true } },
   _count: { select: { pagos: true } },
 }
@@ -103,6 +104,41 @@ router.delete('/:id/imagenes/:imagenId', async (req, res) => {
 router.patch('/:id/imagenes/reordenar', async (req, res) => {
   const { orden } = req.body as { orden: { id: string; orden: number }[] }
   await Promise.all(orden.map((item) => prisma.propiedadImagen.update({ where: { id: item.id }, data: { orden: item.orden } })))
+  res.json({ ok: true })
+})
+
+// ─── Videos ───────────────────────────────────────────────────────────────────
+
+router.post('/:id/videos', uploadVideo.array('videos', 5), async (req, res) => {
+  const files = req.files as Express.Multer.File[]
+  if (!files || files.length === 0) return res.status(400).json({ error: 'Sin archivos de video' })
+
+  const existentes = await prisma.propiedadVideo.count({ where: { propiedadId: req.params.id } })
+
+  const creados = await Promise.all(
+    files.map((file, i) =>
+      prisma.propiedadVideo.create({
+        data: {
+          propiedadId: req.params.id,
+          url: getPublicUrl(file.filename),
+          nombre: file.filename,
+          titulo: req.body.titulo || null,
+          orden: existentes + i,
+        },
+      })
+    )
+  )
+  res.status(201).json(creados)
+})
+
+router.delete('/:id/videos/:videoId', async (req, res) => {
+  const video = await prisma.propiedadVideo.findUnique({ where: { id: req.params.videoId } })
+  if (!video) return res.status(404).json({ error: 'Video no encontrado' })
+
+  const filePath = path.join(process.cwd(), 'uploads', video.nombre)
+  if (fs.existsSync(filePath)) fs.unlinkSync(filePath)
+
+  await prisma.propiedadVideo.delete({ where: { id: req.params.videoId } })
   res.json({ ok: true })
 })
 
