@@ -6,6 +6,7 @@ import Dashboard from './pages/Dashboard'
 import Propiedades from './pages/Propiedades'
 import Personas from './pages/Personas'
 import Contratos from './pages/Contratos'
+import AjusteIndices from './pages/AjusteIndices'
 import Pagos from './pages/Pagos'
 import Inbox from './pages/Inbox'
 import WhatsAppStatus from './pages/WhatsAppStatus'
@@ -34,6 +35,7 @@ export default function App() {
           <Route path="personas" element={<Personas />} />
           <Route path="contratos" element={<Contratos />} />
           <Route path="pagos" element={<Pagos />} />
+          <Route path="indices" element={<AjusteIndices />} />
           <Route path="inbox" element={<Inbox />} />
           <Route path="whatsapp" element={<WhatsAppStatus />} />
         </Route>
