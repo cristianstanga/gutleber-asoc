@@ -5,7 +5,7 @@ import { useQuery } from '@tanstack/react-query'
 import { api } from '../lib/api'
 
 const nav = [
-  { to: '/dashboard',    label: 'Dashboard',    Icon: LayoutDashboard },
+  { to: '/dashboard',    label: 'Panel de gestión', Icon: LayoutDashboard },
   { to: '/propiedades',  label: 'Propiedades',  Icon: Building2 },
   { to: '/personas',     label: 'Personas',     Icon: Users },
   { to: '/contratos',    label: 'Contratos',    Icon: FileText },

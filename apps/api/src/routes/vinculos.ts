@@ -5,9 +5,10 @@ import { generarContratoPDF } from '../services/contrato'
 const router = Router()
 
 router.get('/', async (req, res) => {
-  const { activo } = req.query
+  const { activo, tipo } = req.query
   const where: Record<string, unknown> = {}
   if (activo !== undefined) where.activo = activo === 'true'
+  if (tipo) where.tipo = tipo
 
   const vinculos = await prisma.vinculo.findMany({
     where,

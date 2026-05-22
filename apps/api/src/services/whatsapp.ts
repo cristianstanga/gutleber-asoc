@@ -58,6 +58,7 @@ async function mostrarEscribiendo(remoteJid: string, textoAEnviar: string) {
 // ── Init WhatsApp ─────────────────────────────────────────────────────────────
 
 export async function initWhatsApp() {
+  try {
   const { state, saveCreds } = await useMultiFileAuthState(SESSION_PATH)
   const { version } = await fetchLatestBaileysVersion()
 
@@ -251,6 +252,10 @@ export async function initWhatsApp() {
       }
     }
   })
+  } catch (err) {
+    logger.warn({ err }, '⚠️  WhatsApp init error — reintentando en 10s')
+    setTimeout(initWhatsApp, 10_000)
+  }
 }
 
 // ── Enviar lista de media (fotos + videos) ────────────────────────────────────

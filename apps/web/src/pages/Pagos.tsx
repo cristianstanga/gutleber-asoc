@@ -1,7 +1,50 @@
 import { useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { CreditCard, Download, Send, CheckCircle, Filter } from 'lucide-react'
+import {
+  CreditCard, Send, CheckCircle, ChevronRight,
+  Plus, Trash2, FileText, X, Building2, User, Calendar,
+  Home, Receipt, Wrench, Percent
+} from 'lucide-react'
 import { api, formatARS, formatFecha } from '../lib/api'
+
+// ─── Types ────────────────────────────────────────────────────────────────────
+
+interface Persona {
+  id: string
+  nombre: string
+  apellido: string
+  whatsapp?: string
+}
+
+interface Vinculo {
+  id: string
+  tipo: string
+  fechaInicio: string
+  fechaFin?: string
+  alquilerActual?: number
+  alquilerInicial?: number
+  periodicidad?: number
+  honorariosPct?: number
+  activo: boolean
+  persona: Persona
+  propiedad: { id: string; direccion: string }
+  pagos?: Pago[]
+}
+
+interface Gasto {
+  id: string
+  descripcion: string
+  monto: number
+  fecha: string
+  estado: string
+  vinculoId?: string
+  propiedadId?: string
+}
+
+interface ConceptoExtra {
+  descripcion: string
+  monto: number
+}
 
 interface Pago {
   id: string
@@ -12,170 +55,870 @@ interface Pago {
   estado: string
   fechaVencimiento: string
   fechaPago?: string
+  formaPago?: string
+  conceptosExtra?: ConceptoExtra[]
+  totalConExtras?: number
+  nroRecibo?: number
   comprobanteEnviado: boolean
-  persona?: { nombre: string; apellido: string; whatsapp?: string }
+  pagadoAlPropietario: boolean
+  fechaPagoPropietario?: string
+  persona?: Persona
   propiedad?: { direccion: string }
 }
 
-const estadoBadge: Record<string, string> = {
-  PENDIENTE: 'badge-yellow', PAGADO: 'badge-green', VENCIDO: 'badge-red',
-  MORA: 'badge-red', ANULADO: 'badge-gray',
+// ─── Constantes ───────────────────────────────────────────────────────────────
+
+const ESTADO_BADGE: Record<string, string> = {
+  PENDIENTE: 'badge-yellow',
+  PAGADO: 'badge-green',
+  VENCIDO: 'badge-red',
+  MORA: 'badge-red',
+  ANULADO: 'badge-gray',
 }
-const estadoLabel: Record<string, string> = {
-  PENDIENTE: 'Pendiente', PAGADO: 'Pagado', VENCIDO: 'Vencido', MORA: 'En mora', ANULADO: 'Anulado',
+const ESTADO_LABEL: Record<string, string> = {
+  PENDIENTE: 'Pendiente', PAGADO: 'Pagado', VENCIDO: 'Vencido',
+  MORA: 'En mora', ANULADO: 'Anulado',
+}
+const FORMAS_PAGO = ['Efectivo', 'Transferencia', 'Cheque', 'Depósito', 'Otro']
+
+// ─── Helpers ─────────────────────────────────────────────────────────────────
+
+function nroFormato(n?: number | null) {
+  if (!n) return '—'
+  return `0001-${String(n).padStart(8, '0')}`
 }
 
-export default function Pagos() {
-  const qc = useQueryClient()
-  const [filtroEstado, setFiltroEstado] = useState('')
+async function descargarPDF(id: string, tipo: 'recibo' | 'liquidacion', label: string) {
+  const response = await api.get(`/pagos/${id}/${tipo}`, { responseType: 'blob' })
+  const url = URL.createObjectURL(new Blob([response.data], { type: 'application/pdf' }))
+  const a = document.createElement('a')
+  a.href = url
+  a.download = `${tipo}-${label}.pdf`
+  a.click()
+  URL.revokeObjectURL(url)
+}
+
+// ─── Modal Nuevo Pago ─────────────────────────────────────────────────────────
+
+interface ModalNuevoPagoProps {
+  vinculo: Vinculo
+  onClose: () => void
+  onCreated: () => void
+}
+
+function ModalNuevoPago({ vinculo, onClose, onCreated }: ModalNuevoPagoProps) {
+  const hoy = new Date()
+  const [periodo, setPeriodo] = useState(
+    hoy.toLocaleDateString('es-AR', { month: 'long', year: 'numeric' })
+      .replace(/^\w/, c => c.toUpperCase())
+  )
+  const [fechaVenc, setFechaVenc] = useState(() => {
+    const d = new Date(hoy.getFullYear(), hoy.getMonth(), 10)
+    return d.toISOString().slice(0, 10)
+  })
+  const [monto, setMonto] = useState(vinculo.alquilerActual ?? vinculo.alquilerInicial ?? 0)
+  const [formaPago, setFormaPago] = useState('Efectivo')
+  const [extras, setExtras] = useState<ConceptoExtra[]>([])
   const [toast, setToast] = useState('')
 
-  const { data: pagos = [], isLoading } = useQuery<Pago[]>({
-    queryKey: ['pagos', filtroEstado],
-    queryFn: () => api.get('/pagos', { params: filtroEstado ? { estado: filtroEstado } : {} }).then((r) => r.data),
-  })
+  const total = monto + extras.reduce((s, e) => s + (Number(e.monto) || 0), 0)
 
-  const marcarPagado = useMutation({
-    mutationFn: (id: string) => api.patch(`/pagos/${id}/marcar-pagado`),
-    onSuccess: () => { qc.invalidateQueries({ queryKey: ['pagos'] }); mostrarToast('Marcado como pagado') },
-  })
-
-  const enviarWA = useMutation({
-    mutationFn: (id: string) => api.post(`/pagos/${id}/enviar-whatsapp`),
-    onSuccess: () => { qc.invalidateQueries({ queryKey: ['pagos'] }); mostrarToast('Recibo enviado por WhatsApp') },
+  const crear = useMutation({
+    mutationFn: () => api.post('/pagos', {
+      vinculoId: vinculo.id,
+      propiedadId: vinculo.propiedad.id,
+      personaId: vinculo.persona.id,
+      tipo: 'ALQUILER',
+      concepto: `Alquiler ${periodo}`,
+      monto,
+      moneda: 'ARS',
+      periodo,
+      fechaVencimiento: fechaVenc,
+      formaPago,
+      conceptosExtra: extras,
+      totalConExtras: total,
+    }),
+    onSuccess: () => { onCreated(); onClose() },
     onError: (e: unknown) => {
-      const msg = (e as { response?: { data?: { error?: string } } })?.response?.data?.error || 'Error al enviar'
-      mostrarToast(msg)
+      const msg = (e as { response?: { data?: { error?: string } } })?.response?.data?.error || 'Error'
+      setToast(msg)
+      setTimeout(() => setToast(''), 3000)
     },
   })
 
-  function mostrarToast(msg: string) {
-    setToast(msg)
-    setTimeout(() => setToast(''), 3000)
+  function addExtra() {
+    setExtras([...extras, { descripcion: '', monto: 0 }])
+  }
+  function removeExtra(i: number) {
+    setExtras(extras.filter((_, idx) => idx !== i))
+  }
+  function updateExtra(i: number, key: keyof ConceptoExtra, val: string) {
+    setExtras(extras.map((e, idx) => idx === i ? { ...e, [key]: key === 'monto' ? Number(val) : val } : e))
   }
 
-  async function descargarPDF(id: string, periodo?: string) {
+  return (
+    <div className="fixed inset-0 bg-carbon/40 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-lg max-h-[90vh] overflow-y-auto">
+        {/* Header */}
+        <div className="flex items-center justify-between px-6 py-4 border-b border-arena">
+          <div>
+            <h2 className="font-display text-lg text-carbon">Nuevo Pago</h2>
+            <p className="text-xs text-piedra mt-0.5">{vinculo.propiedad.direccion} · {vinculo.persona.nombre} {vinculo.persona.apellido}</p>
+          </div>
+          <button onClick={onClose} className="p-1 rounded hover:bg-crema text-piedra">
+            <X size={18} />
+          </button>
+        </div>
+
+        <div className="px-6 py-5 space-y-4">
+          {toast && <div className="text-red-600 text-sm bg-red-50 px-3 py-2 rounded-lg">{toast}</div>}
+
+          {/* Período y vencimiento */}
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className="form-label">Período</label>
+              <input
+                className="form-input"
+                value={periodo}
+                onChange={e => setPeriodo(e.target.value)}
+                placeholder="Mayo 2026"
+              />
+            </div>
+            <div>
+              <label className="form-label">Fecha vencimiento</label>
+              <input
+                type="date"
+                className="form-input"
+                value={fechaVenc}
+                onChange={e => setFechaVenc(e.target.value)}
+              />
+            </div>
+          </div>
+
+          {/* Monto base */}
+          <div>
+            <label className="form-label">Alquiler base (ARS)</label>
+            <input
+              type="number"
+              className="form-input"
+              value={monto}
+              onChange={e => setMonto(Number(e.target.value))}
+            />
+          </div>
+
+          {/* Conceptos extra */}
+          <div>
+            <div className="flex items-center justify-between mb-2">
+              <label className="form-label mb-0">Otros conceptos</label>
+              <button
+                type="button"
+                onClick={addExtra}
+                className="text-xs text-carbon flex items-center gap-1 hover:text-arena transition-colors"
+              >
+                <Plus size={12} /> Agregar
+              </button>
+            </div>
+            {extras.length > 0 && (
+              <div className="space-y-2">
+                {extras.map((ex, i) => (
+                  <div key={i} className="flex gap-2 items-center">
+                    <input
+                      className="form-input flex-1 text-sm"
+                      placeholder="Descripción (ej: Depósito)"
+                      value={ex.descripcion}
+                      onChange={e => updateExtra(i, 'descripcion', e.target.value)}
+                    />
+                    <input
+                      type="number"
+                      className="form-input w-28 text-sm"
+                      placeholder="Monto"
+                      value={ex.monto || ''}
+                      onChange={e => updateExtra(i, 'monto', e.target.value)}
+                    />
+                    <button onClick={() => removeExtra(i)} className="text-piedra hover:text-red-500">
+                      <Trash2 size={14} />
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+
+          {/* Forma de pago */}
+          <div>
+            <label className="form-label">Forma de pago</label>
+            <select
+              className="form-select"
+              value={formaPago}
+              onChange={e => setFormaPago(e.target.value)}
+            >
+              {FORMAS_PAGO.map(f => <option key={f}>{f}</option>)}
+            </select>
+          </div>
+
+          {/* Total */}
+          <div className="bg-crema rounded-xl px-4 py-3 flex items-center justify-between">
+            <span className="text-sm text-piedra font-medium">Total a cobrar</span>
+            <span className="font-display text-xl text-carbon">{formatARS(total)}</span>
+          </div>
+        </div>
+
+        <div className="px-6 pb-5 flex gap-3 justify-end">
+          <button onClick={onClose} className="btn-secondary">Cancelar</button>
+          <button
+            onClick={() => crear.mutate()}
+            disabled={crear.isPending}
+            className="btn-primary flex items-center gap-2"
+          >
+            <CreditCard size={14} />
+            {crear.isPending ? 'Creando...' : 'Crear pago'}
+          </button>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+// ─── Modal Liquidación ────────────────────────────────────────────────────────
+
+interface ModalLiquidacionProps {
+  pago: Pago
+  vinculo: Vinculo
+  onClose: () => void
+}
+
+function ModalLiquidacion({ pago, vinculo, onClose }: ModalLiquidacionProps) {
+  const [honorariosPct, setHonorariosPct] = useState(vinculo.honorariosPct ?? 8)
+  const [gastosSeleccionados, setGastosSeleccionados] = useState<string[]>([])
+  const [gastosExtra, setGastosExtra] = useState<{ descripcion: string; monto: number }[]>([])
+  const [toast, setToast] = useState('')
+  const [generando, setGenerando] = useState(false)
+
+  const totalBase = pago.totalConExtras ?? pago.monto
+
+  // Gastos pendientes de esta propiedad/vínculo
+  const { data: gastosPendientes = [] } = useQuery<Gasto[]>({
+    queryKey: ['gastos-pendientes', vinculo.id],
+    queryFn: () => api.get('/gastos', {
+      params: { vinculoId: vinculo.id, estado: 'PENDIENTE' }
+    }).then(r => r.data),
+  })
+
+  // Totales en tiempo real
+  const montoGastosSeleccionados = gastosPendientes
+    .filter(g => gastosSeleccionados.includes(g.id))
+    .reduce((s, g) => s + g.monto, 0)
+  const montoGastosExtra = gastosExtra.reduce((s, g) => s + (Number(g.monto) || 0), 0)
+  const totalGastos = montoGastosSeleccionados + montoGastosExtra
+  const honorarios = Math.round((totalBase - totalGastos) * honorariosPct / 100)
+  const totalPagado = totalBase - totalGastos - honorarios
+
+  function toggleGasto(id: string) {
+    setGastosSeleccionados(prev =>
+      prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]
+    )
+  }
+
+  function addGastoExtra() {
+    setGastosExtra(prev => [...prev, { descripcion: '', monto: 0 }])
+  }
+
+  function updateGastoExtra(i: number, key: 'descripcion' | 'monto', val: string) {
+    setGastosExtra(prev => prev.map((g, idx) =>
+      idx === i ? { ...g, [key]: key === 'monto' ? Number(val) : val } : g
+    ))
+  }
+
+  async function generarPDF() {
+    setGenerando(true)
     try {
-      const response = await api.get(`/pagos/${id}/pdf`, { responseType: 'blob' })
+      const response = await api.post(
+        `/pagos/${pago.id}/liquidacion`,
+        {
+          honorariosPct,
+          gastosIds: gastosSeleccionados,
+          gastosExtra: [
+            ...gastosExtra.filter(g => g.descripcion && g.monto > 0),
+          ],
+        },
+        { responseType: 'blob' }
+      )
       const url = URL.createObjectURL(new Blob([response.data], { type: 'application/pdf' }))
       const a = document.createElement('a')
       a.href = url
-      a.download = `recibo-${periodo || id}.pdf`
+      a.download = `liquidacion-${pago.periodo || pago.id}.pdf`
       a.click()
       URL.revokeObjectURL(url)
+      onClose()
     } catch {
-      mostrarToast('Error al generar el PDF')
+      setToast('Error al generar la liquidación')
+      setTimeout(() => setToast(''), 3000)
+    } finally {
+      setGenerando(false)
     }
   }
 
   return (
-    <div className="p-8">
+    <div className="fixed inset-0 bg-carbon/40 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-lg max-h-[90vh] overflow-y-auto">
+        {/* Header */}
+        <div className="flex items-center justify-between px-6 py-4 border-b border-arena">
+          <div>
+            <h2 className="font-display text-lg text-carbon">Vista previa — Liquidación</h2>
+            <p className="text-xs text-piedra mt-0.5">
+              {pago.periodo} · {vinculo.propiedad.direccion}
+            </p>
+          </div>
+          <button onClick={onClose} className="p-1 rounded hover:bg-crema text-piedra">
+            <X size={18} />
+          </button>
+        </div>
+
+        <div className="px-6 py-5 space-y-5">
+          {toast && <div className="text-red-600 text-sm bg-red-50 px-3 py-2 rounded-lg">{toast}</div>}
+
+          {/* Total alquiler (readonly) */}
+          <div className="bg-crema rounded-xl px-4 py-3 flex items-center justify-between">
+            <span className="text-sm text-piedra">Alquiler cobrado</span>
+            <span className="font-display text-lg text-carbon">{formatARS(totalBase)}</span>
+          </div>
+
+          {/* Gastos pendientes del sistema */}
+          {gastosPendientes.length > 0 && (
+            <div>
+              <div className="flex items-center gap-2 mb-2">
+                <Wrench size={13} className="text-piedra" />
+                <p className="text-sm font-semibold text-carbon">Gastos pendientes</p>
+                <span className="text-xs text-piedra">(tildar para descontar)</span>
+              </div>
+              <div className="border border-arena rounded-xl overflow-hidden">
+                {gastosPendientes.map(g => (
+                  <label
+                    key={g.id}
+                    className="flex items-center gap-3 px-4 py-2.5 hover:bg-crema/60 cursor-pointer border-b border-crema last:border-0"
+                  >
+                    <input
+                      type="checkbox"
+                      checked={gastosSeleccionados.includes(g.id)}
+                      onChange={() => toggleGasto(g.id)}
+                      className="rounded border-arena accent-carbon"
+                    />
+                    <span className="flex-1 text-sm text-carbon">{g.descripcion}</span>
+                    <span className="text-sm font-semibold text-red-600">-{formatARS(g.monto)}</span>
+                    <span className="text-[10px] text-piedra">{formatFecha(g.fecha)}</span>
+                  </label>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Gastos extra en el momento */}
+          <div>
+            <div className="flex items-center justify-between mb-2">
+              <div className="flex items-center gap-2">
+                <Wrench size={13} className="text-piedra" />
+                <p className="text-sm font-semibold text-carbon">Agregar gasto ahora</p>
+              </div>
+              <button
+                type="button"
+                onClick={addGastoExtra}
+                className="text-xs text-carbon flex items-center gap-1 hover:text-arena transition-colors"
+              >
+                <Plus size={12} /> Agregar
+              </button>
+            </div>
+            {gastosExtra.length > 0 && (
+              <div className="space-y-2">
+                {gastosExtra.map((g, i) => (
+                  <div key={i} className="flex gap-2 items-center">
+                    <input
+                      className="form-input flex-1 text-sm"
+                      placeholder="Descripción (ej: Plomería)"
+                      value={g.descripcion}
+                      onChange={e => updateGastoExtra(i, 'descripcion', e.target.value)}
+                    />
+                    <input
+                      type="number"
+                      className="form-input w-28 text-sm"
+                      placeholder="Monto"
+                      value={g.monto || ''}
+                      onChange={e => updateGastoExtra(i, 'monto', e.target.value)}
+                    />
+                    <button
+                      onClick={() => setGastosExtra(prev => prev.filter((_, idx) => idx !== i))}
+                      className="text-piedra hover:text-red-500"
+                    >
+                      <Trash2 size={14} />
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+
+          {/* Honorarios */}
+          <div>
+            <div className="flex items-center gap-2 mb-2">
+              <Percent size={13} className="text-piedra" />
+              <p className="text-sm font-semibold text-carbon">Honorarios de administración</p>
+            </div>
+            <div className="flex items-center gap-3">
+              <input
+                type="range"
+                min={0}
+                max={20}
+                step={0.5}
+                value={honorariosPct}
+                onChange={e => setHonorariosPct(Number(e.target.value))}
+                className="flex-1 accent-carbon"
+              />
+              <div className="flex items-center gap-1 w-20">
+                <input
+                  type="number"
+                  min={0}
+                  max={20}
+                  step={0.5}
+                  value={honorariosPct}
+                  onChange={e => setHonorariosPct(Number(e.target.value))}
+                  className="form-input text-center font-semibold w-16 text-sm"
+                />
+                <span className="text-sm text-piedra">%</span>
+              </div>
+            </div>
+          </div>
+
+          {/* Resumen de cálculo */}
+          <div className="border border-arena rounded-xl overflow-hidden">
+            <div className="flex justify-between px-4 py-2.5 border-b border-crema">
+              <span className="text-sm text-piedra">Alquiler cobrado</span>
+              <span className="text-sm font-semibold text-carbon">{formatARS(totalBase)}</span>
+            </div>
+            {totalGastos > 0 && (
+              <div className="flex justify-between px-4 py-2.5 border-b border-crema bg-red-50/50">
+                <span className="text-sm text-red-600">Gastos descontados</span>
+                <span className="text-sm font-semibold text-red-600">- {formatARS(totalGastos)}</span>
+              </div>
+            )}
+            <div className="flex justify-between px-4 py-2.5 border-b border-crema">
+              <span className="text-sm text-piedra">Honorarios ({honorariosPct}%)</span>
+              <span className="text-sm font-semibold text-piedra">- {formatARS(honorarios)}</span>
+            </div>
+            <div className="flex justify-between px-4 py-3 bg-crema">
+              <span className="text-sm font-bold text-carbon">A pagar al propietario</span>
+              <span className="font-display text-lg text-carbon">{formatARS(totalPagado)}</span>
+            </div>
+          </div>
+        </div>
+
+        <div className="px-6 pb-5 flex gap-3 justify-end">
+          <button onClick={onClose} className="btn-secondary">Cancelar</button>
+          <button
+            onClick={generarPDF}
+            disabled={generando}
+            className="btn-primary flex items-center gap-2"
+          >
+            <Receipt size={14} />
+            {generando ? 'Generando...' : 'Generar liquidación PDF'}
+          </button>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+// ─── Panel de pagos del contrato ──────────────────────────────────────────────
+
+interface PanelPagosProps {
+  vinculo: Vinculo
+}
+
+function PanelPagos({ vinculo }: PanelPagosProps) {
+  const qc = useQueryClient()
+  const [toast, setToast] = useState('')
+  const [modalNuevo, setModalNuevo] = useState(false)
+  const [pagoLiquidar, setPagoLiquidar] = useState<Pago | null>(null)
+
+  const { data: pagos = [], isLoading } = useQuery<Pago[]>({
+    queryKey: ['pagos', vinculo.id],
+    queryFn: () => api.get('/pagos', { params: { vinculoId: vinculo.id } }).then(r => r.data),
+  })
+
+  const marcarPagado = useMutation({
+    mutationFn: (id: string) => api.patch(`/pagos/${id}/marcar-pagado`),
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ['pagos', vinculo.id] }); toast2('Marcado como pagado ✓') },
+  })
+
+  const pagarPropietario = useMutation({
+    mutationFn: (id: string) => api.patch(`/pagos/${id}/pagar-propietario`),
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ['pagos', vinculo.id] }); toast2('Pago al propietario registrado ✓') },
+  })
+
+  const enviarWA = useMutation({
+    mutationFn: (id: string) => api.post(`/pagos/${id}/enviar-whatsapp`),
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ['pagos', vinculo.id] }); toast2('Recibo enviado por WhatsApp ✓') },
+    onError: (e: unknown) => {
+      const msg = (e as { response?: { data?: { error?: string } } })?.response?.data?.error || 'Error al enviar'
+      toast2(msg)
+    },
+  })
+
+  function toast2(msg: string) {
+    setToast(msg)
+    setTimeout(() => setToast(''), 3000)
+  }
+
+  async function handleDescargar(pago: Pago, tipo: 'recibo' | 'liquidacion') {
+    try {
+      await descargarPDF(pago.id, tipo, pago.periodo || pago.id)
+    } catch {
+      toast2('Error al generar PDF')
+    }
+  }
+
+  const pagosOrdenados = [...pagos].sort(
+    (a, b) => new Date(a.fechaVencimiento).getTime() - new Date(b.fechaVencimiento).getTime()
+  )
+
+  return (
+    <div className="flex-1 flex flex-col overflow-hidden">
       {/* Toast */}
       {toast && (
-        <div className="fixed top-4 right-4 bg-carbon text-white px-4 py-2 rounded shadow-lg text-sm z-50">
+        <div className="fixed top-4 right-4 bg-carbon text-white px-4 py-2 rounded-xl shadow-lg text-sm z-50">
           {toast}
         </div>
       )}
 
-      <div className="flex items-center justify-between mb-6">
+      {/* Header del panel */}
+      <div className="px-6 py-4 border-b border-arena flex items-center justify-between bg-white">
         <div>
-          <h1 className="font-display text-2xl text-carbon">Pagos</h1>
-          <p className="text-piedra text-sm mt-1">{pagos.length} registros</p>
+          <h3 className="font-display text-base text-carbon">
+            {vinculo.propiedad.direccion}
+          </h3>
+          <p className="text-xs text-piedra mt-0.5">
+            {vinculo.persona.nombre} {vinculo.persona.apellido} ·{' '}
+            {formatFecha(vinculo.fechaInicio)} — {vinculo.fechaFin ? formatFecha(vinculo.fechaFin) : 'Sin fin'} ·{' '}
+            {formatARS(vinculo.alquilerActual ?? vinculo.alquilerInicial ?? 0)}/mes
+          </p>
         </div>
-        <div className="flex items-center gap-3">
-          <div className="flex items-center gap-2">
-            <Filter size={14} className="text-piedra" />
-            <select
-              value={filtroEstado}
-              onChange={(e) => setFiltroEstado(e.target.value)}
-              className="form-select text-sm w-36"
-            >
-              <option value="">Todos</option>
-              <option value="PENDIENTE">Pendientes</option>
-              <option value="PAGADO">Pagados</option>
-              <option value="MORA">En mora</option>
-              <option value="VENCIDO">Vencidos</option>
-            </select>
+        <button
+          onClick={() => setModalNuevo(true)}
+          className="btn-primary flex items-center gap-2 text-sm"
+        >
+          <Plus size={14} /> Nuevo pago
+        </button>
+      </div>
+
+      {/* Tabla de pagos */}
+      <div className="flex-1 overflow-y-auto">
+        {isLoading && <p className="p-6 text-sm text-piedra animate-pulse">Cargando pagos...</p>}
+
+        {!isLoading && pagosOrdenados.length === 0 && (
+          <div className="p-12 text-center text-piedra text-sm">
+            <CreditCard size={32} className="mx-auto mb-3 opacity-30" />
+            No hay pagos registrados para este contrato
           </div>
-          <button className="btn-primary flex items-center gap-2">
-            <CreditCard size={16} /> Nuevo pago
-          </button>
+        )}
+
+        {pagosOrdenados.length > 0 && (
+          <table className="w-full text-sm">
+            <thead className="bg-crema border-b border-arena sticky top-0">
+              <tr>
+                <th className="text-left px-4 py-2.5 text-xs text-piedra uppercase tracking-wide">Nro recibo</th>
+                <th className="text-left px-4 py-2.5 text-xs text-piedra uppercase tracking-wide">Período</th>
+                <th className="text-left px-4 py-2.5 text-xs text-piedra uppercase tracking-wide hidden lg:table-cell">Vencimiento</th>
+                <th className="text-right px-4 py-2.5 text-xs text-piedra uppercase tracking-wide">Alquiler</th>
+                <th className="text-right px-4 py-2.5 text-xs text-piedra uppercase tracking-wide">Total</th>
+                <th className="text-left px-4 py-2.5 text-xs text-piedra uppercase tracking-wide">Estado</th>
+                <th className="text-left px-4 py-2.5 text-xs text-piedra uppercase tracking-wide hidden xl:table-cell">Propietario</th>
+                <th className="text-right px-4 py-2.5 text-xs text-piedra uppercase tracking-wide">Acciones</th>
+              </tr>
+            </thead>
+            <tbody>
+              {pagosOrdenados.map((p, idx) => (
+                <tr
+                  key={p.id}
+                  className={`border-b border-crema last:border-0 hover:bg-crema/40 transition-colors ${
+                    p.estado === 'ANULADO' ? 'opacity-50' : ''
+                  }`}
+                >
+                  {/* Nro */}
+                  <td className="px-4 py-3">
+                    <span className="font-mono text-xs text-piedra">{nroFormato(p.nroRecibo)}</span>
+                    <p className="text-[10px] text-arena mt-0.5">Pago #{idx + 1}</p>
+                  </td>
+
+                  {/* Período */}
+                  <td className="px-4 py-3">
+                    <p className="font-semibold text-carbon">{p.periodo || '—'}</p>
+                    <p className="text-[11px] text-piedra">{p.formaPago || 'Efectivo'}</p>
+                  </td>
+
+                  {/* Vencimiento */}
+                  <td className="px-4 py-3 text-carbon hidden lg:table-cell">
+                    {formatFecha(p.fechaVencimiento)}
+                    {p.fechaPago && (
+                      <p className="text-[11px] text-green-600">Pagado: {formatFecha(p.fechaPago)}</p>
+                    )}
+                  </td>
+
+                  {/* Monto base */}
+                  <td className="px-4 py-3 text-right text-carbon">{formatARS(p.monto)}</td>
+
+                  {/* Total con extras */}
+                  <td className="px-4 py-3 text-right">
+                    <span className="font-semibold text-carbon">
+                      {formatARS(p.totalConExtras ?? p.monto)}
+                    </span>
+                    {p.conceptosExtra && p.conceptosExtra.length > 0 && (
+                      <p className="text-[10px] text-piedra">+{p.conceptosExtra.length} conceptos</p>
+                    )}
+                  </td>
+
+                  {/* Estado */}
+                  <td className="px-4 py-3">
+                    <span className={ESTADO_BADGE[p.estado] || 'badge-gray'}>
+                      {ESTADO_LABEL[p.estado] || p.estado}
+                    </span>
+                    {p.comprobanteEnviado && (
+                      <p className="text-[10px] text-green-600 mt-0.5">✓ WA enviado</p>
+                    )}
+                  </td>
+
+                  {/* Pagado al propietario */}
+                  <td className="px-4 py-3 hidden xl:table-cell">
+                    {p.pagadoAlPropietario ? (
+                      <span className="text-xs text-green-700 bg-green-50 px-2 py-0.5 rounded-full">
+                        ✓ {p.fechaPagoPropietario ? formatFecha(p.fechaPagoPropietario) : 'Pagado'}
+                      </span>
+                    ) : p.estado === 'PAGADO' ? (
+                      <button
+                        onClick={() => pagarPropietario.mutate(p.id)}
+                        disabled={pagarPropietario.isPending}
+                        className="text-xs text-arena hover:text-carbon underline underline-offset-2 transition-colors"
+                      >
+                        Marcar pagado
+                      </button>
+                    ) : (
+                      <span className="text-xs text-arena">—</span>
+                    )}
+                  </td>
+
+                  {/* Acciones */}
+                  <td className="px-4 py-3">
+                    <div className="flex items-center gap-1 justify-end">
+                      {/* Marcar pagado */}
+                      {p.estado !== 'PAGADO' && p.estado !== 'ANULADO' && (
+                        <button
+                          onClick={() => marcarPagado.mutate(p.id)}
+                          disabled={marcarPagado.isPending}
+                          title="Marcar como pagado"
+                          className="p-1.5 rounded hover:bg-green-50 text-green-600 transition-colors"
+                        >
+                          <CheckCircle size={14} />
+                        </button>
+                      )}
+
+                      {/* Recibo PDF */}
+                      {p.estado === 'PAGADO' && (
+                        <button
+                          onClick={() => handleDescargar(p, 'recibo')}
+                          title="Descargar recibo PDF"
+                          className="p-1.5 rounded hover:bg-crema text-piedra transition-colors"
+                        >
+                          <FileText size={14} />
+                        </button>
+                      )}
+
+                      {/* Liquidación — abre modal con preview */}
+                      {p.estado === 'PAGADO' && (
+                        <button
+                          onClick={() => setPagoLiquidar(p)}
+                          title="Liquidar al propietario"
+                          className="p-1.5 rounded hover:bg-amber-50 text-amber-600 transition-colors"
+                        >
+                          <Receipt size={14} />
+                        </button>
+                      )}
+
+                      {/* WhatsApp */}
+                      {p.estado === 'PAGADO' && vinculo.persona.whatsapp && (
+                        <button
+                          onClick={() => enviarWA.mutate(p.id)}
+                          disabled={enviarWA.isPending}
+                          title="Enviar recibo por WhatsApp"
+                          className="p-1.5 rounded hover:bg-green-50 text-green-600 transition-colors"
+                        >
+                          <Send size={14} />
+                        </button>
+                      )}
+                    </div>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        )}
+      </div>
+
+      {modalNuevo && (
+        <ModalNuevoPago
+          vinculo={vinculo}
+          onClose={() => setModalNuevo(false)}
+          onCreated={() => qc.invalidateQueries({ queryKey: ['pagos', vinculo.id] })}
+        />
+      )}
+
+      {pagoLiquidar && (
+        <ModalLiquidacion
+          pago={pagoLiquidar}
+          vinculo={vinculo}
+          onClose={() => setPagoLiquidar(null)}
+        />
+      )}
+    </div>
+  )
+}
+
+// ─── Página principal ─────────────────────────────────────────────────────────
+
+export default function Pagos() {
+  const [vinculoSeleccionado, setVinculoSeleccionado] = useState<Vinculo | null>(null)
+  const [filtroActivo, setFiltroActivo] = useState(true)
+
+  const { data: vinculos = [], isLoading } = useQuery<Vinculo[]>({
+    queryKey: ['vinculos-alquiler', filtroActivo],
+    queryFn: () =>
+      api.get('/vinculos', { params: { tipo: 'ALQUILER', activo: filtroActivo } })
+        .then(r => r.data),
+  })
+
+  // Ordenar: primero los que tienen próximo vencimiento
+  const vinculosOrdenados = [...vinculos].sort((a, b) => {
+    if (!a.fechaFin && !b.fechaFin) return 0
+    if (!a.fechaFin) return 1
+    if (!b.fechaFin) return -1
+    return new Date(a.fechaFin).getTime() - new Date(b.fechaFin).getTime()
+  })
+
+  function diasParaVencer(fechaFin?: string) {
+    if (!fechaFin) return null
+    const diff = Math.ceil((new Date(fechaFin).getTime() - Date.now()) / (1000 * 60 * 60 * 24))
+    return diff
+  }
+
+  return (
+    <div className="flex h-screen overflow-hidden">
+      {/* ── Panel izquierdo: lista de contratos ─────────────────────────────── */}
+      <div className="w-80 flex-shrink-0 border-r border-arena flex flex-col bg-white">
+        {/* Header */}
+        <div className="px-4 py-4 border-b border-arena">
+          <h1 className="font-display text-lg text-carbon">Contratos</h1>
+          <p className="text-xs text-piedra mt-0.5">{vinculos.length} alquileres</p>
+          <div className="flex gap-2 mt-3">
+            <button
+              onClick={() => setFiltroActivo(true)}
+              className={`text-xs px-3 py-1 rounded-full transition-colors ${
+                filtroActivo
+                  ? 'bg-carbon text-white'
+                  : 'bg-crema text-piedra hover:bg-arena/30'
+              }`}
+            >
+              Activos
+            </button>
+            <button
+              onClick={() => setFiltroActivo(false)}
+              className={`text-xs px-3 py-1 rounded-full transition-colors ${
+                !filtroActivo
+                  ? 'bg-carbon text-white'
+                  : 'bg-crema text-piedra hover:bg-arena/30'
+              }`}
+            >
+              Inactivos
+            </button>
+          </div>
+        </div>
+
+        {/* Lista */}
+        <div className="flex-1 overflow-y-auto divide-y divide-crema">
+          {isLoading && (
+            <p className="p-4 text-sm text-piedra animate-pulse">Cargando contratos...</p>
+          )}
+
+          {!isLoading && vinculosOrdenados.length === 0 && (
+            <div className="p-8 text-center text-piedra text-sm">
+              <Home size={28} className="mx-auto mb-2 opacity-30" />
+              No hay contratos {filtroActivo ? 'activos' : 'inactivos'}
+            </div>
+          )}
+
+          {vinculosOrdenados.map((v) => {
+            const dias = diasParaVencer(v.fechaFin)
+            const activo = vinculoSeleccionado?.id === v.id
+            const alertaVence = dias !== null && dias <= 30 && dias > 0
+            const vencido = dias !== null && dias <= 0
+
+            return (
+              <button
+                key={v.id}
+                onClick={() => setVinculoSeleccionado(v)}
+                className={`w-full text-left px-4 py-3 transition-colors hover:bg-crema/60 ${
+                  activo ? 'bg-crema border-l-2 border-carbon' : ''
+                }`}
+              >
+                <div className="flex items-start justify-between gap-2">
+                  <div className="min-w-0 flex-1">
+                    {/* Dirección */}
+                    <p className="font-semibold text-sm text-carbon truncate leading-tight">
+                      {v.propiedad.direccion}
+                    </p>
+                    {/* Inquilino */}
+                    <p className="text-xs text-piedra mt-0.5 flex items-center gap-1">
+                      <User size={10} className="opacity-50" />
+                      {v.persona.nombre} {v.persona.apellido}
+                    </p>
+                    {/* Fechas */}
+                    <p className="text-[11px] text-arena mt-1 flex items-center gap-1">
+                      <Calendar size={10} className="opacity-50" />
+                      {formatFecha(v.fechaInicio)} — {v.fechaFin ? formatFecha(v.fechaFin) : '∞'}
+                    </p>
+                    {/* Monto */}
+                    <p className="text-xs font-semibold text-carbon mt-1">
+                      {formatARS(v.alquilerActual ?? v.alquilerInicial ?? 0)}
+                      <span className="text-[10px] font-normal text-piedra">/mes</span>
+                    </p>
+                  </div>
+                  <div className="flex flex-col items-end gap-1 flex-shrink-0">
+                    <ChevronRight size={14} className={activo ? 'text-carbon' : 'text-arena'} />
+                    {alertaVence && (
+                      <span className="text-[10px] bg-yellow-100 text-yellow-700 px-1.5 py-0.5 rounded-full">
+                        {dias}d
+                      </span>
+                    )}
+                    {vencido && (
+                      <span className="text-[10px] bg-red-100 text-red-600 px-1.5 py-0.5 rounded-full">
+                        Venció
+                      </span>
+                    )}
+                  </div>
+                </div>
+              </button>
+            )
+          })}
         </div>
       </div>
 
-      {isLoading && <p className="text-piedra text-sm animate-pulse">Cargando...</p>}
-
-      <div className="card overflow-hidden">
-        <table className="w-full text-sm">
-          <thead className="bg-crema border-b border-arena">
-            <tr>
-              <th className="text-left px-4 py-3 text-xs text-piedra uppercase tracking-wide">Período</th>
-              <th className="text-left px-4 py-3 text-xs text-piedra uppercase tracking-wide">Inquilino</th>
-              <th className="text-left px-4 py-3 text-xs text-piedra uppercase tracking-wide hidden lg:table-cell">Propiedad</th>
-              <th className="text-right px-4 py-3 text-xs text-piedra uppercase tracking-wide">Monto</th>
-              <th className="text-left px-4 py-3 text-xs text-piedra uppercase tracking-wide">Vencimiento</th>
-              <th className="text-left px-4 py-3 text-xs text-piedra uppercase tracking-wide">Estado</th>
-              <th className="text-right px-4 py-3 text-xs text-piedra uppercase tracking-wide">Acciones</th>
-            </tr>
-          </thead>
-          <tbody>
-            {pagos.map((p) => (
-              <tr key={p.id} className="border-b border-crema last:border-0 hover:bg-crema/40">
-                <td className="px-4 py-3">
-                  <p className="font-semibold text-carbon">{p.periodo || '—'}</p>
-                  <p className="text-[11px] text-arena">{p.concepto.substring(0, 35)}</p>
-                </td>
-                <td className="px-4 py-3 text-carbon">
-                  {p.persona ? `${p.persona.nombre} ${p.persona.apellido}` : '—'}
-                </td>
-                <td className="px-4 py-3 text-carbon text-xs hidden lg:table-cell">
-                  {p.propiedad?.direccion || '—'}
-                </td>
-                <td className="px-4 py-3 text-right font-semibold text-carbon">{formatARS(p.monto)}</td>
-                <td className="px-4 py-3 text-carbon">{formatFecha(p.fechaVencimiento)}</td>
-                <td className="px-4 py-3">
-                  <span className={estadoBadge[p.estado] || 'badge-gray'}>{estadoLabel[p.estado] || p.estado}</span>
-                  {p.comprobanteEnviado && (
-                    <span className="ml-1 text-[10px] text-green-600">✓ Enviado</span>
-                  )}
-                </td>
-                <td className="px-4 py-3">
-                  <div className="flex items-center gap-1 justify-end">
-                    {p.estado !== 'PAGADO' && p.estado !== 'ANULADO' && (
-                      <button
-                        onClick={() => marcarPagado.mutate(p.id)}
-                        disabled={marcarPagado.isPending}
-                        title="Marcar pagado"
-                        className="p-1.5 rounded hover:bg-green-50 text-green-600 transition-colors"
-                      >
-                        <CheckCircle size={15} />
-                      </button>
-                    )}
-                    <button
-                      onClick={() => descargarPDF(p.id, p.periodo ?? undefined)}
-                      title="Descargar PDF"
-                      className="p-1.5 rounded hover:bg-crema text-piedra transition-colors"
-                    >
-                      <Download size={15} />
-                    </button>
-                    {p.persona?.whatsapp && (
-                      <button
-                        onClick={() => enviarWA.mutate(p.id)}
-                        disabled={enviarWA.isPending}
-                        title="Enviar por WhatsApp"
-                        className="p-1.5 rounded hover:bg-green-50 text-green-600 transition-colors"
-                      >
-                        <Send size={15} />
-                      </button>
-                    )}
-                  </div>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-        {pagos.length === 0 && !isLoading && (
-          <div className="py-12 text-center text-piedra text-sm">No hay pagos registrados</div>
+      {/* ── Panel derecho: detalle de pagos ─────────────────────────────────── */}
+      <div className="flex-1 flex flex-col overflow-hidden bg-white">
+        {vinculoSeleccionado ? (
+          <PanelPagos vinculo={vinculoSeleccionado} />
+        ) : (
+          <div className="flex-1 flex flex-col items-center justify-center text-piedra gap-3">
+            <Building2 size={48} className="opacity-20" />
+            <p className="text-sm">Seleccioná un contrato para ver los pagos</p>
+            <p className="text-xs text-arena">
+              {vinculos.length} contrato{vinculos.length !== 1 ? 's' : ''} disponible{vinculos.length !== 1 ? 's' : ''}
+            </p>
+          </div>
         )}
       </div>
     </div>

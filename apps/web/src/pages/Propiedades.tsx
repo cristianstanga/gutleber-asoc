@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { Building2, MapPin, Ruler, Tag, Pencil, Trash2, Instagram, Images, X, ChevronLeft, ImageIcon } from 'lucide-react'
+import { Building2, MapPin, Ruler, Tag, Pencil, Trash2, Instagram, Images, ChevronLeft, ImageIcon } from 'lucide-react'
 import { api, formatARS } from '../lib/api'
 import FormPropiedad from '../components/FormPropiedad'
 import ImageUpload from '../components/ImageUpload'
@@ -62,6 +62,20 @@ export default function Propiedades() {
   function abrirEditar(p: Propiedad) { setEditando(p); setModalForm(true) }
   function abrirNueva() { setEditando(null); setModalForm(true) }
   function cerrarForm() { setModalForm(false); setEditando(null) }
+
+  async function descargarContrato(vinculoId: string, inquilino: string) {
+    try {
+      const res = await api.get(`/vinculos/${vinculoId}/contrato`, { responseType: 'blob' })
+      const url = URL.createObjectURL(new Blob([res.data], { type: 'application/pdf' }))
+      const a = document.createElement('a')
+      a.href = url
+      a.download = `contrato-${inquilino.replace(/\s+/g, '-').toLowerCase()}.pdf`
+      a.click()
+      URL.revokeObjectURL(url)
+    } catch {
+      mostrarToast('Error al generar el contrato')
+    }
+  }
 
   async function publicarInstagram(p: Propiedad) {
     if (p.imagenes.length === 0) { mostrarToast('Primero subí al menos una foto'); return }
@@ -197,7 +211,7 @@ export default function Propiedades() {
               {prop.imagenes.length > 0 ? (
                 <div className="space-y-2">
                   <a
-                    href={`${import.meta.env.VITE_API_URL || 'http://localhost:3001'}/api/public/tarjeta/${prop.id}/preview`}
+                    href={`/api/public/tarjeta/${prop.id}/preview`}
                     target="_blank"
                     rel="noreferrer"
                     className="btn-primary w-full flex items-center justify-center gap-2"
@@ -205,7 +219,7 @@ export default function Propiedades() {
                     <ImageIcon size={15} /> Ver tarjeta (preview)
                   </a>
                   <a
-                    href={`${import.meta.env.VITE_API_URL || 'http://localhost:3001'}/api/public/tarjeta/${prop.id}`}
+                    href={`/api/public/tarjeta/${prop.id}`}
                     target="_blank"
                     rel="noreferrer"
                     download
@@ -252,14 +266,12 @@ export default function Propiedades() {
                       {v.alquilerActual && <p className="text-xs text-piedra">{formatARS(v.alquilerActual)}/mes</p>}
                     </div>
                     {v.tipo === 'ALQUILER' && (
-                      <a
-                        href={`${import.meta.env.VITE_API_URL || 'http://localhost:3001'}/api/vinculos/${v.id}/contrato`}
-                        target="_blank"
-                        rel="noreferrer"
+                      <button
+                        onClick={() => descargarContrato(v.id, `${v.persona.nombre} ${v.persona.apellido}`)}
                         className="btn-secondary w-full flex items-center justify-center gap-1.5 text-xs"
                       >
                         📄 Descargar contrato PDF
-                      </a>
+                      </button>
                     )}
                   </div>
                 ))}

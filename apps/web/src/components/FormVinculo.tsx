@@ -23,6 +23,7 @@ export default function FormVinculo({ onClose }: Props) {
   const [alquilerInicial, setAlquilerInicial] = useState('')
   const [indice, setIndice] = useState('ICL')
   const [periodicidad, setPeriodicidad] = useState('3')
+  const [honorariosPct, setHonorariosPct] = useState('8')
   const [notas, setNotas] = useState('')
 
   const { data: propiedades = [] } = useQuery<Propiedad[]>({
@@ -56,6 +57,7 @@ export default function FormVinculo({ onClose }: Props) {
       alquilerInicial: alquilerInicial ? Number(alquilerInicial) : undefined,
       indice: tipoVinculo === 'ALQUILER' ? indice : undefined,
       periodicidad: tipoVinculo === 'ALQUILER' ? Number(periodicidad) : undefined,
+      honorariosPct: tipoVinculo === 'ALQUILER' ? Number(honorariosPct) : undefined,
       notas: notas || undefined,
     })
   }
@@ -208,6 +210,33 @@ export default function FormVinculo({ onClose }: Props) {
                   </div>
                 </div>
               )}
+            </div>
+          )}
+
+          {/* Honorarios */}
+          {tipoVinculo === 'ALQUILER' && (
+            <div>
+              <label className="form-label">Honorarios de administración (%)</label>
+              <div className="flex items-center gap-3">
+                <input
+                  type="range" min={0} max={20} step={0.5}
+                  value={honorariosPct}
+                  onChange={e => setHonorariosPct(e.target.value)}
+                  className="flex-1 accent-carbon"
+                />
+                <div className="flex items-center gap-1">
+                  <input
+                    type="number" min={0} max={20} step={0.5}
+                    value={honorariosPct}
+                    onChange={e => setHonorariosPct(e.target.value)}
+                    className="form-input w-16 text-center font-semibold text-sm"
+                  />
+                  <span className="text-sm text-piedra">%</span>
+                </div>
+              </div>
+              <p className="text-xs text-arena mt-1">
+                Honorarios negociados con el propietario. Se aplican al generar cada liquidación.
+              </p>
             </div>
           )}
 

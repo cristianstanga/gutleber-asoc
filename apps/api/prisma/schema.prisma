@@ -105,6 +105,7 @@ model Propiedad {
   videos                PropiedadVideo[]
   vinculos              Vinculo[]
   pagos                 Pago[]
+  gastos                Gasto[]
   inboxItems            InboxItem[]
   conversacionesInteres Conversacion[]
   createdAt             DateTime          @default(now())
@@ -162,28 +163,58 @@ model Vinculo {
   periodicidad         Int         @default(3)
   proximaActualizacion DateTime?
   activo               Boolean     @default(true)
+  honorariosPct        Float       @default(8)   // % de honorarios negociado
   notas                String?
   propiedad            Propiedad   @relation(fields: [propiedadId], references: [id])
   persona              Persona     @relation(fields: [personaId], references: [id])
   pagos                Pago[]
+  gastos               Gasto[]
   createdAt            DateTime    @default(now())
   updatedAt            DateTime    @updatedAt
 }
 
+model Gasto {
+  id          String      @id @default(cuid())
+  descripcion String
+  monto       Float
+  fecha       DateTime    @default(now())
+  estado      EstadoGasto @default(PENDIENTE)
+  propiedadId String?
+  vinculoId   String?
+  pagoId      String?     // se vincula al pago de liquidación cuando se aplica
+  propiedad   Propiedad?  @relation(fields: [propiedadId], references: [id])
+  vinculo     Vinculo?    @relation(fields: [vinculoId], references: [id])
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+}
+
+enum EstadoGasto {
+  PENDIENTE
+  APLICADO
+  ANULADO
+}
+
 model Pago {
-  id                 String     @id @default(cuid())
-  tipo               TipoPago
-  concepto           String
-  monto              Float
-  moneda             Moneda     @default(ARS)
-  periodo            String?
-  estado             EstadoPago @default(PENDIENTE)
-  fechaVencimiento   DateTime
-  fechaPago          DateTime?
-  comprobanteEnviado Boolean    @default(false)
-  propiedadId        String?
-  personaId          String?
-  vinculoId          String?
+  id                   String     @id @default(cuid())
+  tipo                 TipoPago
+  concepto             String
+  monto                Float
+  moneda               Moneda     @default(ARS)
+  periodo              String?
+  estado               EstadoPago @default(PENDIENTE)
+  fechaVencimiento     DateTime
+  fechaPago            DateTime?
+  comprobanteEnviado   Boolean    @default(false)
+  // Nuevos campos
+  formaPago            String?    @default("Efectivo")
+  conceptosExtra       Json?      // [{descripcion: string, monto: number}]
+  totalConExtras       Float?     // monto + suma de extras
+  pagadoAlPropietario  Boolean    @default(false)
+  fechaPagoPropietario DateTime?
+  nroRecibo            Int?       // número secuencial del recibo
+  propiedadId          String?
+  personaId            String?
+  vinculoId            String?
   propiedad          Propiedad? @relation(fields: [propiedadId], references: [id])
   persona            Persona?   @relation(fields: [personaId], references: [id])
   vinculo            Vinculo?   @relation(fields: [vinculoId], references: [id])

@@ -54,6 +54,17 @@ export default function Contratos() {
     },
   })
 
+  function confirmarFinalizar(v: Vinculo) {
+    if (confirm(
+      `¿Finalizar el contrato de ${v.persona.nombre} ${v.persona.apellido}?\n\n` +
+      `Propiedad: ${v.propiedad.direccion}\n\n` +
+      `El contrato quedará marcado como Finalizado con fecha de hoy. ` +
+      `Todos los pagos, recibos y liquidaciones históricos se conservan para auditoría.`
+    )) {
+      cerrar.mutate(v.id)
+    }
+  }
+
   const alquileres = vinculos.filter((v) => v.tipo === 'ALQUILER')
   const otrosContratos = vinculos.filter((v) => v.tipo !== 'ALQUILER')
 
@@ -192,10 +203,10 @@ export default function Contratos() {
                       <td className="px-4 py-3">
                         {v.activo && (
                           <button
-                            onClick={() => { if (confirm(`¿Cerrar el contrato de ${v.persona.nombre}?`)) cerrar.mutate(v.id) }}
+                            onClick={() => confirmarFinalizar(v)}
                             className="text-xs text-red-400 hover:text-red-600 transition-colors whitespace-nowrap"
                           >
-                            Cerrar
+                            Finalizar
                           </button>
                         )}
                       </td>
@@ -241,10 +252,10 @@ export default function Contratos() {
                     <td className="px-4 py-3">
                       {v.activo && (
                         <button
-                          onClick={() => { if (confirm('¿Cerrar este contrato?')) cerrar.mutate(v.id) }}
+                          onClick={() => confirmarFinalizar(v)}
                           className="text-xs text-red-400 hover:text-red-600 transition-colors"
                         >
-                          Cerrar
+                          Finalizar
                         </button>
                       )}
                     </td>
