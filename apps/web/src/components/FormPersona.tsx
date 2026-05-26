@@ -154,7 +154,7 @@ export default function FormPersona({ persona, onClose }: Props) {
                 placeholder="3764 100001"
               />
             </div>
-            <p className="text-[11px] text-arena mt-1">
+            <p className="text-[11px] text-muted mt-1">
               Ingresá el número sin 0 ni 15. Ej: 3764100001 → se guarda como 5493764100001
             </p>
           </div>

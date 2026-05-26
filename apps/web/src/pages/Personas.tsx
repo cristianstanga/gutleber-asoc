@@ -205,7 +205,7 @@ export default function Personas() {
                     <div key={v.id} className="flex items-center justify-between py-2 border-b border-crema last:border-0">
                       <div>
                         <p className="text-sm font-semibold text-carbon">{v.propiedad.direccion}</p>
-                        <p className="text-xs text-arena">
+                        <p className="text-xs text-muted">
                           Desde {formatFecha(v.fechaInicio)}
                           {v.fechaFin ? ` hasta ${formatFecha(v.fechaFin)}` : ''}
                         </p>
@@ -368,17 +368,17 @@ export default function Personas() {
                 <td className="px-5 py-3">
                   <span className={tipoBadge[p.tipo] || 'badge-gray'}>{tipoLabel[p.tipo] || p.tipo}</span>
                 </td>
-                <td className="px-5 py-3 text-arena hidden md:table-cell">{p.dni || '—'}</td>
+                <td className="px-5 py-3 text-muted hidden md:table-cell">{p.dni || '—'}</td>
                 <td className="px-5 py-3 hidden lg:table-cell">
                   <div className="space-y-0.5">
                     {p.whatsapp && (
                       <p className="flex items-center gap-1 text-xs text-carbon">
-                        <Phone size={11} className="text-arena" /> {p.whatsapp}
+                        <Phone size={11} className="text-muted" /> {p.whatsapp}
                       </p>
                     )}
                     {p.email && (
                       <p className="flex items-center gap-1 text-xs text-carbon">
-                        <Mail size={11} className="text-arena" /> {p.email}
+                        <Mail size={11} className="text-muted" /> {p.email}
                       </p>
                     )}
                   </div>
@@ -386,10 +386,10 @@ export default function Personas() {
                 <td className="px-5 py-3 hidden lg:table-cell">
                   {p.vinculos?.filter((v) => v.activo).map((v, i) => (
                     <p key={i} className="flex items-center gap-1 text-xs text-carbon">
-                      <Home size={11} className="text-arena" /> {v.propiedad.direccion}
+                      <Home size={11} className="text-muted" /> {v.propiedad.direccion}
                     </p>
                   ))}
-                  {!p.vinculos?.some((v) => v.activo) && <span className="text-arena text-xs">—</span>}
+                  {!p.vinculos?.some((v) => v.activo) && <span className="text-muted text-xs">—</span>}
                 </td>
                 <td className="px-5 py-3" onClick={(e) => e.stopPropagation()}>
                   <div className="flex items-center justify-end gap-1">
@@ -416,7 +416,7 @@ export default function Personas() {
 
         {personas.length === 0 && !isLoading && (
           <div className="py-12 text-center">
-            <Users size={32} className="text-arena mx-auto mb-3" />
+            <Users size={32} className="text-muted mx-auto mb-3" />
             <p className="text-piedra mb-4">No hay personas registradas</p>
             <button onClick={abrirNueva} className="btn-primary">Crear primera persona</button>
           </div>

@@ -12,6 +12,7 @@
     "db:generate": "prisma generate"
   },
   "dependencies": {
+    "@anthropic-ai/sdk": "^0.98.0",
     "@napi-rs/canvas": "^1.0.0",
     "@prisma/client": "^5.14.0",
     "@types/multer": "^2.1.0",

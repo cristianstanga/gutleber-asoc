@@ -79,7 +79,7 @@ export default function Dashboard() {
               <Icon size={16} className={color} />
             </div>
             <p className={`text-2xl font-bold font-display ${color}`}>{value}</p>
-            {sub && <p className="text-[11px] text-arena mt-1">{sub}</p>}
+            {sub && <p className="text-[11px] text-muted mt-1">{sub}</p>}
           </div>
         ))}
       </div>
@@ -154,7 +154,7 @@ export default function Dashboard() {
 
       {data.alertas.length === 0 && data.ultimosPagos.length === 0 && (
         <div className="card p-12 text-center">
-          <Home size={32} className="text-arena mx-auto mb-3" />
+          <Home size={32} className="text-muted mx-auto mb-3" />
           <p className="text-piedra">No hay datos aún. Cargá propiedades y contratos para empezar.</p>
         </div>
       )}

@@ -75,7 +75,7 @@ export default function ImageUpload({ propiedadId, imagenes, videos = [] }: Prop
         <div className="flex items-center gap-2 mb-2">
           <ImageIcon size={14} className="text-piedra" />
           <p className="text-xs font-semibold text-carbon uppercase tracking-wide">
-            Fotos {imagenes.length > 0 && <span className="text-arena font-normal normal-case">({imagenes.length})</span>}
+            Fotos {imagenes.length > 0 && <span className="text-muted font-normal normal-case">({imagenes.length})</span>}
           </p>
         </div>
 
@@ -115,9 +115,9 @@ export default function ImageUpload({ propiedadId, imagenes, videos = [] }: Prop
             <div className="text-piedra text-sm animate-pulse">Subiendo fotos...</div>
           ) : (
             <>
-              <Upload size={18} className="text-arena mx-auto mb-1.5" />
+              <Upload size={18} className="text-muted mx-auto mb-1.5" />
               <p className="text-xs text-piedra">Arrastrá fotos o hacé clic</p>
-              <p className="text-[10px] text-arena mt-0.5">JPG, PNG, WEBP — máx. 5 MB</p>
+              <p className="text-[10px] text-muted mt-0.5">JPG, PNG, WEBP — máx. 5 MB</p>
             </>
           )}
         </div>
@@ -137,7 +137,7 @@ export default function ImageUpload({ propiedadId, imagenes, videos = [] }: Prop
         <div className="flex items-center gap-2 mb-2">
           <Video size={14} className="text-piedra" />
           <p className="text-xs font-semibold text-carbon uppercase tracking-wide">
-            Videos {videos.length > 0 && <span className="text-arena font-normal normal-case">({videos.length})</span>}
+            Videos {videos.length > 0 && <span className="text-muted font-normal normal-case">({videos.length})</span>}
           </p>
         </div>
 
@@ -179,9 +179,9 @@ export default function ImageUpload({ propiedadId, imagenes, videos = [] }: Prop
             <div className="text-piedra text-sm animate-pulse">Subiendo video... (puede tardar)</div>
           ) : (
             <>
-              <Video size={18} className="text-arena mx-auto mb-1.5" />
+              <Video size={18} className="text-muted mx-auto mb-1.5" />
               <p className="text-xs text-piedra">Arrastrá un video o hacé clic</p>
-              <p className="text-[10px] text-arena mt-0.5">MP4, MOV, WEBM — máx. 200 MB</p>
+              <p className="text-[10px] text-muted mt-0.5">MP4, MOV, WEBM — máx. 200 MB</p>
             </>
           )}
         </div>

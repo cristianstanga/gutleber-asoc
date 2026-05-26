@@ -2,51 +2,48 @@
  * Generador de tarjetas de propiedad — Gutleber & Asoc.
  * Canvas 1080×1080 px (square, ideal WhatsApp / Instagram)
  *
- * Layout v2:
- *   ┌──────────────────────────────────────┐
- *   │  [LOGO + TAGLINE]        [MODO BADGE]│  ← franja superior 90px
- *   │──────────────────────────────────────│
- *   │                                      │
- *   │           FOTO DE FONDO              │  ← centro con overlay degradado
- *   │                                      │
- *   │──────────────────────────────────────│
- *   │  TIPO BADGE                          │  ← zona inferior 340px
- *   │  DIRECCIÓN (grande)                  │
- *   │  descripción (opcional)              │
- *   │  superficie · dormitorios · baños    │
- *   │  ──────────────────────────────────  │
- *   │  PRECIO               QR / branding  │
- *   └──────────────────────────────────────┘
+ * Layout v3 — Presencia Velada:
+ *   ┌──────────────────────────────────────────┐
+ *   │  [   HEADER FLOTANTE — pill carbón   ]   │  ← margen 36px, h~80px
+ *   │                                          │
+ *   │         FOTO FULL-BLEED                  │  ← foto ocupa todo el canvas
+ *   │         (viñeta perimetral suave)         │
+ *   │                                          │
+ *   │  [   PANEL DATOS FLOTANTE — carbón   ]   │  ← margen 36px, h~290px
+ *   │                          gutleber.com.ar │
+ *   └──────────────────────────────────────────┘
  *
  * Paleta Gutleber:
  *   Carbón  #2C2C2A  |  Piedra  #8C7B6B  |  Arena  #C4B09A  |  Crema  #F0E8DC
  */
 
-import { createCanvas, loadImage, SKRSContext2D } from '@napi-rs/canvas'
+import { createCanvas, loadImage, SKRSContext2D, GlobalFonts } from '@napi-rs/canvas'
 import sharp from 'sharp'
+import path from 'path'
 
-// ─── Dimensiones ──────────────────────────────────────────────────────────────
+// Registrar fuentes con soporte completo para español (acentos, ñ, etc.)
+const FONTS_DIR = path.join(__dirname, '../../assets/fonts')
+GlobalFonts.registerFromPath(path.join(FONTS_DIR, 'WorkSans-Regular.ttf'),  'WorkSans')
+GlobalFonts.registerFromPath(path.join(FONTS_DIR, 'WorkSans-Bold.ttf'),     'WorkSans')
+GlobalFonts.registerFromPath(path.join(FONTS_DIR, 'Lora-Regular.ttf'),      'Lora')
+GlobalFonts.registerFromPath(path.join(FONTS_DIR, 'Lora-Italic.ttf'),       'Lora')
 
 const W = 1080
 const H = 1080
-const PAD = 44          // padding horizontal base
-const TOP_BAR = 88      // altura franja superior
-const BOT_ZONE = 320    // altura zona inferior de datos
-
-// ─── Paleta ───────────────────────────────────────────────────────────────────
+const FLOAT_M = 36      // margen entre borde canvas y paneles flotantes
+const IPAD    = 28      // padding interior de paneles
 
 const C = {
-  carbon:  '#2C2C2A',
-  piedra:  '#8C7B6B',
-  arena:   '#C4B09A',
-  crema:   '#F0E8DC',
-  white:   '#FFFFFF',
-  // overlays
-  topBar:    'rgba(44,44,42,0.88)',
-  botZone:   'rgba(30,30,28,0.94)',
-  midFade:   (alpha: number) => `rgba(44,44,42,${alpha})`,
-  badge:     'rgba(140,123,107,0.95)',
-  badgeVenta: 'rgba(196,176,154,0.95)',
+  carbon:      '#2C2C2A',
+  piedra:      '#8C7B6B',
+  arena:       '#C4B09A',
+  crema:       '#F0E8DC',
+  white:       '#FFFFFF',
+  headerBg:    'rgba(44,44,42,0.88)',
+  panelBg:     'rgba(36,36,34,0.92)',
+  badgePiedra: 'rgba(140,123,107,0.95)',
+  badgeArena:  'rgba(196,176,154,0.95)',
+  vigFade:     (a: number) => `rgba(0,0,0,${a})`,
 }
 
 const TIPO_LABEL: Record<string, string> = {
@@ -59,9 +56,14 @@ const formatARS = (n: number) =>
     style: 'currency', currency: 'ARS', maximumFractionDigits: 0,
   }).format(n)
 
-// ─── Helpers canvas ───────────────────────────────────────────────────────────
+// ─── Helpers ──────────────────────────────────────────────────────────────────
 
-function roundRect(ctx: SKRSContext2D, x: number, y: number, w: number, h: number, r: number) {
+function roundRect(
+  ctx: SKRSContext2D,
+  x: number, y: number,
+  w: number, h: number,
+  r: number,
+) {
   ctx.beginPath()
   ctx.moveTo(x + r, y)
   ctx.lineTo(x + w - r, y)
@@ -76,15 +78,41 @@ function roundRect(ctx: SKRSContext2D, x: number, y: number, w: number, h: numbe
   ctx.fill()
 }
 
-function wrapText(ctx: SKRSContext2D, text: string, maxWidth: number): string[] {
+function pillWidth(ctx: SKRSContext2D, text: string, fontSize: number, padH = 16): number {
+  ctx.font = `bold ${fontSize}px WorkSans`
+  return ctx.measureText(text).width + padH * 2
+}
+
+function drawPill(
+  ctx: SKRSContext2D,
+  text: string,
+  x: number, y: number,
+  bg: string, fg: string,
+  fontSize: number,
+  padH = 16, padV = 9,
+): number {
+  ctx.font = `bold ${fontSize}px WorkSans`
+  const tw = ctx.measureText(text).width
+  const pw = tw + padH * 2
+  const ph = fontSize + padV * 2
+  ctx.fillStyle = bg
+  roundRect(ctx, x, y, pw, ph, ph / 2)
+  ctx.fillStyle = fg
+  ctx.textBaseline = 'middle'
+  ctx.textAlign = 'left'
+  ctx.fillText(text, x + padH, y + ph / 2)
+  return pw
+}
+
+function wrapText(ctx: SKRSContext2D, text: string, maxW: number): string[] {
   const words = text.split(' ')
   const lines: string[] = []
   let line = ''
-  for (const word of words) {
-    const test = line ? `${line} ${word}` : word
-    if (ctx.measureText(test).width > maxWidth) {
+  for (const w of words) {
+    const test = line ? `${line} ${w}` : w
+    if (ctx.measureText(test).width > maxW) {
       if (line) lines.push(line)
-      line = word
+      line = w
     } else {
       line = test
     }
@@ -93,28 +121,54 @@ function wrapText(ctx: SKRSContext2D, text: string, maxWidth: number): string[] 
   return lines
 }
 
-/** Pinta un badge pill con texto. Devuelve el ancho total del badge. */
-function drawBadge(
-  ctx: SKRSContext2D,
-  text: string,
-  x: number, y: number,
-  bgColor: string,
-  textColor: string,
-  fontSize: number,
-  radius = 8,
-  padH = 16, padV = 10
-): number {
-  ctx.font = `bold ${fontSize}px sans-serif`
-  const tw = ctx.measureText(text).width
-  const bw = tw + padH * 2
-  const bh = fontSize + padV * 2
-  ctx.fillStyle = bgColor
-  roundRect(ctx, x, y, bw, bh, radius)
-  ctx.fillStyle = textColor
-  ctx.textBaseline = 'middle'
-  ctx.textAlign = 'left'
-  ctx.fillText(text, x + padH, y + bh / 2)
-  return bw
+/** Emblema del pin: círculo + arco arquitectónico + punta de pin */
+function drawEmblema(ctx: SKRSContext2D, cx: number, cy: number, size = 40) {
+  const r   = size / 2
+  const lw  = Math.max(1.2, size / 22)
+  ctx.strokeStyle = C.crema
+  ctx.lineWidth   = lw
+  ctx.globalAlpha = 0.92
+
+  // Círculo exterior
+  ctx.beginPath()
+  ctx.arc(cx, cy, r, 0, Math.PI * 2)
+  ctx.stroke()
+
+  // Arco arquitectónico interior (semicírculo superior + jambas)
+  const ai = r * 0.52
+  const ay = cy - r * 0.08
+  ctx.beginPath()
+  ctx.arc(cx, ay, ai, Math.PI, 0)
+  ctx.stroke()
+  const jh = ai * 0.55
+  ctx.beginPath()
+  ctx.moveTo(cx - ai, ay)
+  ctx.lineTo(cx - ai, ay + jh)
+  ctx.stroke()
+  ctx.beginPath()
+  ctx.moveTo(cx + ai, ay)
+  ctx.lineTo(cx + ai, ay + jh)
+  ctx.stroke()
+
+  // Punto interior (cerradura)
+  const pd = Math.max(2, lw + 0.5)
+  ctx.fillStyle = C.crema
+  ctx.beginPath()
+  ctx.arc(cx, ay + ai * 0.18, pd, 0, Math.PI * 2)
+  ctx.fill()
+
+  // Punta del pin
+  const tipY = cy + r + size * 0.52
+  const pw   = Math.max(3, size / 6)
+  ctx.fillStyle = C.crema
+  ctx.beginPath()
+  ctx.moveTo(cx - pw, cy + r - 2)
+  ctx.lineTo(cx + pw, cy + r - 2)
+  ctx.lineTo(cx, tipY)
+  ctx.closePath()
+  ctx.fill()
+
+  ctx.globalAlpha = 1
 }
 
 // ─── Interfaz pública ─────────────────────────────────────────────────────────
@@ -137,131 +191,177 @@ export interface DatosTarjeta {
 
 export async function generarTarjeta(datos: DatosTarjeta): Promise<Buffer> {
   const canvas = createCanvas(W, H)
-  const ctx = canvas.getContext('2d') as SKRSContext2D
+  const ctx    = canvas.getContext('2d') as SKRSContext2D
 
-  // ── 1. Foto de fondo (toda la tarjeta) ──────────────────────────────────────
+  // ── 1. Foto de fondo — full bleed ───────────────────────────────────────────
   try {
     let imgBuf: Buffer
     if (datos.imagenUrl.startsWith('http')) {
       const r = await fetch(datos.imagenUrl)
-      imgBuf = Buffer.from(await r.arrayBuffer())
+      imgBuf  = Buffer.from(await r.arrayBuffer())
     } else {
       const fs = await import('fs')
-      imgBuf = fs.readFileSync(datos.imagenUrl)
+      imgBuf   = fs.readFileSync(datos.imagenUrl)
     }
     const resized = await sharp(imgBuf).resize(W, H, { fit: 'cover', position: 'centre' }).toBuffer()
-    const bg = await loadImage(resized)
+    const bg      = await loadImage(resized)
     ctx.drawImage(bg, 0, 0, W, H)
   } catch {
-    // Fallback degradado
+    // Fallback: gradiente cálido diagonal si no hay foto
     const grad = ctx.createLinearGradient(0, 0, W, H)
-    grad.addColorStop(0, '#C4B09A')
-    grad.addColorStop(1, '#2C2C2A')
+    grad.addColorStop(0,   '#B8A898')
+    grad.addColorStop(0.4, '#9C8B7B')
+    grad.addColorStop(1,   '#3A3835')
     ctx.fillStyle = grad
     ctx.fillRect(0, 0, W, H)
   }
 
-  // ── 2. Franja superior oscura ────────────────────────────────────────────────
-  ctx.fillStyle = C.topBar
-  ctx.fillRect(0, 0, W, TOP_BAR)
+  // ── 2. Viñeta perimetral — 4 gradientes desde cada borde ──────────────────
+  const vigDepth = 260
+  const vigAlpha = 0.72
 
-  // ── 3. Degradado central (foto → zona inferior) ──────────────────────────────
-  const fadeStart = TOP_BAR + 60
-  const fadeEnd = H - BOT_ZONE
-  const midGrad = ctx.createLinearGradient(0, fadeEnd - 200, 0, fadeEnd)
-  midGrad.addColorStop(0, C.midFade(0))
-  midGrad.addColorStop(1, C.midFade(0.85))
-  ctx.fillStyle = midGrad
-  ctx.fillRect(0, fadeStart, W, fadeEnd - fadeStart + 50)
+  // Tope
+  const gTop = ctx.createLinearGradient(0, 0, 0, vigDepth)
+  gTop.addColorStop(0, `rgba(0,0,0,${vigAlpha})`)
+  gTop.addColorStop(1, 'rgba(0,0,0,0)')
+  ctx.fillStyle = gTop
+  ctx.fillRect(0, 0, W, vigDepth)
 
-  // ── 4. Zona inferior ─────────────────────────────────────────────────────────
-  const botY = H - BOT_ZONE
-  ctx.fillStyle = C.botZone
-  ctx.fillRect(0, botY, W, BOT_ZONE)
+  // Fondo
+  const gBot = ctx.createLinearGradient(0, H, 0, H - vigDepth)
+  gBot.addColorStop(0, `rgba(0,0,0,${vigAlpha})`)
+  gBot.addColorStop(1, 'rgba(0,0,0,0)')
+  ctx.fillStyle = gBot
+  ctx.fillRect(0, H - vigDepth, W, vigDepth)
 
-  // Línea separadora sutil en la transición
-  ctx.fillStyle = C.arena
-  ctx.globalAlpha = 0.25
-  ctx.fillRect(PAD, botY, W - PAD * 2, 1)
-  ctx.globalAlpha = 1
+  // Izquierda
+  const gLeft = ctx.createLinearGradient(0, 0, vigDepth, 0)
+  gLeft.addColorStop(0, `rgba(0,0,0,${vigAlpha * 0.7})`)
+  gLeft.addColorStop(1, 'rgba(0,0,0,0)')
+  ctx.fillStyle = gLeft
+  ctx.fillRect(0, 0, vigDepth, H)
 
-  // ── 5. Logo / branding en franja superior ───────────────────────────────────
-  // Nombre empresa
-  ctx.font = 'bold 26px sans-serif'
-  ctx.fillStyle = C.white
-  ctx.textBaseline = 'middle'
-  ctx.textAlign = 'left'
-  ctx.fillText('GUTLEBER & ASOC.', PAD, TOP_BAR / 2 - 5)
+  // Derecha
+  const gRight = ctx.createLinearGradient(W, 0, W - vigDepth, 0)
+  gRight.addColorStop(0, `rgba(0,0,0,${vigAlpha * 0.7})`)
+  gRight.addColorStop(1, 'rgba(0,0,0,0)')
+  ctx.fillStyle = gRight
+  ctx.fillRect(W - vigDepth, 0, vigDepth, H)
 
-  // Tagline debajo
-  ctx.font = '12px sans-serif'
-  ctx.fillStyle = C.arena
-  ctx.fillText('GESTIÓN · INVERSIÓN · PATRIMONIO', PAD, TOP_BAR / 2 + 16)
+  // ── 3. Header flotante ───────────────────────────────────────────────────────
+  const HH = 82
+  const HW = W - FLOAT_M * 2
+  const HX = FLOAT_M
+  const HY = FLOAT_M
 
-  // ── 6. Badge ALQUILER / VENTA (franja superior derecha) ─────────────────────
+  ctx.fillStyle = C.headerBg
+  roundRect(ctx, HX, HY, HW, HH, 16)
+
+  // Emblema del pin
+  const EMB_CX = HX + 44
+  const EMB_CY = HY + HH / 2 - 2
+  drawEmblema(ctx, EMB_CX, EMB_CY, 40)
+
+  // Nombre firma
+  const NX = EMB_CX + 32
+  ctx.font          = 'bold 22px WorkSans'
+  ctx.fillStyle     = C.crema
+  ctx.textBaseline  = 'alphabetic'
+  ctx.textAlign     = 'left'
+  ctx.fillText('GUTLEBER & ASOC.', NX, HY + 36)
+  ctx.font          = '11px WorkSans'
+  ctx.fillStyle     = C.arena
+  ctx.globalAlpha   = 0.72
+  ctx.fillText('INMOBILIARIA BOUTIQUE  ·  POSADAS', NX, HY + 56)
+  ctx.globalAlpha   = 1
+
+  // Badge modo — flotante grande, debajo del header, izquierda
   if (datos.enAlquiler || datos.enVenta) {
     const modoLabel = datos.enAlquiler && datos.enVenta
-      ? 'ALQUILER · VENTA'
+      ? 'ALQUILER  ·  VENTA'
       : datos.enAlquiler ? 'EN ALQUILER' : 'EN VENTA'
-    const bgModo = datos.enVenta && !datos.enAlquiler ? C.badgeVenta : C.badge
-    ctx.font = 'bold 18px sans-serif'
-    const tw = ctx.measureText(modoLabel).width
-    const bw = tw + 28
-    const bh = 36
-    const bx = W - PAD - bw
-    const by = (TOP_BAR - bh) / 2
-    ctx.fillStyle = bgModo
-    roundRect(ctx, bx, by, bw, bh, 6)
-    ctx.fillStyle = C.carbon
+    const badgeBg = datos.enVenta && !datos.enAlquiler ? C.badgeArena : C.badgePiedra
+    const MODO_FONT = 'bold 26px WorkSans'
+    ctx.font = MODO_FONT
+    const tw  = ctx.measureText(modoLabel).width
+    const bw  = tw + 40
+    const bh  = 52
+    const bx  = FLOAT_M
+    const by  = HY + HH + 18
+    ctx.fillStyle = badgeBg
+    roundRect(ctx, bx, by, bw, bh, bh / 2)
+    ctx.fillStyle    = C.carbon
     ctx.textBaseline = 'middle'
-    ctx.textAlign = 'center'
+    ctx.textAlign    = 'center'
     ctx.fillText(modoLabel, bx + bw / 2, by + bh / 2)
   }
 
-  // ── 7. Zona inferior: tipo badge ─────────────────────────────────────────────
+  // ── 4. Panel de datos flotante (inferior) ────────────────────────────────────
   const tipoLabel = TIPO_LABEL[datos.tipo] || datos.tipo
-  ctx.textAlign = 'left'
-  let cy = botY + 30
-  drawBadge(ctx, tipoLabel, PAD, cy, C.piedra, C.white, 17, 6, 14, 8)
-  cy += 48
+  const caract: string[] = []
+  if (datos.superficie)    caract.push(`${datos.superficie} m²`)
+  if (datos.habitaciones)  caract.push(`${datos.habitaciones} dorm.`)
+  if (datos.banos)         caract.push(`${datos.banos} baño${datos.banos > 1 ? 's' : ''}`)
 
-  // ── 8. Dirección ─────────────────────────────────────────────────────────────
-  ctx.font = 'bold 46px sans-serif'
-  ctx.fillStyle = C.white
-  ctx.textBaseline = 'top'
+  const precioTexto = datos.enAlquiler && datos.alquilerBase
+    ? formatARS(datos.alquilerBase)
+    : datos.enVenta && datos.valorVenta
+    ? `USD ${datos.valorVenta.toLocaleString('es-AR')}`
+    : null
+
+  const PANEL_W = W - FLOAT_M * 2
+  // Calcular altura dinámica del panel
+  let panelH = IPAD                                 // padding top
+    + 34 + 14                                       // badge tipo + gap
+    + (Math.min(wrapText(ctx, datos.direccion, PANEL_W - IPAD * 2).length, 2)) * 56
+    + (caract.length > 0 ? 28 + 10 : 0)            // características
+    + (datos.descripcion ? 30 + 6 : 0)             // descripción
+    + 1 + 16                                        // divisor
+    + (precioTexto ? 70 : 0)                        // precio
+    + IPAD                                          // padding bottom
+  panelH = Math.max(panelH, 280)
+
+  const PANEL_X = FLOAT_M
+  const PANEL_Y = H - panelH - FLOAT_M
+
+  ctx.fillStyle = C.panelBg
+  roundRect(ctx, PANEL_X, PANEL_Y, PANEL_W, panelH, 18)
+
+  let cy = PANEL_Y + IPAD
+
+  // Badge tipo
   ctx.textAlign = 'left'
-  const lineasDir = wrapText(ctx, datos.direccion, W - PAD * 2)
-  // Máximo 2 líneas
+  drawPill(ctx, tipoLabel, PANEL_X + IPAD, cy, C.badgePiedra, C.crema, 13, 16, 8)
+  cy += 34 + 14
+
+  // Dirección
+  ctx.font         = 'bold 44px Lora'
+  ctx.fillStyle    = C.white
+  ctx.textBaseline = 'top'
+  ctx.textAlign    = 'left'
+  const lineasDir  = wrapText(ctx, datos.direccion, PANEL_W - IPAD * 2)
   for (let i = 0; i < Math.min(lineasDir.length, 2); i++) {
-    ctx.fillText(lineasDir[i], PAD, cy)
+    ctx.fillText(lineasDir[i], PANEL_X + IPAD, cy)
     cy += 54
   }
   cy += 4
 
-  // ── 9. Descripción breve ──────────────────────────────────────────────────────
+  // Descripción breve (opcional)
   if (datos.descripcion) {
-    const desc = datos.descripcion.length > 90
-      ? datos.descripcion.slice(0, 87) + '...'
+    const desc = datos.descripcion.length > 80
+      ? datos.descripcion.slice(0, 77) + '…'
       : datos.descripcion
-    ctx.font = '20px sans-serif'
-    ctx.fillStyle = 'rgba(196,176,154,0.85)'
-    ctx.textBaseline = 'top'
-    ctx.fillText(desc, PAD, cy)
-    cy += 32
+    ctx.font      = '18px WorkSans'
+    ctx.fillStyle = 'rgba(196,176,154,0.78)'
+    ctx.fillText(desc, PANEL_X + IPAD, cy)
+    cy += 30
   }
 
-  // ── 10. Características ───────────────────────────────────────────────────────
-  const caract: string[] = []
-  if (datos.superficie) caract.push(`${datos.superficie} m²`)
-  if (datos.habitaciones) caract.push(`${datos.habitaciones} dorm.`)
-  if (datos.banos) caract.push(`${datos.banos} baño${datos.banos > 1 ? 's' : ''}`)
-
+  // Características
   if (caract.length > 0) {
-    ctx.font = '20px sans-serif'
-    ctx.fillStyle = C.arena
+    ctx.font         = '20px WorkSans'
     ctx.textBaseline = 'top'
-    // Dibuja cada chip por separado con separador ·
-    let cx = PAD
+    let cx = PANEL_X + IPAD
     for (let i = 0; i < caract.length; i++) {
       ctx.fillStyle = C.arena
       ctx.fillText(caract[i], cx, cy)
@@ -272,55 +372,51 @@ export async function generarTarjeta(datos: DatosTarjeta): Promise<Buffer> {
         cx += ctx.measureText('  ·  ').width
       }
     }
-    cy += 30
+    cy += 28 + 10
   }
 
-  // ── 11. Línea separadora antes del precio ─────────────────────────────────────
-  cy += 10
-  ctx.fillStyle = C.arena
-  ctx.globalAlpha = 0.20
-  ctx.fillRect(PAD, cy, W - PAD * 2, 1)
-  ctx.globalAlpha = 1
-  cy += 18
+  // Línea divisora
+  ctx.fillStyle    = C.arena
+  ctx.globalAlpha  = 0.18
+  ctx.fillRect(PANEL_X + IPAD, cy, PANEL_W - IPAD * 2, 1)
+  ctx.globalAlpha  = 1
+  cy += 16
 
-  // ── 12. Precio (grande) ───────────────────────────────────────────────────────
-  const precioTexto = datos.enAlquiler && datos.alquilerBase
-    ? formatARS(datos.alquilerBase)
-    : datos.enVenta && datos.valorVenta
-    ? `USD ${datos.valorVenta.toLocaleString('es-AR')}`
-    : null
-
+  // Precio
   if (precioTexto) {
-    ctx.font = 'bold 58px sans-serif'
-    ctx.fillStyle = C.white
+    ctx.font         = 'bold 54px Lora'
+    ctx.fillStyle    = C.white
     ctx.textBaseline = 'top'
-    ctx.textAlign = 'left'
-    ctx.fillText(precioTexto, PAD, cy)
-
-    // Etiqueta pequeña a la derecha del precio
-    const sufijo = datos.enAlquiler ? '/ mes' : 'negociable'
-    ctx.font = '18px sans-serif'
-    ctx.fillStyle = C.arena
-    const pw = ctx.measureText(precioTexto).width
-    ctx.textBaseline = 'alphabetic'
-    ctx.fillText(sufijo, PAD + pw + 12, cy + 50)
+    ctx.textAlign    = 'left'
+    ctx.fillText(precioTexto, PANEL_X + IPAD, cy)
+    if (datos.enAlquiler) {
+      const pw = ctx.measureText(precioTexto).width
+      ctx.font         = '18px WorkSans'
+      ctx.fillStyle    = C.arena
+      ctx.textBaseline = 'alphabetic'
+      ctx.fillText('/ mes', PANEL_X + IPAD + pw + 14, cy + 50)
+    }
   }
 
-  // ── 13. URL branding (abajo derecha) ──────────────────────────────────────────
-  ctx.font = '18px sans-serif'
-  ctx.fillStyle = C.piedra
-  ctx.textBaseline = 'alphabetic'
-  ctx.textAlign = 'right'
-  ctx.fillText('gutleber.com.ar', W - PAD, H - 28)
+  // ── 5. Footer (sobre la foto, bajo el panel) ──────────────────────────────
+  const footerY = H - 22
 
-  // ── 14. Punto decorativo ──────────────────────────────────────────────────────
-  // Pequeño rectángulo de color arena en bottom-left como acento de marca
-  ctx.fillStyle = C.arena
-  ctx.globalAlpha = 0.6
-  ctx.fillRect(PAD, H - 26, 40, 3)
+  // Línea decorativa arena (izquierda)
+  ctx.fillStyle   = C.arena
+  ctx.globalAlpha = 0.62
+  ctx.fillRect(FLOAT_M, footerY - 8, 44, 3)
   ctx.globalAlpha = 1
 
-  // ── Render final ──────────────────────────────────────────────────────────────
+  // URL derecha
+  ctx.font          = '15px WorkSans'
+  ctx.fillStyle     = C.piedra
+  ctx.textBaseline  = 'alphabetic'
+  ctx.textAlign     = 'right'
+  ctx.globalAlpha   = 0.82
+  ctx.fillText('gutleber.com.ar', W - FLOAT_M, footerY)
+  ctx.globalAlpha   = 1
+
+  // ── Render final ──────────────────────────────────────────────────────────
   const pngBuf = canvas.toBuffer('image/png')
   return sharp(pngBuf).jpeg({ quality: 92 }).toBuffer()
 }

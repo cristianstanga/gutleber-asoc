@@ -5,45 +5,55 @@
 @layer base {
   body {
     @apply bg-crema text-carbon font-sans;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
   }
 
   h1, h2, h3 {
     @apply font-display;
   }
+
+  /* Scrollbar sutil */
+  ::-webkit-scrollbar { width: 6px; height: 6px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { @apply bg-arena rounded-full; }
 }
 
 @layer components {
+  /* ── Botones ── */
   .btn {
-    @apply px-4 py-2 rounded font-sans text-sm font-semibold transition-colors cursor-pointer;
+    @apply px-4 py-2 rounded font-sans text-sm font-semibold transition-colors cursor-pointer inline-flex items-center justify-center;
   }
-  .btn-primary {
-    @apply btn bg-piedra text-white hover:bg-carbon;
-  }
-  .btn-secondary {
-    @apply btn bg-crema text-piedra border border-arena hover:bg-arena;
-  }
-  .btn-ghost {
-    @apply btn bg-transparent text-piedra hover:bg-crema;
-  }
-  .btn-danger {
-    @apply btn bg-red-600 text-white hover:bg-red-700;
-  }
+  .btn-primary   { @apply btn bg-piedra text-white hover:bg-carbon; }
+  .btn-secondary { @apply btn bg-crema text-carbon border border-arena hover:bg-arena hover:text-carbon; }
+  .btn-ghost     { @apply btn bg-transparent text-carbon hover:bg-arena/30; }
+  .btn-danger    { @apply btn bg-red-600 text-white hover:bg-red-700; }
 
-  .card {
-    @apply bg-white rounded-lg border border-arena shadow-sm;
-  }
+  /* ── Tarjeta ── */
+  .card { @apply bg-white rounded-lg border border-arena/60 shadow-sm; }
 
-  .badge {
-    @apply inline-flex items-center px-2 py-0.5 rounded text-xs font-semibold;
-  }
+  /* ── Badges ── */
+  .badge        { @apply inline-flex items-center px-2 py-0.5 rounded text-xs font-semibold; }
   .badge-green  { @apply badge bg-green-100 text-green-800; }
   .badge-red    { @apply badge bg-red-100 text-red-700; }
   .badge-yellow { @apply badge bg-yellow-100 text-yellow-800; }
-  .badge-gray   { @apply badge bg-gray-100 text-gray-700; }
+  .badge-gray   { @apply badge bg-stone-100 text-stone-700; }
   .badge-blue   { @apply badge bg-blue-100 text-blue-800; }
-  .badge-piedra { @apply badge bg-arena text-carbon; }
+  .badge-piedra { @apply badge bg-arena/40 text-carbon; }
 
-  .form-label  { @apply block text-xs font-semibold text-piedra uppercase tracking-wide mb-1; }
-  .form-input  { @apply w-full border border-arena rounded px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-piedra bg-white; }
+  /* ── Formularios ── */
+  .form-label {
+    @apply block text-xs font-semibold text-carbon/70 uppercase tracking-wide mb-1;
+  }
+  .form-input {
+    @apply w-full border border-arena rounded px-3 py-2 text-sm text-carbon
+           focus:outline-none focus:ring-2 focus:ring-piedra focus:border-piedra
+           bg-white placeholder-carbon/35;
+  }
   .form-select { @apply form-input; }
+
+  /* ── Texto semántico en fondos claros ── */
+  /* Usar .text-muted en lugar de text-arena para texto secundario legible */
+  .text-muted   { @apply text-carbon/55; }  /* ~#6B6B67 — contraste 5.2:1 en blanco */
+  .text-hint    { @apply text-carbon/40; }  /* ~#777775 — solo para hints muy secundarios */
 }

@@ -1,5 +1,5 @@
 import { NavLink } from 'react-router-dom'
-import { LayoutDashboard, Building2, Users, FileText, CreditCard, TrendingUp, MessageSquare, Smartphone, LogOut } from 'lucide-react'
+import { LayoutDashboard, Building2, Users, FileText, CreditCard, TrendingUp, MessageSquare, Smartphone, LogOut, Sparkles, FilePlus2 } from 'lucide-react'
 import { useAuthStore } from '../store/auth'
 import { useQuery } from '@tanstack/react-query'
 import { api } from '../lib/api'
@@ -13,6 +13,8 @@ const nav = [
   { to: '/indices',      label: 'Índices',      Icon: TrendingUp },
   { to: '/inbox',        label: 'WhatsApp CRM', Icon: MessageSquare, badge: true },
   { to: '/whatsapp',     label: 'WhatsApp',     Icon: Smartphone },
+  { to: '/tarjetas',     label: 'Tarjetas',     Icon: Sparkles },
+  { to: '/contrato-gen', label: 'Contratos IA', Icon: FilePlus2 },
 ]
 
 export default function Sidebar() {

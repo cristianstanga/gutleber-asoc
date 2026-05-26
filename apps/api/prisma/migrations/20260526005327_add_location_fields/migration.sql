@@ -1,0 +1,4 @@
+-- AlterTable
+ALTER TABLE "Propiedad" ADD COLUMN     "barrio" TEXT,
+ADD COLUMN     "lat" DOUBLE PRECISION,
+ADD COLUMN     "lng" DOUBLE PRECISION;

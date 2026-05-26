@@ -10,6 +10,8 @@ import AjusteIndices from './pages/AjusteIndices'
 import Pagos from './pages/Pagos'
 import Inbox from './pages/Inbox'
 import WhatsAppStatus from './pages/WhatsAppStatus'
+import TarjetaBuilder from './pages/TarjetaBuilder'
+import ContratoGenerador from './pages/ContratoGenerador'
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const token = useAuthStore((s) => s.token)
@@ -38,6 +40,8 @@ export default function App() {
           <Route path="indices" element={<AjusteIndices />} />
           <Route path="inbox" element={<Inbox />} />
           <Route path="whatsapp" element={<WhatsAppStatus />} />
+          <Route path="tarjetas" element={<TarjetaBuilder />} />
+          <Route path="contrato-gen" element={<ContratoGenerador />} />
         </Route>
       </Routes>
     </BrowserRouter>

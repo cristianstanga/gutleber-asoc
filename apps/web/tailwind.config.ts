@@ -12,7 +12,7 @@ export default {
       },
       fontFamily: {
         display: ['Georgia', 'serif'],
-        sans: ['Arial', 'sans-serif'],
+        sans: ['system-ui', '-apple-system', 'BlinkMacSystemFont', 'Segoe UI', 'Helvetica Neue', 'sans-serif'],
       },
     },
   },

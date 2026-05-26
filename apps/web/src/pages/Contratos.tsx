@@ -110,7 +110,7 @@ export default function Contratos() {
                   Contrato por vencer — {diasHastaVencimiento(v.fechaFin)} días
                 </p>
                 <p className="text-xs text-piedra">{v.persona.nombre} {v.persona.apellido} · {v.propiedad.direccion}</p>
-                <p className="text-xs text-arena">Vence el {formatFecha(v.fechaFin!)}</p>
+                <p className="text-xs text-muted">Vence el {formatFecha(v.fechaFin!)}</p>
               </div>
             </div>
           ))}
@@ -122,7 +122,7 @@ export default function Contratos() {
                   Ajuste de índice próximo — {diasHastaAjuste(v.proximaActualizacion)} días
                 </p>
                 <p className="text-xs text-piedra">{v.persona.nombre} {v.persona.apellido} · {v.propiedad.direccion}</p>
-                <p className="text-xs text-arena">
+                <p className="text-xs text-muted">
                   Índice {v.indice} el {formatFecha(v.proximaActualizacion!)}
                 </p>
               </div>
@@ -161,18 +161,18 @@ export default function Contratos() {
                       <td className="px-4 py-3 text-carbon">
                         {v.persona.nombre} {v.persona.apellido}
                       </td>
-                      <td className="px-4 py-3 text-arena hidden md:table-cell">
+                      <td className="px-4 py-3 text-muted hidden md:table-cell">
                         {formatFecha(v.fechaInicio)}
                       </td>
                       <td className="px-4 py-3 text-right">
                         <p className="font-semibold text-carbon">{v.alquilerActual ? formatARS(v.alquilerActual) : '—'}</p>
                         {v.alquilerInicial && v.alquilerActual && v.alquilerInicial !== v.alquilerActual && (
-                          <p className="text-[10px] text-arena">Inicial: {formatARS(v.alquilerInicial)}</p>
+                          <p className="text-[10px] text-muted">Inicial: {formatARS(v.alquilerInicial)}</p>
                         )}
                       </td>
                       <td className="px-4 py-3 hidden lg:table-cell">
-                        {v.indice ? <span className="badge-gray">{v.indice}</span> : <span className="text-arena">—</span>}
-                        {v.periodicidad && <span className="text-[10px] text-arena ml-1">c/{v.periodicidad}m</span>}
+                        {v.indice ? <span className="badge-gray">{v.indice}</span> : <span className="text-muted">—</span>}
+                        {v.periodicidad && <span className="text-[10px] text-muted ml-1">c/{v.periodicidad}m</span>}
                       </td>
                       <td className="px-4 py-3 hidden lg:table-cell">
                         {v.proximaActualizacion ? (
@@ -182,7 +182,7 @@ export default function Contratos() {
                               <p className="text-[10px] text-blue-600 font-semibold">{diasAjuste} días</p>
                             )}
                           </div>
-                        ) : <span className="text-arena">—</span>}
+                        ) : <span className="text-muted">—</span>}
                       </td>
                       <td className="px-4 py-3">
                         {v.activo ? (
@@ -243,7 +243,7 @@ export default function Contratos() {
                     </td>
                     <td className="px-4 py-3 text-carbon text-xs">{v.propiedad.direccion}</td>
                     <td className="px-4 py-3 text-carbon">{v.persona.nombre} {v.persona.apellido}</td>
-                    <td className="px-4 py-3 text-arena">{formatFecha(v.fechaInicio)}</td>
+                    <td className="px-4 py-3 text-muted">{formatFecha(v.fechaInicio)}</td>
                     <td className="px-4 py-3">
                       <span className={v.activo ? 'badge-green' : 'badge-gray'}>
                         {v.activo ? 'Activo' : 'Finalizado'}
@@ -269,7 +269,7 @@ export default function Contratos() {
 
       {vinculos.length === 0 && !isLoading && (
         <div className="card p-12 text-center">
-          <FileText size={32} className="text-arena mx-auto mb-3" />
+          <FileText size={32} className="text-muted mx-auto mb-3" />
           <p className="text-piedra mb-4">No hay contratos registrados</p>
           <button onClick={() => setModalForm(true)} className="btn-primary">Crear primer contrato</button>
         </div>

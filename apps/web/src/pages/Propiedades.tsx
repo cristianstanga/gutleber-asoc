@@ -1,6 +1,7 @@
 import { useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { Building2, MapPin, Ruler, Tag, Pencil, Trash2, Instagram, Images, ChevronLeft, ImageIcon } from 'lucide-react'
+import { Building2, MapPin, Ruler, Tag, Pencil, Trash2, Instagram, Images, ChevronLeft, Sparkles } from 'lucide-react'
 import { api, formatARS } from '../lib/api'
 import FormPropiedad from '../components/FormPropiedad'
 import ImageUpload from '../components/ImageUpload'
@@ -27,6 +28,9 @@ interface Propiedad {
   descripcion?: string
   notas?: string
   instagramPostId?: string
+  lat?: number
+  lng?: number
+  barrio?: string
   imagenes: Imagen[]
   videos: VideoItem[]
   vinculos?: Array<{ id: string; persona: { nombre: string; apellido: string }; alquilerActual?: number; tipo: string }>
@@ -38,6 +42,7 @@ const tipoLabel: Record<string, string> = {
 
 export default function Propiedades() {
   const qc = useQueryClient()
+  const navigate = useNavigate()
   const [modalForm, setModalForm] = useState(false)
   const [editando, setEditando] = useState<Propiedad | null>(null)
   const [detalle, setDetalle] = useState<Propiedad | null>(null)
@@ -168,14 +173,14 @@ export default function Propiedades() {
               <div className="flex flex-wrap gap-4 text-sm">
                 {prop.enAlquiler && prop.alquilerBase && (
                   <div className="flex items-center gap-2">
-                    <span className="text-arena">Alquiler:</span>
+                    <span className="text-muted">Alquiler:</span>
                     <span className="font-semibold text-carbon">{formatARS(prop.alquilerBase)}</span>
                     {prop.indiceActual && <span className="badge-gray">{prop.indiceActual}</span>}
                   </div>
                 )}
                 {prop.enVenta && prop.valorVenta && (
                   <div className="flex items-center gap-2">
-                    <Tag size={14} className="text-arena" />
+                    <Tag size={14} className="text-muted" />
                     <span className="font-semibold text-carbon">USD {prop.valorVenta.toLocaleString('es-AR')}</span>
                   </div>
                 )}
@@ -195,7 +200,7 @@ export default function Propiedades() {
                 <Images size={16} className="text-piedra" />
                 <h3 className="font-semibold text-carbon">
                   Multimedia
-                  <span className="text-arena font-normal text-xs ml-2">
+                  <span className="text-muted font-normal text-xs ml-2">
                     {prop.imagenes.length} foto{prop.imagenes.length !== 1 ? 's' : ''} · {(prop.videos || []).length} video{(prop.videos || []).length !== 1 ? 's' : ''}
                   </span>
                 </h3>
@@ -207,31 +212,29 @@ export default function Propiedades() {
           {/* Sidebar acciones */}
           <div className="space-y-4">
             <div className="card p-5 space-y-3">
-              <h3 className="font-semibold text-carbon text-sm">Tarjeta con datos</h3>
-              {prop.imagenes.length > 0 ? (
-                <div className="space-y-2">
-                  <a
-                    href={`/api/public/tarjeta/${prop.id}/preview`}
-                    target="_blank"
-                    rel="noreferrer"
-                    className="btn-primary w-full flex items-center justify-center gap-2"
-                  >
-                    <ImageIcon size={15} /> Ver tarjeta (preview)
-                  </a>
-                  <a
-                    href={`/api/public/tarjeta/${prop.id}`}
-                    target="_blank"
-                    rel="noreferrer"
-                    download
-                    className="btn-secondary w-full flex items-center justify-center gap-2 text-sm"
-                  >
-                    ⬇ Descargar JPEG
-                  </a>
-                  <p className="text-[11px] text-arena text-center">1080×1080 px · listo para WhatsApp e Instagram</p>
-                </div>
-              ) : (
-                <p className="text-[11px] text-arena">Subí una foto para generar la tarjeta.</p>
+              <h3 className="font-semibold text-carbon text-sm">
+                Tarjetas para compartir
+                {prop.imagenes.length > 1 && (
+                  <span className="ml-2 text-[10px] font-normal text-muted bg-crema px-1.5 py-0.5 rounded-full">
+                    {prop.imagenes.length} imágenes
+                  </span>
+                )}
+              </h3>
+              <button
+                onClick={() => navigate(`/tarjetas?propId=${prop.id}`)}
+                className="btn-primary w-full flex items-center justify-center gap-2"
+              >
+                <Sparkles size={15} />
+                {prop.imagenes.length > 1
+                  ? `Armar tarjetas (${prop.imagenes.length} fotos)`
+                  : prop.imagenes.length === 1
+                  ? 'Armar tarjeta'
+                  : 'Abrir generador'}
+              </button>
+              {prop.imagenes.length === 0 && (
+                <p className="text-[11px] text-muted">Podés subir fotos desde el generador.</p>
               )}
+              <p className="text-[11px] text-muted text-center">1080×1080 px · WhatsApp · Instagram</p>
             </div>
 
             <div className="card p-5">
@@ -244,7 +247,7 @@ export default function Propiedades() {
                 <Instagram size={15} />
                 {publicando === prop.id ? 'Publicando...' : 'Publicar en Instagram'}
               </button>
-              <p className="text-[11px] text-arena text-center">
+              <p className="text-[11px] text-muted text-center">
                 {prop.imagenes.length === 0
                   ? 'Necesitás subir fotos primero'
                   : prop.imagenes.length === 1
@@ -316,7 +319,7 @@ export default function Propiedades() {
               <img src={p.imagenes[0].url} alt="" className="w-full h-40 object-cover" />
             ) : (
               <div className="w-full h-40 bg-crema flex items-center justify-center border-b border-arena">
-                <Building2 size={32} className="text-arena" />
+                <Building2 size={32} className="text-muted" />
               </div>
             )}
 
@@ -330,18 +333,18 @@ export default function Propiedades() {
               </div>
 
               {/* Tipo */}
-              <p className="text-xs text-arena">{tipoLabel[p.tipo]}</p>
+              <p className="text-xs text-muted">{tipoLabel[p.tipo]}</p>
 
               {/* Dirección */}
               <div className="flex items-start gap-1 mt-0.5 mb-2">
-                <MapPin size={12} className="text-arena mt-0.5 shrink-0" />
+                <MapPin size={12} className="text-muted mt-0.5 shrink-0" />
                 <p className="text-sm font-semibold text-carbon leading-snug">{p.direccion}</p>
               </div>
 
               {/* Montos */}
               <div className="space-y-0.5 text-xs mb-3">
                 {p.enAlquiler && p.alquilerBase && (
-                  <p className="text-carbon">{formatARS(p.alquilerBase)} <span className="text-arena">/ mes</span></p>
+                  <p className="text-carbon">{formatARS(p.alquilerBase)} <span className="text-muted">/ mes</span></p>
                 )}
                 {p.enVenta && p.valorVenta && (
                   <p className="text-carbon flex items-center gap-1"><Tag size={10} /> USD {p.valorVenta.toLocaleString('es-AR')}</p>
@@ -383,7 +386,7 @@ export default function Propiedades() {
 
       {propiedades.length === 0 && !isLoading && (
         <div className="card p-12 text-center">
-          <Building2 size={32} className="text-arena mx-auto mb-3" />
+          <Building2 size={32} className="text-muted mx-auto mb-3" />
           <p className="text-piedra mb-4">No hay propiedades cargadas</p>
           <button onClick={abrirNueva} className="btn-primary">Crear primera propiedad</button>
         </div>

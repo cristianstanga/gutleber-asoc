@@ -644,7 +644,7 @@ function PanelPagos({ vinculo }: PanelPagosProps) {
                   {/* Nro */}
                   <td className="px-4 py-3">
                     <span className="font-mono text-xs text-piedra">{nroFormato(p.nroRecibo)}</span>
-                    <p className="text-[10px] text-arena mt-0.5">Pago #{idx + 1}</p>
+                    <p className="text-[10px] text-muted mt-0.5">Pago #{idx + 1}</p>
                   </td>
 
                   {/* Período */}
@@ -694,12 +694,12 @@ function PanelPagos({ vinculo }: PanelPagosProps) {
                       <button
                         onClick={() => pagarPropietario.mutate(p.id)}
                         disabled={pagarPropietario.isPending}
-                        className="text-xs text-arena hover:text-carbon underline underline-offset-2 transition-colors"
+                        className="text-xs text-muted hover:text-carbon underline underline-offset-2 transition-colors"
                       >
                         Marcar pagado
                       </button>
                     ) : (
-                      <span className="text-xs text-arena">—</span>
+                      <span className="text-xs text-muted">—</span>
                     )}
                   </td>
 
@@ -877,7 +877,7 @@ export default function Pagos() {
                       {v.persona.nombre} {v.persona.apellido}
                     </p>
                     {/* Fechas */}
-                    <p className="text-[11px] text-arena mt-1 flex items-center gap-1">
+                    <p className="text-[11px] text-muted mt-1 flex items-center gap-1">
                       <Calendar size={10} className="opacity-50" />
                       {formatFecha(v.fechaInicio)} — {v.fechaFin ? formatFecha(v.fechaFin) : '∞'}
                     </p>
@@ -915,7 +915,7 @@ export default function Pagos() {
           <div className="flex-1 flex flex-col items-center justify-center text-piedra gap-3">
             <Building2 size={48} className="opacity-20" />
             <p className="text-sm">Seleccioná un contrato para ver los pagos</p>
-            <p className="text-xs text-arena">
+            <p className="text-xs text-muted">
               {vinculos.length} contrato{vinculos.length !== 1 ? 's' : ''} disponible{vinculos.length !== 1 ? 's' : ''}
             </p>
           </div>

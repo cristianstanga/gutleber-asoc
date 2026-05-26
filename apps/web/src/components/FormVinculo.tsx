@@ -161,7 +161,7 @@ export default function FormVinculo({ onClose }: Props) {
                 onChange={(e) => setFechaInicio(e.target.value)} required />
             </div>
             <div>
-              <label className="form-label">Fecha fin <span className="text-arena font-normal normal-case">(opcional)</span></label>
+              <label className="form-label">Fecha fin <span className="text-muted font-normal normal-case">(opcional)</span></label>
               <input type="date" className="form-input" value={fechaFin}
                 onChange={(e) => setFechaFin(e.target.value)} />
             </div>
@@ -206,7 +206,7 @@ export default function FormVinculo({ onClose }: Props) {
                   <AlertCircle size={14} className="text-piedra mt-0.5 shrink-0" />
                   <div className="text-xs text-carbon">
                     <p className="font-semibold">Primer ajuste programado: {proximaActualizacion}</p>
-                    <p className="text-arena mt-0.5">Ley 27.737 / DNU 70/2023 — ajuste por {indice} cada {periodicidad} meses</p>
+                    <p className="text-muted mt-0.5">Ley 27.737 / DNU 70/2023 — ajuste por {indice} cada {periodicidad} meses</p>
                   </div>
                 </div>
               )}
@@ -234,7 +234,7 @@ export default function FormVinculo({ onClose }: Props) {
                   <span className="text-sm text-piedra">%</span>
                 </div>
               </div>
-              <p className="text-xs text-arena mt-1">
+              <p className="text-xs text-muted mt-1">
                 Honorarios negociados con el propietario. Se aplican al generar cada liquidación.
               </p>
             </div>

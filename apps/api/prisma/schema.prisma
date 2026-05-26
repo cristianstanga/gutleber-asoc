@@ -101,6 +101,9 @@ model Propiedad {
   descripcion      String?
   notas            String?
   instagramPostId  String?
+  lat              Float?
+  lng              Float?
+  barrio           String?
   imagenes              PropiedadImagen[]
   videos                PropiedadVideo[]
   vinculos              Vinculo[]
