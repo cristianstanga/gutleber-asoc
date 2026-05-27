@@ -630,7 +630,7 @@ function PanelPagos({ vinculo }: PanelPagosProps) {
                 <th className="text-right px-4 py-2.5 text-xs text-piedra uppercase tracking-wide">Total</th>
                 <th className="text-left px-4 py-2.5 text-xs text-piedra uppercase tracking-wide">Estado</th>
                 <th className="text-left px-4 py-2.5 text-xs text-piedra uppercase tracking-wide hidden xl:table-cell">Propietario</th>
-                <th className="text-right px-4 py-2.5 text-xs text-piedra uppercase tracking-wide">Acciones</th>
+                <th className="text-right px-4 py-2.5 text-xs text-piedra uppercase tracking-wide">Qué hacer</th>
               </tr>
             </thead>
             <tbody>
@@ -687,17 +687,14 @@ function PanelPagos({ vinculo }: PanelPagosProps) {
                   {/* Pagado al propietario */}
                   <td className="px-4 py-3 hidden xl:table-cell">
                     {p.pagadoAlPropietario ? (
-                      <span className="text-xs text-green-700 bg-green-50 px-2 py-0.5 rounded-full">
-                        ✓ {p.fechaPagoPropietario ? formatFecha(p.fechaPagoPropietario) : 'Pagado'}
+                      <span className="inline-flex items-center gap-1 text-xs text-green-700 bg-green-50 px-2 py-1 rounded-full font-medium">
+                        <CheckCircle size={11} /> Propietario cobró
+                        {p.fechaPagoPropietario && <span className="text-green-500 ml-1">{formatFecha(p.fechaPagoPropietario)}</span>}
                       </span>
                     ) : p.estado === 'PAGADO' ? (
-                      <button
-                        onClick={() => pagarPropietario.mutate(p.id)}
-                        disabled={pagarPropietario.isPending}
-                        className="text-xs text-muted hover:text-carbon underline underline-offset-2 transition-colors"
-                      >
-                        Marcar pagado
-                      </button>
+                      <span className="text-xs text-amber-600 bg-amber-50 px-2 py-1 rounded-full">
+                        Pendiente de pago
+                      </span>
                     ) : (
                       <span className="text-xs text-muted">—</span>
                     )}
@@ -705,51 +702,58 @@ function PanelPagos({ vinculo }: PanelPagosProps) {
 
                   {/* Acciones */}
                   <td className="px-4 py-3">
-                    <div className="flex items-center gap-1 justify-end">
-                      {/* Marcar pagado */}
+                    <div className="flex flex-col gap-1.5 items-end">
+                      {/* Cobrar */}
                       {p.estado !== 'PAGADO' && p.estado !== 'ANULADO' && (
                         <button
                           onClick={() => marcarPagado.mutate(p.id)}
                           disabled={marcarPagado.isPending}
-                          title="Marcar como pagado"
-                          className="p-1.5 rounded hover:bg-green-50 text-green-600 transition-colors"
+                          className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-green-600 hover:bg-green-700 text-white text-xs font-semibold transition-colors whitespace-nowrap"
                         >
-                          <CheckCircle size={14} />
+                          <CheckCircle size={13} /> Marcar cobrado
                         </button>
                       )}
 
-                      {/* Recibo PDF */}
                       {p.estado === 'PAGADO' && (
-                        <button
-                          onClick={() => handleDescargar(p, 'recibo')}
-                          title="Descargar recibo PDF"
-                          className="p-1.5 rounded hover:bg-crema text-piedra transition-colors"
-                        >
-                          <FileText size={14} />
-                        </button>
-                      )}
+                        <div className="flex flex-col gap-1">
+                          {/* Recibo PDF */}
+                          <button
+                            onClick={() => handleDescargar(p, 'recibo')}
+                            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-crema hover:bg-arena/40 text-carbon text-xs font-medium transition-colors whitespace-nowrap"
+                          >
+                            <FileText size={12} /> Recibo PDF
+                          </button>
 
-                      {/* Liquidación — abre modal con preview */}
-                      {p.estado === 'PAGADO' && (
-                        <button
-                          onClick={() => setPagoLiquidar(p)}
-                          title="Liquidar al propietario"
-                          className="p-1.5 rounded hover:bg-amber-50 text-amber-600 transition-colors"
-                        >
-                          <Receipt size={14} />
-                        </button>
-                      )}
+                          {/* Liquidar al propietario */}
+                          <button
+                            onClick={() => setPagoLiquidar(p)}
+                            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-amber-50 hover:bg-amber-100 text-amber-700 text-xs font-semibold transition-colors whitespace-nowrap"
+                          >
+                            <Receipt size={12} /> Liquidar
+                          </button>
 
-                      {/* WhatsApp */}
-                      {p.estado === 'PAGADO' && vinculo.persona.whatsapp && (
-                        <button
-                          onClick={() => enviarWA.mutate(p.id)}
-                          disabled={enviarWA.isPending}
-                          title="Enviar recibo por WhatsApp"
-                          className="p-1.5 rounded hover:bg-green-50 text-green-600 transition-colors"
-                        >
-                          <Send size={14} />
-                        </button>
+                          {/* Pagar al propietario */}
+                          {!p.pagadoAlPropietario && (
+                            <button
+                              onClick={() => pagarPropietario.mutate(p.id)}
+                              disabled={pagarPropietario.isPending}
+                              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-piedra/10 hover:bg-piedra/20 text-piedra text-xs font-medium transition-colors whitespace-nowrap"
+                            >
+                              <Send size={12} /> Pagar a propietario
+                            </button>
+                          )}
+
+                          {/* WhatsApp */}
+                          {vinculo.persona.whatsapp && (
+                            <button
+                              onClick={() => enviarWA.mutate(p.id)}
+                              disabled={enviarWA.isPending}
+                              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-green-50 hover:bg-green-100 text-green-700 text-xs font-medium transition-colors whitespace-nowrap"
+                            >
+                              <Send size={12} /> Enviar recibo WA
+                            </button>
+                          )}
+                        </div>
                       )}
                     </div>
                   </td>
