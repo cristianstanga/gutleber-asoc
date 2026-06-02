@@ -1,0 +1,66 @@
+version: '3.8'
+
+# Deploy simple — acceso por IP:puerto, sin dominio ni SSL
+# Acceso: http://82.29.60.243:8082
+
+networks:
+  gutleber-internal:
+    driver: bridge
+
+volumes:
+  gutleber-postgres-data:
+  gutleber-wa-session:
+  gutleber-uploads:
+
+services:
+
+  gutleber-postgres:
+    image: postgres:16-alpine
+    networks:
+      - gutleber-internal
+    environment:
+      POSTGRES_DB: gutleber_db
+      POSTGRES_USER: gutleber
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
+    volumes:
+      - gutleber-postgres-data:/var/lib/postgresql/data
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U gutleber -d gutleber_db"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  gutleber-api:
+    build:
+      context: .
+      dockerfile: apps/api/Dockerfile
+    networks:
+      - gutleber-internal
+    environment:
+      DATABASE_URL: postgresql://gutleber:${DB_PASSWORD}@gutleber-postgres:5432/gutleber_db
+      JWT_SECRET: ${JWT_SECRET}
+      JWT_EXPIRES_IN: 7d
+      NODE_ENV: production
+      PORT: 3001
+      CORS_ORIGIN: http://${VPS_IP}:8082
+      WA_SESSION_PATH: /app/apps/api/baileys_auth_info
+    volumes:
+      - gutleber-wa-session:/app/apps/api/baileys_auth_info
+      - gutleber-uploads:/app/apps/api/uploads
+    depends_on:
+      gutleber-postgres:
+        condition: service_healthy
+    restart: unless-stopped
+
+  gutleber-web:
+    build:
+      context: .
+      dockerfile: apps/web/Dockerfile
+    networks:
+      - gutleber-internal
+    ports:
+      - "8082:80"        # Acceso: http://IP:8082
+    depends_on:
+      - gutleber-api
+    restart: unless-stopped
