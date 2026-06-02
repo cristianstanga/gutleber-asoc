@@ -1,0 +1,94 @@
+version: '3.8'
+
+# ─── Redes ────────────────────────────────────────────────────────────────────
+networks:
+  # Red de Traefik (ya existe en el VPS — NO la crea, la usa)
+  dokploy-network:
+    external: true
+  # Red interna solo para postgres ↔ api (nadie más la ve)
+  gutleber-internal:
+    driver: bridge
+
+# ─── Volúmenes persistentes ───────────────────────────────────────────────────
+volumes:
+  gutleber-postgres-data:   # Base de datos
+  gutleber-wa-session:      # Sesión de WhatsApp (para no re-escanear QR)
+  gutleber-uploads:         # Imágenes/archivos subidos
+
+# ─── Servicios ────────────────────────────────────────────────────────────────
+services:
+
+  # ── PostgreSQL ──────────────────────────────────────────────────────────────
+  gutleber-postgres:
+    image: postgres:16-alpine
+    networks:
+      - gutleber-internal       # Solo visible internamente
+    environment:
+      POSTGRES_DB: gutleber_db
+      POSTGRES_USER: gutleber
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
+    volumes:
+      - gutleber-postgres-data:/var/lib/postgresql/data
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U gutleber -d gutleber_db"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # ── API (Node.js / Express) ─────────────────────────────────────────────────
+  gutleber-api:
+    build:
+      context: .
+      dockerfile: apps/api/Dockerfile
+    networks:
+      - gutleber-internal       # Para hablar con postgres
+      - dokploy-network         # Para que Traefik lo enrute
+    environment:
+      DATABASE_URL: postgresql://gutleber:${DB_PASSWORD}@gutleber-postgres:5432/gutleber_db
+      JWT_SECRET: ${JWT_SECRET}
+      JWT_EXPIRES_IN: 7d
+      NODE_ENV: production
+      PORT: 3001
+      CORS_ORIGIN: https://${DOMAIN}
+      WA_SESSION_PATH: /app/apps/api/baileys_auth_info
+    volumes:
+      - gutleber-wa-session:/app/apps/api/baileys_auth_info
+      - gutleber-uploads:/app/apps/api/uploads
+    depends_on:
+      gutleber-postgres:
+        condition: service_healthy
+    restart: unless-stopped
+    labels:
+      # Habilitar Traefik para este container
+      - "traefik.enable=true"
+      - "traefik.docker.network=dokploy-network"
+      # Ruta HTTPS para /api/*
+      - "traefik.http.routers.gutleber-api.rule=Host(`${DOMAIN}`) && PathPrefix(`/api`)"
+      - "traefik.http.routers.gutleber-api.entrypoints=websecure"
+      - "traefik.http.routers.gutleber-api.tls.certresolver=letsencrypt"
+      - "traefik.http.services.gutleber-api.loadbalancer.server.port=3001"
+
+  # ── Frontend (React / Nginx) ─────────────────────────────────────────────────
+  gutleber-web:
+    build:
+      context: .
+      dockerfile: apps/web/Dockerfile
+    networks:
+      - dokploy-network         # Solo necesita Traefik
+    depends_on:
+      - gutleber-api
+    restart: unless-stopped
+    labels:
+      - "traefik.enable=true"
+      - "traefik.docker.network=dokploy-network"
+      # Ruta HTTPS para todo lo demás
+      - "traefik.http.routers.gutleber-web.rule=Host(`${DOMAIN}`)"
+      - "traefik.http.routers.gutleber-web.entrypoints=websecure"
+      - "traefik.http.routers.gutleber-web.tls.certresolver=letsencrypt"
+      - "traefik.http.services.gutleber-web.loadbalancer.server.port=80"
+      # Redirigir HTTP → HTTPS automáticamente
+      - "traefik.http.routers.gutleber-web-http.rule=Host(`${DOMAIN}`)"
+      - "traefik.http.routers.gutleber-web-http.entrypoints=web"
+      - "traefik.http.middlewares.gutleber-https.redirectscheme.scheme=https"
+      - "traefik.http.routers.gutleber-web-http.middlewares=gutleber-https"
