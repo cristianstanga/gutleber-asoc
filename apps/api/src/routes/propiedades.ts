@@ -38,6 +38,112 @@ router.get('/mis', async (req: AuthRequest, res) => {
   res.json(props)
 })
 
+// Analytics de una propiedad para el propietario
+router.get('/:id/analytics', async (req: AuthRequest, res) => {
+  const propiedadId = req.params.id
+
+  // Verificar que la propiedad pertenece al propietario (o es admin/operador)
+  if (req.userRol === 'PROPIETARIO') {
+    const prop = await prisma.propiedad.findUnique({ where: { id: propiedadId }, select: { propietarioId: true } })
+    if (prop?.propietarioId !== req.userPersonaId) return res.status(403).json({ error: 'Sin acceso' })
+  }
+
+  const vinculo = await prisma.vinculo.findFirst({
+    where: { propiedadId, tipo: 'ALQUILER', activo: true },
+    select: { id: true, alquilerActual: true, alquilerInicial: true, honorariosPct: true, indice: true, proximaActualizacion: true, personaId: true, fechaInicio: true },
+  })
+
+  // Todos los pagos de alquiler de esta propiedad
+  const pagos = await prisma.pago.findMany({
+    where: { propiedadId, tipo: 'ALQUILER' },
+    orderBy: { fechaVencimiento: 'asc' },
+  })
+
+  // Demora por mes del inquilino actual
+  const demoraPorMes = pagos
+    .filter((p) => p.estado === 'PAGADO' && p.fechaPago)
+    .map((p) => {
+      const venc = new Date(p.fechaVencimiento)
+      const pago = new Date(p.fechaPago!)
+      const dias = Math.max(0, Math.round((pago.getTime() - venc.getTime()) / 86400000))
+      return {
+        mes: venc.toLocaleDateString('es-AR', { month: 'short', year: '2-digit' }),
+        diasDemora: dias,
+        estado: dias === 0 ? 'ATiempo' : 'Tarde',
+        monto: p.monto,
+      }
+    })
+
+  // Stats del inquilino actual
+  const pagadosConFecha = pagos.filter((p) => p.estado === 'PAGADO' && p.fechaPago)
+  const diasDemoras = pagadosConFecha.map((p) =>
+    Math.max(0, Math.round((new Date(p.fechaPago!).getTime() - new Date(p.fechaVencimiento).getTime()) / 86400000))
+  )
+  const statsInquilino = {
+    totalPagos: pagadosConFecha.length,
+    pagadosATiempo: diasDemoras.filter((d) => d === 0).length,
+    promedioDiasDemora: diasDemoras.length ? +(diasDemoras.reduce((a, b) => a + b, 0) / diasDemoras.length).toFixed(1) : 0,
+    maxDiasDemora: diasDemoras.length ? Math.max(...diasDemoras) : 0,
+    enMora: pagos.filter((p) => p.estado === 'MORA').length,
+  }
+
+  // Stats globales de todos los inquilinos (comparativo)
+  const todosPagos = await prisma.pago.findMany({
+    where: { tipo: 'ALQUILER', estado: 'PAGADO', fechaPago: { not: null } },
+    select: { fechaVencimiento: true, fechaPago: true, personaId: true },
+  })
+  const demorasGlobal = todosPagos.map((p) =>
+    Math.max(0, Math.round((new Date(p.fechaPago!).getTime() - new Date(p.fechaVencimiento).getTime()) / 86400000))
+  )
+  const inquilinosUnicos = new Set(todosPagos.map((p) => p.personaId)).size
+  const statsGlobal = {
+    promedioDiasDemora: demorasGlobal.length ? +(demorasGlobal.reduce((a, b) => a + b, 0) / demorasGlobal.length).toFixed(1) : 0,
+    porcentajeATiempo: demorasGlobal.length ? +((demorasGlobal.filter((d) => d === 0).length / demorasGlobal.length) * 100).toFixed(1) : 0,
+    totalInquilinos: inquilinosUnicos,
+    porcentajeInquilinosConMejorComportamiento: (() => {
+      if (!vinculo || diasDemoras.length === 0) return null
+      const promedioActual = statsInquilino.promedioDiasDemora
+      const promediosPorInquilino: Record<string, number[]> = {}
+      todosPagos.forEach((p) => {
+        const d = Math.max(0, Math.round((new Date(p.fechaPago!).getTime() - new Date(p.fechaVencimiento).getTime()) / 86400000))
+        if (!promediosPorInquilino[p.personaId ?? '']) promediosPorInquilino[p.personaId ?? ''] = []
+        promediosPorInquilino[p.personaId ?? ''].push(d)
+      })
+      const promedios = Object.values(promediosPorInquilino).map((ds) => ds.reduce((a, b) => a + b, 0) / ds.length)
+      const mejores = promedios.filter((p) => p > promedioActual).length
+      return +(mejores / promedios.length * 100).toFixed(1)
+    })(),
+  }
+
+  // Flujo de caja mensual (últimos 6 meses + próximos 2)
+  const hoy = new Date()
+  const flujoCaja = Array.from({ length: 8 }, (_, i) => {
+    const d = new Date(hoy)
+    d.setMonth(d.getMonth() - 5 + i)
+    const mesKey = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`
+    const label = d.toLocaleDateString('es-AR', { month: 'short', year: '2-digit' })
+    const pagosMes = pagos.filter((p) => {
+      const pv = new Date(p.fechaVencimiento)
+      return `${pv.getFullYear()}-${String(pv.getMonth() + 1).padStart(2, '0')}` === mesKey
+    })
+    const cobrado = pagosMes.filter((p) => p.estado === 'PAGADO').reduce((a, p) => a + p.monto, 0)
+    const honorariosPct = vinculo?.honorariosPct ?? 8
+    const neto = +(cobrado * (1 - honorariosPct / 100)).toFixed(0)
+    const transferido = pagosMes.filter((p) => p.pagadoAlPropietario).reduce((a, p) => a + p.monto * (1 - honorariosPct / 100), 0)
+    return { mes: label, cobrado, neto, transferido: +transferido.toFixed(0) }
+  })
+
+  // Próximo ajuste
+  const proximoAjuste = vinculo?.proximaActualizacion ? {
+    fecha: vinculo.proximaActualizacion,
+    diasRestantes: Math.max(0, Math.round((new Date(vinculo.proximaActualizacion).getTime() - hoy.getTime()) / 86400000)),
+    alquilerActual: vinculo.alquilerActual,
+    indice: vinculo.indice,
+  } : null
+
+  res.json({ demoraPorMes, statsInquilino, statsGlobal, flujoCaja, proximoAjuste })
+})
+
 router.get('/', async (req, res) => {
   const { tipo, enAlquiler, enVenta } = req.query
   const where: Record<string, unknown> = {}

@@ -36,6 +36,21 @@ studio:
 reset:
 	cd apps/api && npx prisma migrate reset --force && npx ts-node --transpile-only prisma/seed.ts
 
+# Estado del proyecto
+status:
+	@echo ""
+	@echo "── LOCAL (último commit) ──────────────────────────"
+	@git log --oneline -1
+	@echo ""
+	@echo "── GITHUB / VPS (origin/main) ─────────────────────"
+	@git fetch origin -q && git log origin/main --oneline -1
+	@echo ""
+	@echo "── DIFERENCIA local vs GitHub ─────────────────────"
+	@git log origin/main..HEAD --oneline | { grep . && echo "" || echo "  (ninguno — todo pusheado)"; }
+	@echo "── SIN COMMITEAR ──────────────────────────────────"
+	@git status --short | grep -v "^?? .claude" | grep -v "^?? brand" | { grep . || echo "  (nada — todo limpio)"; }
+	@echo ""
+
 # Build
 build:
 	npm run build
