@@ -18,6 +18,8 @@ RUN cd apps/api && npm run build
 FROM node:20-alpine
 WORKDIR /app
 
+RUN apk add --no-cache openssl
+
 COPY package*.json ./
 COPY apps/api/package*.json ./apps/api/
 RUN npm install -w @gutleber/api --omit=dev
