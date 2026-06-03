@@ -1,10 +1,12 @@
 import { NavLink } from 'react-router-dom'
-import { LayoutDashboard, Building2, Users, FileText, CreditCard, TrendingUp, MessageSquare, Smartphone, LogOut, Sparkles, FilePlus2, ShieldCheck } from 'lucide-react'
+import { LayoutDashboard, Building2, Users, FileText, CreditCard, TrendingUp, MessageSquare, Smartphone, LogOut, Sparkles, FilePlus2, ShieldCheck, LucideIcon } from 'lucide-react'
 import { useAuthStore } from '../store/auth'
 import { useQuery } from '@tanstack/react-query'
 import { api } from '../lib/api'
 
-const navAdmin = [
+interface NavItem { to: string; label: string; Icon: LucideIcon; badge?: boolean }
+
+const navAdmin: NavItem[] = [
   { to: '/dashboard',    label: 'Panel de gestión', Icon: LayoutDashboard },
   { to: '/propiedades',  label: 'Propiedades',  Icon: Building2 },
   { to: '/personas',     label: 'Personas',     Icon: Users },
@@ -17,15 +19,15 @@ const navAdmin = [
   { to: '/contrato-gen', label: 'Contratos IA', Icon: FilePlus2 },
 ]
 
-const navAdminExtra = [
+const navAdminExtra: NavItem[] = [
   { to: '/usuarios', label: 'Usuarios', Icon: ShieldCheck },
 ]
 
-const navPropietario = [
+const navPropietario: NavItem[] = [
   { to: '/mis-propiedades', label: 'Mis propiedades', Icon: Building2 },
 ]
 
-const navInquilino = [
+const navInquilino: NavItem[] = [
   { to: '/mi-contrato', label: 'Mi contrato', Icon: FileText },
 ]
 
