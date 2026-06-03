@@ -2,11 +2,11 @@ import { useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import {
   BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer,
-  AreaChart, Area, CartesianGrid, ReferenceLine, Cell,
+  AreaChart, Area, CartesianGrid, ReferenceLine,
 } from 'recharts'
 import {
   Building2, User, Calendar, TrendingUp, CheckCircle2, Clock,
-  AlertCircle, DollarSign, ChevronDown, ChevronUp, Award, AlertTriangle,
+  DollarSign, ChevronDown, ChevronUp, Award, AlertTriangle,
 } from 'lucide-react'
 import { api, formatARS, formatFecha } from '../lib/api'
 import { useAuthStore } from '../store/auth'
@@ -46,7 +46,7 @@ function TooltipARS({ active, payload, label }: any) {
   )
 }
 
-function AnalyticsPanel({ propiedadId, honorariosPct }: { propiedadId: string; honorariosPct: number }) {
+function AnalyticsPanel({ propiedadId }: { propiedadId: string }) {
   const { data, isLoading } = useQuery<Analytics>({
     queryKey: ['analytics', propiedadId],
     queryFn: async () => (await api.get(`/propiedades/${propiedadId}/analytics`)).data,
@@ -108,11 +108,12 @@ function AnalyticsPanel({ propiedadId, honorariosPct }: { propiedadId: string; h
                 <YAxis hide />
                 <Tooltip content={<TooltipARS />} />
                 <ReferenceLine y={statsGlobal.promedioDiasDemora} stroke="#F59E0B" strokeDasharray="4 4" />
-                <Bar dataKey="diasDemora" radius={[4, 4, 0, 0]} name="días">
-                  {demoraPorMes.map((entry, i) => (
-                    <Cell key={i} fill={entry.diasDemora === 0 ? '#4ADE80' : entry.diasDemora <= 5 ? '#FCD34D' : '#F87171'} />
-                  ))}
-                </Bar>
+                <Bar
+                  dataKey="diasDemora"
+                  radius={[4, 4, 0, 0]}
+                  name="días"
+                  fill="#4ADE80"
+                />
               </BarChart>
             </ResponsiveContainer>
             <p className="text-[10px] text-piedra mt-1">— línea amarilla: promedio general ({statsGlobal.promedioDiasDemora}d)</p>
@@ -285,7 +286,7 @@ export default function MisPropiedades() {
             )}
 
             {/* Panel de analytics */}
-            {abierta && <AnalyticsPanel propiedadId={prop.id} honorariosPct={8} />}
+            {abierta && <AnalyticsPanel propiedadId={prop.id} />}
           </div>
         )
       })}
