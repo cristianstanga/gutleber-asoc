@@ -32,10 +32,18 @@ router.get('/:id', async (req, res) => {
 })
 
 router.post('/', async (req, res) => {
-  const { propiedadId, personaId, tipo, fechaInicio, alquilerInicial, indice, periodicidad, notas } = req.body
+  const { propiedadId, personaId, tipo, fechaInicio, duracionMeses, alquilerInicial, indice, periodicidad, honorariosPct, administrado, notas } = req.body
 
   const alquilerActual = alquilerInicial
   const inicio = new Date(fechaInicio)
+
+  // Calcular fecha fin a partir de duración en meses
+  let fechaFin: Date | undefined
+  if (duracionMeses) {
+    fechaFin = new Date(inicio)
+    fechaFin.setMonth(fechaFin.getMonth() + Number(duracionMeses))
+  }
+
   const proximaActualizacion = new Date(inicio)
   proximaActualizacion.setMonth(proximaActualizacion.getMonth() + (periodicidad || 3))
 
@@ -45,10 +53,14 @@ router.post('/', async (req, res) => {
       personaId,
       tipo,
       fechaInicio: inicio,
+      fechaFin,
+      duracionMeses: duracionMeses ? Number(duracionMeses) : undefined,
+      administrado: administrado === true || administrado === 'true',
       alquilerInicial,
       alquilerActual,
       indice,
       periodicidad: periodicidad || 3,
+      honorariosPct: honorariosPct != null ? Number(honorariosPct) : 8,
       proximaActualizacion,
       notas,
       activo: true,
@@ -56,9 +68,11 @@ router.post('/', async (req, res) => {
     include: { propiedad: true, persona: true },
   })
 
-  // Activar alquiler en la propiedad
   if (tipo === 'ALQUILER') {
-    await prisma.propiedad.update({ where: { id: propiedadId }, data: { enAlquiler: true } })
+    await prisma.propiedad.update({
+      where: { id: propiedadId },
+      data: { enAlquiler: true, administrada: administrado === true || administrado === 'true' },
+    })
   }
 
   res.status(201).json(vinculo)
@@ -90,15 +104,21 @@ router.get('/:id/contrato', async (req, res) => {
   if (!vinculo) return res.status(404).json({ error: 'Vínculo no encontrado' })
   if (vinculo.tipo !== 'ALQUILER') return res.status(400).json({ error: 'Solo se generan contratos para alquileres' })
 
-  // Buscar propietario: otro vínculo ADMINISTRACION o VENTA en la misma propiedad
-  const vinculoPropietario = await prisma.vinculo.findFirst({
-    where: {
-      propiedadId: vinculo.propiedadId,
-      tipo: { in: ['ADMINISTRACION', 'VENTA'] },
-      activo: true,
-    },
-    include: { persona: true },
-  })
+  // Buscar propietario: primero desde propiedad.propietario, fallback al vínculo ADMINISTRACION
+  // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+  // @ts-ignore — propietario relation added in latest migration; TS server may need restart
+  const propiedadConPropietario = await prisma.propiedad.findUnique({
+    where: { id: vinculo.propiedadId },
+    include: { propietario: true },
+  }) as any
+  let propietarioPersona = propiedadConPropietario?.propietario ?? null
+  if (!propietarioPersona) {
+    const vinculoPropietario = await prisma.vinculo.findFirst({
+      where: { propiedadId: vinculo.propiedadId, tipo: { in: ['ADMINISTRACION', 'VENTA'] }, activo: true },
+      include: { persona: true },
+    })
+    propietarioPersona = vinculoPropietario?.persona ?? null
+  }
 
   try {
     const pdf = await generarContratoPDF({
@@ -118,11 +138,11 @@ router.get('/:id/contrato', async (req, res) => {
         whatsapp: vinculo.persona.whatsapp,
         email: vinculo.persona.email,
       },
-      propietario: vinculoPropietario?.persona
+      propietario: propietarioPersona
         ? {
-            nombre: vinculoPropietario.persona.nombre,
-            apellido: vinculoPropietario.persona.apellido,
-            dni: vinculoPropietario.persona.dni,
+            nombre: propietarioPersona.nombre,
+            apellido: propietarioPersona.apellido,
+            dni: propietarioPersona.dni,
           }
         : null,
       contrato: {

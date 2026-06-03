@@ -13,6 +13,7 @@ import cron from 'node-cron'
 import { prisma, logger } from '../index'
 import { EstadoPago, TipoPago, Moneda } from '@prisma/client'
 import { sendText } from './whatsapp'
+import { enviarCatalogoWA } from './catalogo-wa'
 
 // ─── Init ─────────────────────────────────────────────────────────────────────
 
@@ -47,7 +48,19 @@ export function initCron() {
     await alertarContratosVencer()
   })
 
-  logger.info('📅 Cron jobs iniciados (5 schedules)')
+  // Lunes 09:30 — sincronizar catálogo WA (solo si hay número configurado)
+  cron.schedule('30 9 * * 1', async () => {
+    if (!process.env.CATALOGO_WA_NUMERO) return
+    logger.info('⏰ Cron: sincronizando catálogo WA...')
+    try {
+      const n = await enviarCatalogoWA()
+      logger.info(`✅ Catálogo WA enviado: ${n} propiedades`)
+    } catch (err) {
+      logger.error({ err }, 'Error en cron catálogo WA')
+    }
+  })
+
+  logger.info('📅 Cron jobs iniciados (6 schedules)')
 }
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────

@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { Building2, MapPin, Ruler, Tag, Pencil, Trash2, Instagram, Images, ChevronLeft, Sparkles } from 'lucide-react'
+import { Building2, MapPin, Ruler, Tag, Pencil, Trash2, Instagram, Images, ChevronLeft, Sparkles, MessageCircle, RefreshCw } from 'lucide-react'
 import { api, formatARS } from '../lib/api'
 import FormPropiedad from '../components/FormPropiedad'
 import ImageUpload from '../components/ImageUpload'
@@ -48,6 +48,12 @@ export default function Propiedades() {
   const [detalle, setDetalle] = useState<Propiedad | null>(null)
   const [toast, setToast] = useState('')
   const [publicando, setPublicando] = useState<string | null>(null)
+  const [sincronizandoCatalogo, setSincronizandoCatalogo] = useState(false)
+  const [modalCatalogo, setModalCatalogo] = useState(false)
+  const [numeroCatalogo, setNumeroCatalogo] = useState('')
+  const [enviandoWA, setEnviandoWA] = useState<string | null>(null)
+  const [modalPropWA, setModalPropWA] = useState<string | null>(null)
+  const [numeroPropWA, setNumeroPropWA] = useState('')
 
   const { data: propiedades = [], isLoading } = useQuery<Propiedad[]>({
     queryKey: ['propiedades'],
@@ -82,6 +88,44 @@ export default function Propiedades() {
     }
   }
 
+  function esDisponible(p: Propiedad) {
+    const vincActivos = p.vinculos || []
+    const dispAlquiler = p.enAlquiler && !vincActivos.some((v) => v.tipo === 'ALQUILER')
+    const dispVenta    = p.enVenta    && !vincActivos.some((v) => v.tipo === 'VENTA')
+    return dispAlquiler || dispVenta
+  }
+
+  async function sincronizarCatalogo(destino?: string) {
+    setSincronizandoCatalogo(true)
+    try {
+      const body = destino ? { destino } : {}
+      const r = await api.post('/catalogo/wa/sincronizar', body)
+      mostrarToast(`✅ Catálogo enviado (${r.data.enviadas} propiedades)`)
+      setModalCatalogo(false)
+      setNumeroCatalogo('')
+    } catch (e: unknown) {
+      const msg = (e as { response?: { data?: { error?: string } } })?.response?.data?.error || 'Error al sincronizar'
+      mostrarToast(msg)
+    } finally {
+      setSincronizandoCatalogo(false)
+    }
+  }
+
+  async function enviarPropiedadWA(propId: string, destino: string) {
+    setEnviandoWA(propId)
+    try {
+      await api.post(`/catalogo/wa/propiedad/${propId}`, { destino })
+      mostrarToast('✅ Tarjeta enviada por WhatsApp')
+      setModalPropWA(null)
+      setNumeroPropWA('')
+    } catch (e: unknown) {
+      const msg = (e as { response?: { data?: { error?: string } } })?.response?.data?.error || 'Error al enviar'
+      mostrarToast(msg)
+    } finally {
+      setEnviandoWA(null)
+    }
+  }
+
   async function publicarInstagram(p: Propiedad) {
     if (p.imagenes.length === 0) { mostrarToast('Primero subí al menos una foto'); return }
     setPublicando(p.id)
@@ -97,11 +141,77 @@ export default function Propiedades() {
     }
   }
 
+  // Modal catálogo WA (sincronización completa)
+  const ModalCatalogo = modalCatalogo && (
+    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+      <div className="bg-white rounded-xl p-6 w-80 shadow-xl">
+        <h3 className="font-semibold text-carbon mb-3">Sincronizar catálogo WA</h3>
+        <p className="text-xs text-piedra mb-4">Enviará una tarjeta por cada propiedad disponible al número indicado.</p>
+        <input
+          type="tel"
+          placeholder="Ej: 3764XXXXXXX (sin 0 ni 15)"
+          value={numeroCatalogo}
+          onChange={(e) => setNumeroCatalogo(e.target.value)}
+          className="input w-full mb-3"
+        />
+        <div className="flex gap-2">
+          <button
+            onClick={() => { setModalCatalogo(false); setNumeroCatalogo('') }}
+            className="btn-secondary flex-1"
+          >
+            Cancelar
+          </button>
+          <button
+            onClick={() => sincronizarCatalogo(numeroCatalogo || undefined)}
+            disabled={sincronizandoCatalogo}
+            className="btn-primary flex-1"
+          >
+            {sincronizandoCatalogo ? 'Enviando...' : 'Enviar'}
+          </button>
+        </div>
+      </div>
+    </div>
+  )
+
+  // Modal envío WA de propiedad individual
+  const ModalPropWA = modalPropWA && (
+    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+      <div className="bg-white rounded-xl p-6 w-80 shadow-xl">
+        <h3 className="font-semibold text-carbon mb-3">Enviar tarjeta por WhatsApp</h3>
+        <p className="text-xs text-piedra mb-4">Número destino (sin 0 ni 15, con código de área).</p>
+        <input
+          type="tel"
+          placeholder="Ej: 3764XXXXXXX"
+          value={numeroPropWA}
+          onChange={(e) => setNumeroPropWA(e.target.value)}
+          className="input w-full mb-3"
+        />
+        <div className="flex gap-2">
+          <button
+            onClick={() => { setModalPropWA(null); setNumeroPropWA('') }}
+            className="btn-secondary flex-1"
+          >
+            Cancelar
+          </button>
+          <button
+            onClick={() => numeroPropWA && enviarPropiedadWA(modalPropWA, numeroPropWA)}
+            disabled={!numeroPropWA || enviandoWA === modalPropWA}
+            className="btn-primary flex-1"
+          >
+            {enviandoWA === modalPropWA ? 'Enviando...' : 'Enviar'}
+          </button>
+        </div>
+      </div>
+    </div>
+  )
+
   // Si hay una propiedad abierta en detalle, mostrar el panel de detalle
   if (detalle) {
     const prop = propiedades.find((p) => p.id === detalle.id) || detalle
     return (
       <div className="p-8">
+        {ModalCatalogo}
+        {ModalPropWA}
         {toast && <div className="fixed top-4 right-4 bg-carbon text-white px-4 py-2 rounded shadow-lg text-sm z-50">{toast}</div>}
 
         <button onClick={() => setDetalle(null)} className="flex items-center gap-2 text-piedra text-sm mb-5 hover:text-carbon transition-colors">
@@ -129,6 +239,11 @@ export default function Propiedades() {
                 {prop.enVenta && <span className="badge-blue">En venta</span>}
                 {prop.administrada && <span className="badge-green">Administrada</span>}
                 {prop.instagramPostId && <span className="badge-gray flex items-center gap-1"><Instagram size={10} /> Publicada</span>}
+                {esDisponible(prop) ? (
+                  <span className="inline-flex items-center gap-1 text-xs font-semibold px-2 py-0.5 rounded-full bg-green-100 text-green-700">● Disponible</span>
+                ) : (
+                  <span className="inline-flex items-center gap-1 text-xs px-2 py-0.5 rounded-full bg-amber-100 text-amber-700">● Ocupada</span>
+                )}
               </div>
 
               {/* Atributos físicos */}
@@ -257,6 +372,22 @@ export default function Propiedades() {
               {prop.instagramPostId && (
                 <p className="text-[11px] text-green-600 text-center mt-1">✓ Ya publicada en Instagram</p>
               )}
+
+              <div className="border-t border-crema mt-3 pt-3">
+                <button
+                  onClick={() => setModalPropWA(prop.id)}
+                  disabled={enviandoWA === prop.id}
+                  className="btn-secondary w-full flex items-center justify-center gap-2"
+                >
+                  <MessageCircle size={15} />
+                  {enviandoWA === prop.id ? 'Enviando...' : 'Enviar tarjeta por WA'}
+                </button>
+                {esDisponible(prop) ? (
+                  <p className="text-[11px] text-green-600 text-center mt-1">● Disponible en catálogo</p>
+                ) : (
+                  <p className="text-[11px] text-amber-600 text-center mt-1">● Propiedad ocupada</p>
+                )}
+              </div>
             </div>
 
             {prop.vinculos && prop.vinculos.length > 0 && (
@@ -291,18 +422,38 @@ export default function Propiedades() {
   }
 
   // Lista de propiedades
+  const disponiblesCount = propiedades.filter(esDisponible).length
+
   return (
     <div className="p-8">
+      {ModalCatalogo}
+      {ModalPropWA}
       {toast && <div className="fixed top-4 right-4 bg-carbon text-white px-4 py-2 rounded shadow-lg text-sm z-50">{toast}</div>}
 
       <div className="flex items-center justify-between mb-6">
         <div>
           <h1 className="font-display text-2xl text-carbon">Propiedades</h1>
-          <p className="text-piedra text-sm mt-1">{propiedades.length} propiedades en cartera</p>
+          <p className="text-piedra text-sm mt-1">
+            {propiedades.length} en cartera
+            {disponiblesCount > 0 && (
+              <span className="ml-2 text-green-600 font-medium">· {disponiblesCount} disponible{disponiblesCount !== 1 ? 's' : ''}</span>
+            )}
+          </p>
         </div>
-        <button onClick={abrirNueva} className="btn-primary flex items-center gap-2">
-          <Building2 size={16} /> Nueva propiedad
-        </button>
+        <div className="flex gap-2">
+          <button
+            onClick={() => setModalCatalogo(true)}
+            disabled={sincronizandoCatalogo}
+            className="btn-secondary flex items-center gap-2"
+            title="Sincronizar catálogo WhatsApp"
+          >
+            <RefreshCw size={15} className={sincronizandoCatalogo ? 'animate-spin' : ''} />
+            Catálogo WA
+          </button>
+          <button onClick={abrirNueva} className="btn-primary flex items-center gap-2">
+            <Building2 size={16} /> Nueva propiedad
+          </button>
+        </div>
       </div>
 
       {isLoading && <p className="text-piedra text-sm animate-pulse">Cargando...</p>}
@@ -330,6 +481,11 @@ export default function Propiedades() {
                 {p.enVenta && <span className="badge-blue">Venta</span>}
                 {p.administrada && <span className="badge-green">Admin.</span>}
                 {p.instagramPostId && <span className="badge-gray"><Instagram size={9} className="inline" /></span>}
+                {esDisponible(p) && (
+                  <span className="inline-flex items-center gap-0.5 text-[10px] font-semibold px-1.5 py-0.5 rounded-full bg-green-100 text-green-700">
+                    ● Disponible
+                  </span>
+                )}
               </div>
 
               {/* Tipo */}

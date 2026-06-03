@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { FileText, Plus, TrendingUp, AlertTriangle, CheckCircle, XCircle, Calendar } from 'lucide-react'
+import { FileText, Plus, TrendingUp, AlertTriangle, CheckCircle, XCircle } from 'lucide-react'
 import { api, formatARS, formatFecha } from '../lib/api'
 import FormVinculo from '../components/FormVinculo'
 

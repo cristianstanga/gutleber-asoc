@@ -104,6 +104,8 @@ model Propiedad {
   lat              Float?
   lng              Float?
   barrio           String?
+  propietarioId         String?
+  propietario           Persona?          @relation("PropietarioDePropiedades", fields: [propietarioId], references: [id])
   imagenes              PropiedadImagen[]
   videos                PropiedadVideo[]
   vinculos              Vinculo[]
@@ -145,10 +147,11 @@ model Persona {
   email      String?
   tipo       TipoPersona
   notas      String?
-  vinculos       Vinculo[]
-  pagos          Pago[]
-  inboxItems     InboxItem[]
-  conversaciones Conversacion[]
+  vinculos                   Vinculo[]
+  pagos                      Pago[]
+  inboxItems                 InboxItem[]
+  conversaciones             Conversacion[]
+  propiedadesComoPropietario Propiedad[]   @relation("PropietarioDePropiedades")
   createdAt      DateTime    @default(now())
   updatedAt      DateTime    @updatedAt
 }
@@ -160,13 +163,15 @@ model Vinculo {
   tipo                 TipoVinculo
   fechaInicio          DateTime
   fechaFin             DateTime?
+  duracionMeses        Int?
+  administrado         Boolean     @default(false)
   alquilerInicial      Float?
   alquilerActual       Float?
   indice               Indice?
   periodicidad         Int         @default(3)
   proximaActualizacion DateTime?
   activo               Boolean     @default(true)
-  honorariosPct        Float       @default(8)   // % de honorarios negociado
+  honorariosPct        Float       @default(8)
   notas                String?
   propiedad            Propiedad   @relation(fields: [propiedadId], references: [id])
   persona              Persona     @relation(fields: [personaId], references: [id])

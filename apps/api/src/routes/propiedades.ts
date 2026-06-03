@@ -13,6 +13,7 @@ const includeCompleto = {
   imagenes: { orderBy: { orden: 'asc' as const } },
   videos: { orderBy: { orden: 'asc' as const } },
   vinculos: { where: { activo: true }, include: { persona: true } },
+  propietario: true,
   _count: { select: { pagos: true } },
 }
 

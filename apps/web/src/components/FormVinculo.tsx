@@ -1,9 +1,17 @@
 import { useState, FormEvent } from 'react'
-import { X, AlertCircle } from 'lucide-react'
+import { X, AlertCircle, Building2, User, Calendar, TrendingUp, Settings } from 'lucide-react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { api } from '../lib/api'
 
-interface Propiedad { id: string; direccion: string; tipo: string; enAlquiler: boolean; administrada: boolean }
+interface Propietario { id: string; nombre: string; apellido: string }
+interface Propiedad {
+  id: string
+  direccion: string
+  tipo: string
+  enAlquiler: boolean
+  administrada: boolean
+  propietario?: Propietario | null
+}
 interface Persona { id: string; nombre: string; apellido: string; tipo: string }
 
 interface Props { onClose: () => void }
@@ -12,17 +20,32 @@ const tipoLabel: Record<string, string> = {
   CASA: 'Casa', DEPARTAMENTO: 'Dpto.', LOCAL: 'Local', TERRENO: 'Terreno', OFICINA: 'Oficina',
 }
 
+function sumarMeses(isoDate: string, meses: number): string {
+  if (!isoDate) return ''
+  const d = new Date(isoDate)
+  d.setMonth(d.getMonth() + meses)
+  return d.toLocaleDateString('es-AR', { day: '2-digit', month: 'long', year: 'numeric' })
+}
+
+function proximoAjuste(isoDate: string, periodicidad: number): string {
+  if (!isoDate) return ''
+  const d = new Date(isoDate)
+  d.setMonth(d.getMonth() + periodicidad)
+  return d.toLocaleDateString('es-AR', { day: '2-digit', month: 'long', year: 'numeric' })
+}
+
 export default function FormVinculo({ onClose }: Props) {
   const qc = useQueryClient()
 
+  const [tipoVinculo, setTipoVinculo] = useState('ALQUILER')
   const [propiedadId, setPropiedadId] = useState('')
   const [personaId, setPersonaId] = useState('')
-  const [tipoVinculo, setTipoVinculo] = useState('ALQUILER')
   const [fechaInicio, setFechaInicio] = useState(new Date().toISOString().slice(0, 10))
-  const [fechaFin, setFechaFin] = useState('')
+  const [duracionMeses, setDuracionMeses] = useState('24')
   const [alquilerInicial, setAlquilerInicial] = useState('')
   const [indice, setIndice] = useState('ICL')
   const [periodicidad, setPeriodicidad] = useState('3')
+  const [administrado, setAdministrado] = useState(false)
   const [honorariosPct, setHonorariosPct] = useState('8')
   const [notas, setNotas] = useState('')
 
@@ -46,6 +69,8 @@ export default function FormVinculo({ onClose }: Props) {
     },
   })
 
+  const propiedadSeleccionada = propiedades.find((p) => p.id === propiedadId) ?? null
+
   function handleSubmit(e: FormEvent) {
     e.preventDefault()
     guardar.mutate({
@@ -53,34 +78,33 @@ export default function FormVinculo({ onClose }: Props) {
       personaId,
       tipo: tipoVinculo,
       fechaInicio,
-      fechaFin: fechaFin || undefined,
+      duracionMeses: tipoVinculo === 'ALQUILER' ? Number(duracionMeses) : undefined,
       alquilerInicial: alquilerInicial ? Number(alquilerInicial) : undefined,
       indice: tipoVinculo === 'ALQUILER' ? indice : undefined,
       periodicidad: tipoVinculo === 'ALQUILER' ? Number(periodicidad) : undefined,
-      honorariosPct: tipoVinculo === 'ALQUILER' ? Number(honorariosPct) : undefined,
+      administrado: tipoVinculo === 'ALQUILER' ? administrado : false,
+      honorariosPct: administrado && tipoVinculo === 'ALQUILER' ? Number(honorariosPct) : 0,
       notas: notas || undefined,
     })
   }
 
-  // Calcular próxima actualización para mostrar como info
-  const proximaActualizacion = fechaInicio && periodicidad
-    ? (() => {
-        const d = new Date(fechaInicio)
-        d.setMonth(d.getMonth() + Number(periodicidad))
-        return d.toLocaleDateString('es-AR', { day: '2-digit', month: 'long', year: 'numeric' })
-      })()
-    : null
-
   const propiedadesFiltradas = propiedades.filter((p) =>
-    tipoVinculo === 'ALQUILER' ? (p.enAlquiler || p.administrada) :
-    tipoVinculo === 'ADMINISTRACION' ? true : true
+    tipoVinculo === 'ALQUILER' ? (p.enAlquiler || p.administrada) : true
   )
 
-  const inquilinos = personas.filter((p) =>
+  const personasFiltradas = personas.filter((p) =>
     tipoVinculo === 'ALQUILER' ? ['INQUILINO', 'INTERESADO'].includes(p.tipo) :
     tipoVinculo === 'VENTA' ? ['INTERESADO', 'INQUILINO', 'PROPIETARIO'].includes(p.tipo) :
     true
   )
+
+  const fechaFinCalculada = tipoVinculo === 'ALQUILER' && fechaInicio && duracionMeses
+    ? sumarMeses(fechaInicio, Number(duracionMeses))
+    : null
+
+  const primerAjuste = tipoVinculo === 'ALQUILER' && fechaInicio && periodicidad
+    ? proximoAjuste(fechaInicio, Number(periodicidad))
+    : null
 
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
@@ -113,7 +137,9 @@ export default function FormVinculo({ onClose }: Props) {
                   }`}
                 >
                   <input type="radio" name="tipo" value={value}
-                    checked={tipoVinculo === value} onChange={() => setTipoVinculo(value)} className="hidden" />
+                    checked={tipoVinculo === value}
+                    onChange={() => { setTipoVinculo(value); setPropiedadId(''); setPersonaId('') }}
+                    className="hidden" />
                   {label}
                 </label>
               ))}
@@ -122,8 +148,11 @@ export default function FormVinculo({ onClose }: Props) {
 
           {/* Propiedad */}
           <div>
-            <label className="form-label">Propiedad *</label>
-            <select className="form-select" value={propiedadId} onChange={(e) => setPropiedadId(e.target.value)} required>
+            <label className="form-label flex items-center gap-1.5">
+              <Building2 size={13} className="text-piedra" /> Propiedad *
+            </label>
+            <select className="form-select" value={propiedadId}
+              onChange={(e) => setPropiedadId(e.target.value)} required>
               <option value="">— Seleccioná una propiedad —</option>
               {propiedadesFiltradas.map((p) => (
                 <option key={p.id} value={p.id}>
@@ -133,19 +162,32 @@ export default function FormVinculo({ onClose }: Props) {
             </select>
             {propiedadesFiltradas.length === 0 && (
               <p className="text-xs text-amber-600 mt-1 flex items-center gap-1">
-                <AlertCircle size={12} /> No hay propiedades disponibles para este tipo. Verificá el estado en Propiedades.
+                <AlertCircle size={12} /> No hay propiedades disponibles para este tipo.
               </p>
+            )}
+
+            {/* Propietario de la propiedad seleccionada */}
+            {propiedadSeleccionada && (
+              <div className="mt-2 flex items-center gap-2 text-xs text-piedra bg-crema rounded px-3 py-1.5">
+                <User size={12} />
+                {propiedadSeleccionada.propietario
+                  ? <span>Propietario: <strong className="text-carbon">{propiedadSeleccionada.propietario.apellido}, {propiedadSeleccionada.propietario.nombre}</strong></span>
+                  : <span className="text-amber-600">Sin propietario asignado — asignalo en la ficha de la propiedad</span>
+                }
+              </div>
             )}
           </div>
 
-          {/* Persona */}
+          {/* Persona (inquilino / comprador) */}
           <div>
-            <label className="form-label">
+            <label className="form-label flex items-center gap-1.5">
+              <User size={13} className="text-piedra" />
               {tipoVinculo === 'ALQUILER' ? 'Inquilino *' : tipoVinculo === 'VENTA' ? 'Comprador *' : 'Propietario *'}
             </label>
-            <select className="form-select" value={personaId} onChange={(e) => setPersonaId(e.target.value)} required>
+            <select className="form-select" value={personaId}
+              onChange={(e) => setPersonaId(e.target.value)} required>
               <option value="">— Seleccioná una persona —</option>
-              {inquilinos.map((p) => (
+              {personasFiltradas.map((p) => (
                 <option key={p.id} value={p.id}>
                   {p.apellido}, {p.nombre}
                 </option>
@@ -153,34 +195,65 @@ export default function FormVinculo({ onClose }: Props) {
             </select>
           </div>
 
-          {/* Fechas */}
-          <div className="grid grid-cols-2 gap-4">
+          {/* Fechas — solo alquiler tiene duración fija */}
+          {tipoVinculo === 'ALQUILER' ? (
             <div>
-              <label className="form-label">Fecha inicio *</label>
-              <input type="date" className="form-input" value={fechaInicio}
-                onChange={(e) => setFechaInicio(e.target.value)} required />
+              <label className="form-label flex items-center gap-1.5">
+                <Calendar size={13} className="text-piedra" /> Vigencia del contrato *
+              </label>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <p className="text-[11px] text-muted mb-1">Fecha de inicio</p>
+                  <input type="date" className="form-input" value={fechaInicio}
+                    onChange={(e) => setFechaInicio(e.target.value)} required />
+                </div>
+                <div>
+                  <p className="text-[11px] text-muted mb-1">Duración</p>
+                  <select className="form-select" value={duracionMeses}
+                    onChange={(e) => setDuracionMeses(e.target.value)}>
+                    <option value="6">6 meses</option>
+                    <option value="12">12 meses</option>
+                    <option value="24">24 meses (2 años)</option>
+                    <option value="36">36 meses (3 años)</option>
+                    <option value="48">48 meses (4 años)</option>
+                  </select>
+                </div>
+              </div>
+              {fechaFinCalculada && (
+                <p className="text-xs text-piedra mt-2 flex items-center gap-1.5">
+                  <Calendar size={11} />
+                  Vencimiento: <strong className="text-carbon">{fechaFinCalculada}</strong>
+                </p>
+              )}
             </div>
-            <div>
-              <label className="form-label">Fecha fin <span className="text-muted font-normal normal-case">(opcional)</span></label>
-              <input type="date" className="form-input" value={fechaFin}
-                onChange={(e) => setFechaFin(e.target.value)} />
+          ) : (
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className="form-label">Fecha inicio *</label>
+                <input type="date" className="form-input" value={fechaInicio}
+                  onChange={(e) => setFechaInicio(e.target.value)} required />
+              </div>
+              <div>
+                <label className="form-label">Fecha fin <span className="text-muted font-normal normal-case">(opcional)</span></label>
+                <input type="date" className="form-input" />
+              </div>
             </div>
-          </div>
+          )}
 
-          {/* Campos específicos de alquiler */}
+          {/* Condiciones económicas — solo alquiler */}
           {tipoVinculo === 'ALQUILER' && (
             <div className="space-y-4 p-4 bg-crema rounded-lg">
-              <p className="text-xs text-piedra uppercase tracking-wide font-semibold">Condiciones económicas</p>
+              <p className="text-xs text-piedra uppercase tracking-wide font-semibold flex items-center gap-1.5">
+                <TrendingUp size={12} /> Condiciones económicas
+              </p>
 
-              {/* Monto inicial */}
               <div>
                 <label className="form-label">Alquiler inicial (ARS) *</label>
                 <input type="number" min="0" className="form-input bg-white"
                   value={alquilerInicial} onChange={(e) => setAlquilerInicial(e.target.value)}
-                  placeholder="180000" required={tipoVinculo === 'ALQUILER'} />
+                  placeholder="180000" required />
               </div>
 
-              {/* Índice + Periodicidad */}
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <label className="form-label">Índice de ajuste</label>
@@ -200,43 +273,70 @@ export default function FormVinculo({ onClose }: Props) {
                 </div>
               </div>
 
-              {/* Info próximo ajuste */}
-              {proximaActualizacion && (
+              {primerAjuste && (
                 <div className="flex items-start gap-2 bg-white rounded p-3 border border-arena">
                   <AlertCircle size={14} className="text-piedra mt-0.5 shrink-0" />
                   <div className="text-xs text-carbon">
-                    <p className="font-semibold">Primer ajuste programado: {proximaActualizacion}</p>
-                    <p className="text-muted mt-0.5">Ley 27.737 / DNU 70/2023 — ajuste por {indice} cada {periodicidad} meses</p>
+                    <p className="font-semibold">Primer ajuste: {primerAjuste}</p>
+                    <p className="text-muted mt-0.5">Ley 27.737 / DNU 70/2023 — por {indice} cada {periodicidad} meses</p>
                   </div>
                 </div>
               )}
             </div>
           )}
 
-          {/* Honorarios */}
+          {/* Administración — solo alquiler */}
           {tipoVinculo === 'ALQUILER' && (
-            <div>
-              <label className="form-label">Honorarios de administración (%)</label>
-              <div className="flex items-center gap-3">
-                <input
-                  type="range" min={0} max={20} step={0.5}
-                  value={honorariosPct}
-                  onChange={e => setHonorariosPct(e.target.value)}
-                  className="flex-1 accent-carbon"
-                />
-                <div className="flex items-center gap-1">
-                  <input
-                    type="number" min={0} max={20} step={0.5}
-                    value={honorariosPct}
-                    onChange={e => setHonorariosPct(e.target.value)}
-                    className="form-input w-16 text-center font-semibold text-sm"
-                  />
-                  <span className="text-sm text-piedra">%</span>
-                </div>
-              </div>
-              <p className="text-xs text-muted mt-1">
-                Honorarios negociados con el propietario. Se aplican al generar cada liquidación.
+            <div className="space-y-3 p-4 border border-arena rounded-lg">
+              <p className="text-xs text-piedra uppercase tracking-wide font-semibold flex items-center gap-1.5">
+                <Settings size={12} /> Administración
               </p>
+
+              {/* Toggle administrado */}
+              <label className="flex items-center justify-between cursor-pointer">
+                <div>
+                  <p className="text-sm font-medium text-carbon">Administrado por Gutleber</p>
+                  <p className="text-xs text-muted">Activá si gestionamos el cobro y la liquidación al propietario</p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setAdministrado(!administrado)}
+                  className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
+                    administrado ? 'bg-carbon' : 'bg-arena'
+                  }`}
+                >
+                  <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
+                    administrado ? 'translate-x-6' : 'translate-x-1'
+                  }`} />
+                </button>
+              </label>
+
+              {/* Honorarios — solo si administrado */}
+              {administrado && (
+                <div className="pt-2 border-t border-arena">
+                  <label className="form-label">Honorarios de administración (%)</label>
+                  <div className="flex items-center gap-3">
+                    <input
+                      type="range" min={0} max={20} step={0.5}
+                      value={honorariosPct}
+                      onChange={e => setHonorariosPct(e.target.value)}
+                      className="flex-1 accent-carbon"
+                    />
+                    <div className="flex items-center gap-1">
+                      <input
+                        type="number" min={0} max={20} step={0.5}
+                        value={honorariosPct}
+                        onChange={e => setHonorariosPct(e.target.value)}
+                        className="form-input w-16 text-center font-semibold text-sm"
+                      />
+                      <span className="text-sm text-piedra">%</span>
+                    </div>
+                  </div>
+                  <p className="text-xs text-muted mt-1">
+                    Se aplican al generar cada liquidación al propietario.
+                  </p>
+                </div>
+              )}
             </div>
           )}
 

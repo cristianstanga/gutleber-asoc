@@ -1,6 +1,6 @@
 import { Component, useState, useEffect, useRef, useCallback, lazy, Suspense } from 'react'
 import type { ReactNode, ErrorInfo } from 'react'
-import { useQueryClient } from '@tanstack/react-query'
+import { useQueryClient, useQuery } from '@tanstack/react-query'
 import { api } from '../lib/api'
 import { X, ChevronRight, ChevronLeft, Upload, Trash2, Sparkles, MapPin, Check, Loader2, Video, Key, ExternalLink } from 'lucide-react'
 
@@ -45,7 +45,10 @@ interface PropForm {
   lat: number | null
   lng: number | null
   barrio: string
+  propietarioId: string
 }
+
+interface PersonaSimple { id: string; nombre: string; apellido: string; tipo: string }
 
 interface Imagen { id: string; url: string; orden: number }
 interface VideoItem { id: string; url: string; orden: number; titulo?: string }
@@ -72,6 +75,7 @@ interface PropiedadConMedia {
   lat?: number | null
   lng?: number | null
   barrio?: string | null
+  propietarioId?: string | null
   imagenes?: Imagen[]
   videos?: VideoItem[]
 }
@@ -103,6 +107,7 @@ function fromProp(p?: PropiedadConMedia | null): PropForm {
     lat: p?.lat ?? null,
     lng: p?.lng ?? null,
     barrio: p?.barrio ?? '',
+    propietarioId: p?.propietarioId ?? '',
   }
 }
 
@@ -138,6 +143,13 @@ const SELECT = INPUT + " cursor-pointer"
 // ── Main component ────────────────────────────────────────────────────────────
 export default function FormPropiedad({ propiedad, onClose }: Props) {
   const qc = useQueryClient()
+
+  const { data: propietarios = [] } = useQuery<PersonaSimple[]>({
+    queryKey: ['personas'],
+    queryFn: () => api.get('/personas').then(r => r.data),
+    select: (data) => data.filter((p) => p.tipo === 'PROPIETARIO'),
+  })
+
   const [form, setForm] = useState<PropForm>(() => fromProp(propiedad))
   const [phase, setPhase] = useState<1 | 2 | 3>(1)
   const [savedId, setSavedId] = useState<string | undefined>(propiedad?.id)
@@ -203,6 +215,7 @@ export default function FormPropiedad({ propiedad, onClose }: Props) {
       alquilerBase: form.alquilerBase !== '' ? Number(form.alquilerBase) : undefined,
       valorVenta: form.valorVenta !== '' ? Number(form.valorVenta) : undefined,
       indiceActual: form.indiceActual || undefined,
+      propietarioId: form.propietarioId || undefined,
     }
     try {
       if (savedId) {
@@ -375,6 +388,21 @@ export default function FormPropiedad({ propiedad, onClose }: Props) {
                 <input className={INPUT} value={form.direccion}
                   onChange={e => set('direccion', e.target.value)}
                   placeholder="Av. San Martín 1250, Centro" required />
+              </Field>
+
+              <Field label="Propietario">
+                <select className={SELECT} value={form.propietarioId}
+                  onChange={e => set('propietarioId', e.target.value)}>
+                  <option value="">— Sin propietario asignado —</option>
+                  {propietarios.map(p => (
+                    <option key={p.id} value={p.id}>{p.apellido}, {p.nombre}</option>
+                  ))}
+                </select>
+                {propietarios.length === 0 && (
+                  <p className="text-[11px] text-white/40 mt-1">
+                    No hay personas con tipo Propietario. Cargalas en la sección Personas.
+                  </p>
+                )}
               </Field>
 
               <div className="grid grid-cols-3 gap-3">
