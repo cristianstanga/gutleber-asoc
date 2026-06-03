@@ -15,6 +15,10 @@ import { EstadoPago, TipoPago, Moneda } from '@prisma/client'
 import { sendText } from './whatsapp'
 import { enviarCatalogoWA } from './catalogo-wa'
 
+// Espera aleatoria entre mensajes para parecer humano (5–12 segundos)
+const pausaEntreEnvios = () =>
+  new Promise((r) => setTimeout(r, 5000 + Math.floor(Math.random() * 7000)))
+
 // ─── Init ─────────────────────────────────────────────────────────────────────
 
 export function initCron() {
@@ -149,6 +153,7 @@ async function recordatorioInquilinoVencimiento() {
       `Ante cualquier consulta, estamos a disposición.\n` +
       `— *Gutleber & Asoc.* 🏢`
     await enviarWA(p.persona?.whatsapp, msg, `inquilino ${p.persona?.nombre}`)
+    await pausaEntreEnvios()
   }
 }
 
@@ -194,6 +199,7 @@ async function avisarPropietarioMora() {
         `Estamos gestionando el cobro con el inquilino. Le mantendremos informado.\n` +
         `— *Gutleber & Asoc.* 🏢`
       await enviarWA(vinculoProp.persona.whatsapp, msg, `propietario ${vinculoProp.persona.nombre}`)
+      await pausaEntreEnvios()
     }
   }
 }
@@ -270,6 +276,7 @@ async function alertarContratosVencer() {
         `Si desea renovarlo, comuníquese con nosotros a la brevedad para coordinar.\n` +
         `— *Gutleber & Asoc.* 🏢`
       await enviarWA(c.persona.whatsapp, msgInquilino, `inquilino ${c.persona.nombre} (contrato)`)
+      await pausaEntreEnvios()
 
       // Notificar al propietario si existe vínculo de administración
       const vinculoProp = await prisma.vinculo.findFirst({
@@ -284,6 +291,7 @@ async function alertarContratosVencer() {
           `Estamos coordinando la renovación con el inquilino. Le mantendremos informado.\n` +
           `— *Gutleber & Asoc.* 🏢`
         await enviarWA(vinculoProp.persona.whatsapp, msgProp, `propietario ${vinculoProp.persona.nombre} (contrato)`)
+        await pausaEntreEnvios()
       }
 
       logger.info(`📅 Alerta ${label}: contrato ${c.persona.nombre} — ${c.propiedad.direccion}`)

@@ -302,11 +302,11 @@ export async function sendText(to: string, message: string) {
     logger.warn('WhatsApp no conectado — mensaje no enviado')
     return
   }
-  // Si ya tiene @ (JID completo como @s.whatsapp.net o @lid), usar tal cual.
-  // Si es solo número, agregar @s.whatsapp.net
   const jid = to.includes('@') ? to : `${to}@s.whatsapp.net`
   logger.info(`📤 Enviando a ${jid}: ${message.substring(0, 50)}...`)
   try {
+    // Simular escritura humana antes de enviar — reduce riesgo de ban
+    await mostrarEscribiendo(jid, message)
     await sock.sendMessage(jid, { text: message })
     logger.info(`✅ Enviado OK a ${jid}`)
   } catch (err) {
