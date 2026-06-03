@@ -152,6 +152,7 @@ model Persona {
   inboxItems                 InboxItem[]
   conversaciones             Conversacion[]
   propiedadesComoPropietario Propiedad[]   @relation("PropietarioDePropiedades")
+  usuarios                   Usuario[]     @relation("UsuarioPersona")
   createdAt      DateTime    @default(now())
   updatedAt      DateTime    @updatedAt
 }
@@ -269,12 +270,22 @@ model InboxItem {
   updatedAt        DateTime      @updatedAt
 }
 
+enum RolUsuario {
+  ADMIN
+  OPERADOR
+  PROPIETARIO
+  INQUILINO
+}
+
 model Usuario {
-  id        String   @id @default(cuid())
+  id        String     @id @default(cuid())
   nombre    String
-  email     String   @unique
+  email     String     @unique
   password  String
-  activo    Boolean  @default(true)
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  rol       RolUsuario @default(OPERADOR)
+  activo    Boolean    @default(true)
+  personaId String?
+  persona   Persona?   @relation("UsuarioPersona", fields: [personaId], references: [id])
+  createdAt DateTime   @default(now())
+  updatedAt DateTime   @updatedAt
 }

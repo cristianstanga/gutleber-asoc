@@ -18,7 +18,10 @@ export default function Login() {
     try {
       const { data } = await api.post('/auth/login', { email, password })
       setAuth(data.token, data.usuario)
-      navigate('/dashboard')
+      const rol = data.usuario.rol
+      if (rol === 'PROPIETARIO') navigate('/mis-propiedades')
+      else if (rol === 'INQUILINO') navigate('/mi-contrato')
+      else navigate('/dashboard')
     } catch {
       setError('Credenciales inválidas')
     } finally {

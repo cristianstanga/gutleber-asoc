@@ -1,7 +1,15 @@
 import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
 
-interface Usuario { id: string; nombre: string; email: string }
+export type RolUsuario = 'ADMIN' | 'OPERADOR' | 'PROPIETARIO' | 'INQUILINO'
+
+interface Usuario {
+  id: string
+  nombre: string
+  email: string
+  rol: RolUsuario
+  personaId?: string | null
+}
 
 interface AuthState {
   token: string | null

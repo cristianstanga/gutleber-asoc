@@ -1,5 +1,6 @@
 import { Router } from 'express'
 import { prisma } from '../index'
+import { AuthRequest, requireAdmin } from '../middleware/auth'
 
 const router = Router()
 
@@ -45,7 +46,7 @@ router.put('/:id', async (req, res) => {
   res.json(persona)
 })
 
-router.delete('/:id', async (req, res) => {
+router.delete('/:id', requireAdmin, async (req: AuthRequest, res) => {
   await prisma.persona.delete({ where: { id: req.params.id } })
   res.json({ ok: true })
 })

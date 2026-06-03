@@ -6,6 +6,7 @@ import { upload, uploadVideo, getPublicUrl } from '../services/upload'
 import { publicarPropiedad } from '../services/instagram'
 import { generarTarjeta } from '../services/tarjeta'
 import { sendImage } from '../services/whatsapp'
+import { AuthRequest, requireAdmin } from '../middleware/auth'
 
 const router = Router()
 
@@ -16,6 +17,26 @@ const includeCompleto = {
   propietario: true,
   _count: { select: { pagos: true } },
 }
+
+// Vista propietario — sus propiedades con pagos y vínculos activos
+router.get('/mis', async (req: AuthRequest, res) => {
+  if (!req.userPersonaId) return res.status(400).json({ error: 'Sin persona vinculada a este usuario' })
+  const props = await prisma.propiedad.findMany({
+    where: { propietarioId: req.userPersonaId },
+    include: {
+      imagenes: { orderBy: { orden: 'asc' } },
+      vinculos: { where: { activo: true }, include: { persona: true } },
+      pagos: {
+        where: { tipo: 'ALQUILER' },
+        orderBy: { fechaVencimiento: 'desc' },
+        take: 6,
+      },
+      propietario: true,
+    },
+    orderBy: { createdAt: 'desc' },
+  })
+  res.json(props)
+})
 
 router.get('/', async (req, res) => {
   const { tipo, enAlquiler, enVenta } = req.query
@@ -59,7 +80,7 @@ router.put('/:id', async (req, res) => {
   res.json(prop)
 })
 
-router.delete('/:id', async (req, res) => {
+router.delete('/:id', requireAdmin, async (req: AuthRequest, res) => {
   // Eliminar archivos físicos de imágenes
   const imagenes = await prisma.propiedadImagen.findMany({ where: { propiedadId: req.params.id } })
   for (const img of imagenes) {
@@ -93,7 +114,7 @@ router.post('/:id/imagenes', upload.array('imagenes', 10), async (req, res) => {
   res.status(201).json(creadas)
 })
 
-router.delete('/:id/imagenes/:imagenId', async (req, res) => {
+router.delete('/:id/imagenes/:imagenId', requireAdmin, async (req: AuthRequest, res) => {
   const imagen = await prisma.propiedadImagen.findUnique({ where: { id: req.params.imagenId } })
   if (!imagen) return res.status(404).json({ error: 'Imagen no encontrada' })
 
@@ -134,7 +155,7 @@ router.post('/:id/videos', uploadVideo.array('videos', 5), async (req, res) => {
   res.status(201).json(creados)
 })
 
-router.delete('/:id/videos/:videoId', async (req, res) => {
+router.delete('/:id/videos/:videoId', requireAdmin, async (req: AuthRequest, res) => {
   const video = await prisma.propiedadVideo.findUnique({ where: { id: req.params.videoId } })
   if (!video) return res.status(404).json({ error: 'Video no encontrado' })
 

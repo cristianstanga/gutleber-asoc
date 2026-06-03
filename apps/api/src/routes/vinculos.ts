@@ -1,8 +1,30 @@
 import { Router } from 'express'
 import { prisma } from '../index'
 import { generarContratoPDF } from '../services/contrato'
+import { AuthRequest } from '../middleware/auth'
 
 const router = Router()
+
+// Vista inquilino — su contrato activo con pagos recientes
+router.get('/mi-contrato', async (req: AuthRequest, res) => {
+  if (!req.userPersonaId) return res.status(400).json({ error: 'Sin persona vinculada a este usuario' })
+  const vinculo = await prisma.vinculo.findFirst({
+    where: { personaId: req.userPersonaId, tipo: 'ALQUILER', activo: true },
+    include: {
+      propiedad: { include: { imagenes: { orderBy: { orden: 'asc' }, take: 1 }, propietario: true } },
+      persona: true,
+    },
+  })
+  if (!vinculo) return res.status(404).json({ error: 'No tenés un contrato activo' })
+
+  const pagos = await prisma.pago.findMany({
+    where: { vinculoId: vinculo.id },
+    orderBy: { fechaVencimiento: 'desc' },
+    take: 12,
+  })
+
+  res.json({ vinculo, pagos })
+})
 
 router.get('/', async (req, res) => {
   const { activo, tipo } = req.query

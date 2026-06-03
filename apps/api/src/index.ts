@@ -19,9 +19,10 @@ import conversacionesRouter from './routes/conversaciones'
 import gastosRouter from './routes/gastos'
 import iaRouter from './routes/ia'
 import catalogoRouter from './routes/catalogo'
+import usuariosRouter from './routes/usuarios'
 import { initCron } from './services/cron'
 import { initWhatsApp } from './services/whatsapp'
-import { authMiddleware } from './middleware/auth'
+import { authMiddleware, requireAdmin, requireAdminOrOperador } from './middleware/auth'
 
 export const prisma = new PrismaClient()
 export const logger = pino({ transport: { target: 'pino-pretty' } })
@@ -55,6 +56,7 @@ app.use('/api/conversaciones', authMiddleware, conversacionesRouter)
 app.use('/api/gastos', authMiddleware, gastosRouter)
 app.use('/api/ia', authMiddleware, iaRouter)
 app.use('/api/catalogo', authMiddleware, catalogoRouter)
+app.use('/api/usuarios', authMiddleware, requireAdminOrOperador, usuariosRouter)
 
 app.listen(PORT, () => {
   logger.info(`🏢 Gutleber API corriendo en http://localhost:${PORT}`)

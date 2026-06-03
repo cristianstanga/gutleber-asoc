@@ -1,5 +1,5 @@
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
-import { useAuthStore } from './store/auth'
+import { useAuthStore, RolUsuario } from './store/auth'
 import Layout from './components/Layout'
 import Login from './pages/Login'
 import Dashboard from './pages/Dashboard'
@@ -12,10 +12,22 @@ import Inbox from './pages/Inbox'
 import WhatsAppStatus from './pages/WhatsAppStatus'
 import TarjetaBuilder from './pages/TarjetaBuilder'
 import ContratoGenerador from './pages/ContratoGenerador'
+import Usuarios from './pages/Usuarios'
+import MisPropiedades from './pages/MisPropiedades'
+import MiContrato from './pages/MiContrato'
 
-function ProtectedRoute({ children }: { children: React.ReactNode }) {
-  const token = useAuthStore((s) => s.token)
-  return token ? <>{children}</> : <Navigate to="/login" replace />
+function ProtectedRoute({ children, roles }: { children: React.ReactNode; roles?: RolUsuario[] }) {
+  const { token, usuario } = useAuthStore()
+  if (!token) return <Navigate to="/login" replace />
+  if (roles && usuario && !roles.includes(usuario.rol)) return <Navigate to="/" replace />
+  return <>{children}</>
+}
+
+function RolRedirect() {
+  const rol = useAuthStore((s) => s.usuario?.rol)
+  if (rol === 'PROPIETARIO') return <Navigate to="/mis-propiedades" replace />
+  if (rol === 'INQUILINO') return <Navigate to="/mi-contrato" replace />
+  return <Navigate to="/dashboard" replace />
 }
 
 export default function App() {
@@ -31,17 +43,28 @@ export default function App() {
             </ProtectedRoute>
           }
         >
-          <Route index element={<Navigate to="/dashboard" replace />} />
-          <Route path="dashboard" element={<Dashboard />} />
-          <Route path="propiedades" element={<Propiedades />} />
-          <Route path="personas" element={<Personas />} />
-          <Route path="contratos" element={<Contratos />} />
-          <Route path="pagos" element={<Pagos />} />
-          <Route path="indices" element={<AjusteIndices />} />
-          <Route path="inbox" element={<Inbox />} />
-          <Route path="whatsapp" element={<WhatsAppStatus />} />
-          <Route path="tarjetas" element={<TarjetaBuilder />} />
-          <Route path="contrato-gen" element={<ContratoGenerador />} />
+          <Route index element={<RolRedirect />} />
+
+          {/* Admin + Operador */}
+          <Route path="dashboard"    element={<ProtectedRoute roles={['ADMIN','OPERADOR']}><Dashboard /></ProtectedRoute>} />
+          <Route path="propiedades"  element={<ProtectedRoute roles={['ADMIN','OPERADOR']}><Propiedades /></ProtectedRoute>} />
+          <Route path="personas"     element={<ProtectedRoute roles={['ADMIN','OPERADOR']}><Personas /></ProtectedRoute>} />
+          <Route path="contratos"    element={<ProtectedRoute roles={['ADMIN','OPERADOR']}><Contratos /></ProtectedRoute>} />
+          <Route path="pagos"        element={<ProtectedRoute roles={['ADMIN','OPERADOR']}><Pagos /></ProtectedRoute>} />
+          <Route path="indices"      element={<ProtectedRoute roles={['ADMIN','OPERADOR']}><AjusteIndices /></ProtectedRoute>} />
+          <Route path="inbox"        element={<ProtectedRoute roles={['ADMIN','OPERADOR']}><Inbox /></ProtectedRoute>} />
+          <Route path="whatsapp"     element={<ProtectedRoute roles={['ADMIN','OPERADOR']}><WhatsAppStatus /></ProtectedRoute>} />
+          <Route path="tarjetas"     element={<ProtectedRoute roles={['ADMIN','OPERADOR']}><TarjetaBuilder /></ProtectedRoute>} />
+          <Route path="contrato-gen" element={<ProtectedRoute roles={['ADMIN','OPERADOR']}><ContratoGenerador /></ProtectedRoute>} />
+
+          {/* Solo Admin */}
+          <Route path="usuarios" element={<ProtectedRoute roles={['ADMIN']}><Usuarios /></ProtectedRoute>} />
+
+          {/* Propietario */}
+          <Route path="mis-propiedades" element={<ProtectedRoute roles={['PROPIETARIO']}><MisPropiedades /></ProtectedRoute>} />
+
+          {/* Inquilino */}
+          <Route path="mi-contrato" element={<ProtectedRoute roles={['INQUILINO']}><MiContrato /></ProtectedRoute>} />
         </Route>
       </Routes>
     </BrowserRouter>
