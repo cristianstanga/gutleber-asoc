@@ -2,6 +2,8 @@
 FROM node:20-alpine AS builder
 WORKDIR /app
 
+RUN apk add --no-cache openssl
+
 # Instalar dependencias (workspace)
 COPY package*.json ./
 COPY apps/api/package*.json ./apps/api/
