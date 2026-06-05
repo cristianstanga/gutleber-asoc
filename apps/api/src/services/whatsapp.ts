@@ -116,6 +116,19 @@ export async function initWhatsApp() {
   const version = waVer.version
   logger.info(`📦 WA version: ${version.join('.')} — creando socket...`)
 
+  // Si WA_PROXY_URL está definido, rutea la conexión por ese proxy (útil en
+  // VPS de datacenter donde WA bloquea el pre-key exchange — error 463)
+  // Si WA_PROXY_URL está definido, rutea la conexión por ese proxy (útil en
+  // VPS de datacenter donde WA bloquea el pre-key exchange — error 463)
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  let agent: any
+  if (process.env.WA_PROXY_URL) {
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
+    const { HttpsProxyAgent } = require('https-proxy-agent')
+    agent = new HttpsProxyAgent(process.env.WA_PROXY_URL)
+    logger.info(`🔀 Usando proxy WA: ${process.env.WA_PROXY_URL}`)
+  }
+
   sock = makeWASocket({
     version,
     auth: {
@@ -124,8 +137,8 @@ export async function initWhatsApp() {
     },
     printQRInTerminal: true,
     logger: logger as any,
-    // Evita "Key used already or never filled" al reconectar con sesión nueva
     getMessage: async () => ({ conversation: '' }),
+    ...(agent ? { agent } : {}),
   })
   logger.info('🔌 Socket creado — esperando connection.update...')
 
