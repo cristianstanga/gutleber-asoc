@@ -42,8 +42,13 @@ router.post('/', async (req, res) => {
 })
 
 router.put('/:id', async (req, res) => {
-  const persona = await prisma.persona.update({ where: { id: req.params.id }, data: req.body })
-  res.json(persona)
+  const { id, vinculos, pagos, inboxItems, conversaciones, propiedadesComoPropietario, usuarios, createdAt, updatedAt, ...data } = req.body
+  try {
+    const persona = await prisma.persona.update({ where: { id: req.params.id }, data })
+    res.json(persona)
+  } catch (err) {
+    res.status(400).json({ error: err instanceof Error ? err.message : 'Error al actualizar' })
+  }
 })
 
 router.delete('/:id', requireAdmin, async (req: AuthRequest, res) => {
