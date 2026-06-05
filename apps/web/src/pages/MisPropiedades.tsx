@@ -6,7 +6,7 @@ import {
 } from 'recharts'
 import {
   Building2, User, Calendar, TrendingUp, CheckCircle2, Clock,
-  DollarSign, ChevronDown, ChevronUp, Award, AlertTriangle,
+  DollarSign, ChevronDown, ChevronUp, Award, AlertTriangle, FileDown,
 } from 'lucide-react'
 import { api, formatARS, formatFecha } from '../lib/api'
 import { useAuthStore } from '../store/auth'
@@ -47,10 +47,23 @@ function TooltipARS({ active, payload, label }: any) {
 }
 
 function AnalyticsPanel({ propiedadId }: { propiedadId: string }) {
+  const [descargando, setDescargando] = useState(false)
   const { data, isLoading } = useQuery<Analytics>({
     queryKey: ['analytics', propiedadId],
     queryFn: async () => (await api.get(`/propiedades/${propiedadId}/analytics`)).data,
   })
+
+  async function descargarPDF() {
+    setDescargando(true)
+    try {
+      const res = await api.get(`/propiedades/${propiedadId}/resumen-pdf`, { responseType: 'blob' })
+      const url = URL.createObjectURL(new Blob([res.data], { type: 'application/pdf' }))
+      const a = document.createElement('a'); a.href = url; a.download = `resumen-propiedad.pdf`; a.click()
+      URL.revokeObjectURL(url)
+    } finally {
+      setDescargando(false)
+    }
+  }
 
   if (isLoading) return <div className="p-6 text-center text-piedra text-sm">Cargando análisis...</div>
   if (!data) return null
@@ -172,6 +185,18 @@ function AnalyticsPanel({ propiedadId }: { propiedadId: string }) {
           <TrendingUp size={20} className={proximoAjuste.diasRestantes <= 30 ? 'text-amber-500' : 'text-blue-400'} />
         </div>
       )}
+
+      {/* ── Descargar resumen ─────────────────────────────────────────────────── */}
+      <div className="flex justify-end pt-1">
+        <button
+          onClick={descargarPDF}
+          disabled={descargando}
+          className="flex items-center gap-2 px-4 py-2 rounded-lg border border-piedra/30 text-piedra hover:bg-crema hover:text-carbon text-xs transition-colors disabled:opacity-50"
+        >
+          <FileDown size={14} />
+          {descargando ? 'Generando...' : 'Descargar resumen PDF'}
+        </button>
+      </div>
     </div>
   )
 }

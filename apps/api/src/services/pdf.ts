@@ -403,3 +403,162 @@ export function generarLiquidacionPDF(datos: DatosLiquidacion): Promise<Buffer> 
     doc.end()
   })
 }
+
+// ─── Resumen mensual para propietario ────────────────────────────────────────
+
+export interface DatosResumenPropietario {
+  propietario: { nombre: string; apellido: string }
+  propiedad: { direccion: string; tipo: string; barrio?: string | null }
+  inquilino?: { nombre: string; apellido: string } | null
+  alquilerActual?: number | null
+  honorariosPct: number
+  flujoCaja: { mes: string; cobrado: number; neto: number; transferido: number }[]
+  statsInquilino: { totalPagos: number; pagadosATiempo: number; promedioDiasDemora: number; enMora: number }
+  proximoAjuste?: { fecha: Date | string; diasRestantes: number; alquilerActual?: number | null; indice?: string | null } | null
+  fechaGeneracion: Date
+}
+
+export function generarResumenPropietarioPDF(d: DatosResumenPropietario): Promise<Buffer> {
+  return new Promise((resolve, reject) => {
+    const doc = new PDFDocument({ size: 'A4', margin: 0, autoFirstPage: true })
+    const chunks: Buffer[] = []
+    doc.on('data', (c: Buffer) => chunks.push(c))
+    doc.on('end', () => resolve(Buffer.concat(chunks)))
+    doc.on('error', reject)
+
+    const PW = doc.page.width  // 595
+    const PH = doc.page.height // 841
+    const M = 40
+    const W = PW - M * 2
+    let y = 30
+
+    // ── Cabecera ──────────────────────────────────────────────────────────────
+    doc.rect(M, y, W, 64).fill(CARBON)
+    doc.fillColor(WHITE).font('Helvetica-Bold').fontSize(16).text('GUTLEBER', M + 14, y + 10)
+    doc.fillColor(ARENA).font('Helvetica').fontSize(7.5).text('& ASOCIADOS  —  INMOBILIARIA BOUTIQUE', M + 14, y + 30)
+    doc.fillColor(CREMA).fontSize(6.5).text('Av. Mitre 1.782 · Posadas, Misiones · Argentina', M + 14, y + 42)
+
+    doc.fillColor(ARENA).font('Helvetica-Bold').fontSize(11)
+       .text('RESUMEN DE PROPIEDAD', PW - M - 200, y + 10, { width: 190, align: 'right' })
+    doc.fillColor(CREMA).font('Helvetica').fontSize(8)
+       .text(formatFecha(d.fechaGeneracion), PW - M - 200, y + 28, { width: 190, align: 'right' })
+    doc.fillColor(ARENA).fontSize(7)
+       .text(`Propietario: ${d.propietario.nombre} ${d.propietario.apellido}`, PW - M - 200, y + 42, { width: 190, align: 'right' })
+    y += 74
+
+    // ── Datos de la propiedad ─────────────────────────────────────────────────
+    doc.rect(M, y, W, 0.5).fill(ARENA)
+    y += 8
+    doc.fillColor(PIEDRA).font('Helvetica-Bold').fontSize(8).text('PROPIEDAD', M, y)
+    y += 12
+    doc.fillColor(CARBON).font('Helvetica-Bold').fontSize(11).text(d.propiedad.direccion, M, y)
+    const subtitulo = [d.propiedad.tipo, d.propiedad.barrio].filter(Boolean).join(' · ')
+    doc.fillColor(PIEDRA).font('Helvetica').fontSize(8).text(subtitulo, M, y + 14)
+    if (d.inquilino) {
+      doc.fillColor(PIEDRA).font('Helvetica').fontSize(8)
+         .text(`Inquilino: ${d.inquilino.nombre} ${d.inquilino.apellido}`, PW - M - 220, y + 4, { width: 210, align: 'right' })
+    }
+    if (d.alquilerActual) {
+      doc.fillColor(CARBON).font('Helvetica-Bold').fontSize(8)
+         .text(`Alquiler actual: ${formatARS(d.alquilerActual)}`, PW - M - 220, y + 16, { width: 210, align: 'right' })
+    }
+    y += 34
+    doc.rect(M, y, W, 0.5).fill(ARENA)
+    y += 12
+
+    // ── Flujo de caja ─────────────────────────────────────────────────────────
+    doc.fillColor(PIEDRA).font('Helvetica-Bold').fontSize(8).text('FLUJO DE CAJA — ÚLTIMOS MESES', M, y)
+    y += 12
+
+    // Cabecera tabla
+    const cols = [M, M + 70, M + 160, M + 250, M + 330, M + 400]
+    const headers = ['Período', 'Cobrado', `Honorarios (${d.honorariosPct}%)`, 'Neto propietario', 'Transferido', 'Saldo pendiente']
+    doc.rect(M, y, W, 16).fill(CREMA)
+    headers.forEach((h, i) => {
+      doc.fillColor(CARBON).font('Helvetica-Bold').fontSize(7)
+         .text(h, cols[i] + 3, y + 4, { width: (cols[i + 1] ?? PW - M) - cols[i] - 6 })
+    })
+    y += 16
+
+    // Filas
+    let totalCobrado = 0, totalNeto = 0, totalTransferido = 0
+    d.flujoCaja.forEach((f, idx) => {
+      const bg = idx % 2 === 0 ? WHITE : '#F9F6F2'
+      const honorarios = f.cobrado > 0 ? +(f.cobrado * d.honorariosPct / 100).toFixed(0) : 0
+      const saldo = f.neto - f.transferido
+      totalCobrado += f.cobrado; totalNeto += f.neto; totalTransferido += f.transferido
+      doc.rect(M, y, W, 15).fill(bg)
+      const vals = [f.mes, f.cobrado > 0 ? formatARS(f.cobrado) : '—', f.cobrado > 0 ? formatARS(honorarios) : '—', f.neto > 0 ? formatARS(f.neto) : '—', f.transferido > 0 ? formatARS(f.transferido) : '—', saldo > 0 ? formatARS(saldo) : '—']
+      vals.forEach((v, i) => {
+        const isNeg = i === 5 && saldo < 0
+        doc.fillColor(isNeg ? '#B45309' : CARBON).font('Helvetica').fontSize(7.5)
+           .text(v, cols[i] + 3, y + 4, { width: (cols[i + 1] ?? PW - M) - cols[i] - 6 })
+      })
+      y += 15
+    })
+
+    // Total
+    const saldoTotal = totalNeto - totalTransferido
+    doc.rect(M, y, W, 17).fill(CARBON)
+    const totales = ['TOTAL', formatARS(totalCobrado), formatARS(+(totalCobrado * d.honorariosPct / 100).toFixed(0)), formatARS(totalNeto), formatARS(totalTransferido), formatARS(saldoTotal)]
+    totales.forEach((v, i) => {
+      doc.fillColor(i === 5 && saldoTotal > 0 ? '#A3E635' : ARENA).font('Helvetica-Bold').fontSize(7.5)
+         .text(v, cols[i] + 3, y + 5, { width: (cols[i + 1] ?? PW - M) - cols[i] - 6 })
+    })
+    y += 24
+
+    // ── Stats del inquilino ───────────────────────────────────────────────────
+    y += 8
+    doc.rect(M, y, W, 0.5).fill(ARENA)
+    y += 10
+    doc.fillColor(PIEDRA).font('Helvetica-Bold').fontSize(8).text('COMPORTAMIENTO DEL INQUILINO', M, y)
+    y += 12
+
+    const pctATiempo = d.statsInquilino.totalPagos
+      ? +((d.statsInquilino.pagadosATiempo / d.statsInquilino.totalPagos) * 100).toFixed(0)
+      : 0
+
+    const statBoxes = [
+      { label: 'Pagos a tiempo', valor: `${pctATiempo}%` },
+      { label: 'Demora promedio', valor: `${d.statsInquilino.promedioDiasDemora} días` },
+      { label: 'Pagos registrados', valor: `${d.statsInquilino.totalPagos}` },
+      { label: 'En mora actualmente', valor: `${d.statsInquilino.enMora}` },
+    ]
+    const bw = W / 4
+    statBoxes.forEach((s, i) => {
+      const bx = M + i * bw
+      doc.rect(bx, y, bw - 4, 38).fill(CREMA)
+      doc.fillColor(PIEDRA).font('Helvetica').fontSize(7).text(s.label, bx + 6, y + 6, { width: bw - 16 })
+      doc.fillColor(CARBON).font('Helvetica-Bold').fontSize(14).text(s.valor, bx + 6, y + 16, { width: bw - 16 })
+    })
+    y += 48
+
+    // ── Próximo ajuste ────────────────────────────────────────────────────────
+    if (d.proximoAjuste) {
+      y += 4
+      doc.rect(M, y, W, 0.5).fill(ARENA)
+      y += 10
+      doc.fillColor(PIEDRA).font('Helvetica-Bold').fontSize(8).text('PRÓXIMO AJUSTE DE ALQUILER', M, y)
+      y += 12
+      doc.rect(M, y, W, 32).fill(CREMA)
+      const pa = d.proximoAjuste
+      const fechaAjuste = pa.fecha instanceof Date ? formatFecha(pa.fecha) : new Date(pa.fecha).toLocaleDateString('es-AR')
+      doc.fillColor(CARBON).font('Helvetica-Bold').fontSize(9)
+         .text(`Fecha: ${fechaAjuste}  ·  En ${pa.diasRestantes} días`, M + 10, y + 8)
+      if (pa.alquilerActual) {
+        doc.fillColor(PIEDRA).font('Helvetica').fontSize(8)
+           .text(`Alquiler actual: ${formatARS(pa.alquilerActual)}  ·  Índice: ${pa.indice ?? 'ICL'}`, M + 10, y + 20)
+      }
+      y += 40
+    }
+
+    // ── Pie de página ─────────────────────────────────────────────────────────
+    doc.rect(M, PH - 38, W, 0.5).fill(ARENA)
+    doc.fillColor(PIEDRA).font('Helvetica').fontSize(6.5)
+       .text('Gutleber & Asociados — Gestión · Inversión · Patrimonio — Posadas, Misiones — Argentina', M, PH - 28, { width: W, align: 'center' })
+    doc.fillColor(ARENA).fontSize(6)
+       .text('Documento informativo. No válido como comprobante fiscal.', M, PH - 18, { width: W, align: 'center' })
+
+    doc.end()
+  })
+}
