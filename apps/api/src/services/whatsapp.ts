@@ -6,6 +6,8 @@ import makeWASocket, {
 } from '@whiskeysockets/baileys'
 import { Boom } from '@hapi/boom'
 import path from 'path'
+import fs from 'fs'
+import QRCode from 'qrcode'
 import { prisma, logger } from '../index'
 import { procesarMensaje, MediaItem } from './agente'
 
@@ -24,6 +26,22 @@ export function getStatus() {
 
 export function getQR() {
   return qrCode
+}
+
+export async function getQRImage(): Promise<string | null> {
+  if (!qrCode) return null
+  return QRCode.toDataURL(qrCode, { width: 280, margin: 2 })
+}
+
+export async function clearSession() {
+  if (sock) { sock.end(undefined); sock = null }
+  isConnected = false
+  qrCode = null
+  if (fs.existsSync(SESSION_PATH)) {
+    fs.rmSync(SESSION_PATH, { recursive: true, force: true })
+    logger.info('🗑️ Sesión WhatsApp eliminada')
+  }
+  await initWhatsApp()
 }
 
 // ── Helpers humanos ──────────────────────────────────────────────────────────
