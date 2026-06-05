@@ -58,6 +58,7 @@ export interface DatosLiquidacion {
   totalLiquidacion: number
   honorariosPct?: number
   gastos?: { descripcion: string; monto: number }[]
+  conceptosInquilino?: { descripcion: string; monto: number }[]
   formaPago: string
 }
 
@@ -255,11 +256,12 @@ function dibujarLiquidacion(
   const M  = 36
   const W  = PW - M * 2
 
-  const gastos        = d.gastos ?? []
-  const totalGastos   = gastos.reduce((s, g) => s + g.monto, 0)
-  const honorariosPct = d.honorariosPct ?? 8
-  const honorarios    = Math.round((d.totalLiquidacion - totalGastos) * honorariosPct / 100)
-  const totalPagado   = d.totalLiquidacion - totalGastos - honorarios
+  const gastos           = d.gastos ?? []
+  const conceptosInq     = d.conceptosInquilino ?? []
+  const totalGastos      = gastos.reduce((s, g) => s + g.monto, 0)
+  const honorariosPct    = d.honorariosPct ?? 8
+  const honorarios       = Math.round((d.totalLiquidacion - totalGastos) * honorariosPct / 100)
+  const totalPagado      = d.totalLiquidacion - totalGastos - honorarios
 
   let y = yBase
 
@@ -304,7 +306,24 @@ function dibujarLiquidacion(
   doc.text(`${d.mes} [ pago ${d.pago} / ${d.totalPagos} ]`, M + 270, y, { width: 140 })
   doc.font('Helvetica-Bold').fontSize(8.5)
      .text(formatARS(d.totalLiquidacion), M + W - 2, y, { width: 70, align: 'right' })
-  y += 52
+  y += 14
+
+  // Desglose conceptos cobrados al inquilino (si hay)
+  if (conceptosInq.length > 0) {
+    const montoBase = d.totalLiquidacion - conceptosInq.reduce((s, c) => s + c.monto, 0)
+    doc.fillColor(PIEDRA).font('Helvetica').fontSize(6.5)
+       .text(`  Alquiler base: ${formatARS(montoBase)}`, M + 4, y)
+    y += 8
+    for (const c of conceptosInq) {
+      const signo = c.monto < 0 ? '−' : '+'
+      doc.fillColor(PIEDRA).font('Helvetica').fontSize(6.5)
+         .text(`  ${signo} ${c.descripcion}: ${formatARS(Math.abs(c.monto))}`, M + 4, y)
+      y += 7
+    }
+    y += 4
+  } else {
+    y += 38
+  }
 
   // Firma
   const firmaY = yBase + 255

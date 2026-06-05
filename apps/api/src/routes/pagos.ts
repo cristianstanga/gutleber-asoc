@@ -154,6 +154,8 @@ async function buildDatosLiquidacion(pagoId: string): Promise<DatosLiquidacion |
   // Honorarios del vínculo (default 8)
   const honorariosPct = pago.vinculo?.honorariosPct ?? 8
 
+  const conceptosInquilino = (pago.conceptosExtra as { descripcion: string; monto: number }[] | null) || []
+
   return {
     nroLiquidacion: pago.nroRecibo,
     fechaLiquidacion: pago.fechaPago || pago.fechaVencimiento,
@@ -165,6 +167,7 @@ async function buildDatosLiquidacion(pagoId: string): Promise<DatosLiquidacion |
     totalLiquidacion: total,
     honorariosPct,
     gastos: [],
+    conceptosInquilino,
     formaPago: pago.formaPago || 'Efectivo',
   }
 }
@@ -259,7 +262,8 @@ router.patch('/:id/marcar-pagado', async (req, res) => {
   if (pago.tipo === 'ALQUILER' && pago.propiedad) {
     const propietario = (pago.propiedad as any).propietario
     if (propietario?.whatsapp) {
-      const monto = new Intl.NumberFormat('es-AR', { style: 'currency', currency: 'ARS', maximumFractionDigits: 0 }).format(pago.monto)
+      const montoTotal = pago.totalConExtras ?? pago.monto
+      const monto = new Intl.NumberFormat('es-AR', { style: 'currency', currency: 'ARS', maximumFractionDigits: 0 }).format(montoTotal)
       const fecha = new Date().toLocaleDateString('es-AR', { day: '2-digit', month: 'long' })
       const msg =
         `✅ Hola ${propietario.nombre}!\n\n` +

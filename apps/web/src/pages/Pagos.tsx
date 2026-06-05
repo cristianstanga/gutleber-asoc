@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import {
   CreditCard, Send, CheckCircle, ChevronRight,
-  Plus, Trash2, FileText, X, Building2, User, Calendar,
+  Plus, Minus, Trash2, FileText, X, Building2, User, Calendar,
   Home, Receipt, Wrench, Percent
 } from 'lucide-react'
 import { api, formatARS, formatFecha } from '../lib/api'
@@ -96,6 +96,171 @@ async function descargarPDF(id: string, tipo: 'recibo' | 'liquidacion', label: s
   a.download = `${tipo}-${label}.pdf`
   a.click()
   URL.revokeObjectURL(url)
+}
+
+// ─── Modal Cobro (confirmar + extras + descuentos) ────────────────────────────
+
+interface ModalCobroProps {
+  pago: Pago
+  vinculo: Vinculo
+  onClose: () => void
+  onCobrado: () => void
+}
+
+function ModalCobro({ pago, vinculo, onClose, onCobrado }: ModalCobroProps) {
+  const [formaPago, setFormaPago] = useState(pago.formaPago || 'Efectivo')
+  const [conceptos, setConceptos] = useState<ConceptoExtra[]>(pago.conceptosExtra || [])
+  const [toast, setToast] = useState('')
+
+  const total = pago.monto + conceptos.reduce((s, c) => s + (Number(c.monto) || 0), 0)
+
+  const cobrar = useMutation({
+    mutationFn: () => api.patch(`/pagos/${pago.id}/marcar-pagado`, {
+      formaPago,
+      conceptosExtra: conceptos.filter(c => c.descripcion.trim()),
+      totalConExtras: total,
+    }),
+    onSuccess: () => { onCobrado(); onClose() },
+    onError: () => { setToast('Error al registrar el cobro'); setTimeout(() => setToast(''), 3000) },
+  })
+
+  function addConcepto(tipo: 'cargo' | 'descuento') {
+    setConceptos(prev => [...prev, { descripcion: '', monto: tipo === 'descuento' ? -1 : 0 }])
+  }
+
+  function updateConcepto(i: number, key: 'descripcion' | 'monto', val: string) {
+    setConceptos(prev => prev.map((c, idx) => {
+      if (idx !== i) return c
+      if (key === 'monto') {
+        const abs = Math.abs(Number(val))
+        const sign = c.monto <= 0 ? -1 : 1
+        return { ...c, monto: sign * abs }
+      }
+      return { ...c, [key]: val }
+    }))
+  }
+
+  function toggleSign(i: number) {
+    setConceptos(prev => prev.map((c, idx) =>
+      idx === i ? { ...c, monto: c.monto === 0 ? -1 : -c.monto } : c
+    ))
+  }
+
+  return (
+    <div className="fixed inset-0 bg-carbon/40 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-lg max-h-[90vh] overflow-y-auto">
+        <div className="flex items-center justify-between px-6 py-4 border-b border-arena">
+          <div>
+            <h2 className="font-display text-lg text-carbon">Confirmar cobro</h2>
+            <p className="text-xs text-piedra mt-0.5">
+              {pago.periodo} · {vinculo.propiedad.direccion}
+            </p>
+          </div>
+          <button onClick={onClose} className="p-1 rounded hover:bg-crema text-piedra"><X size={18} /></button>
+        </div>
+
+        <div className="px-6 py-5 space-y-5">
+          {toast && <div className="text-red-600 text-sm bg-red-50 px-3 py-2 rounded-lg">{toast}</div>}
+
+          {/* Datos base readonly */}
+          <div className="bg-crema rounded-xl px-4 py-3 space-y-1.5">
+            <div className="flex items-center justify-between">
+              <span className="text-xs text-piedra">Inquilino</span>
+              <span className="text-sm font-medium text-carbon">{vinculo.persona.nombre} {vinculo.persona.apellido}</span>
+            </div>
+            <div className="flex items-center justify-between">
+              <span className="text-xs text-piedra">Alquiler base</span>
+              <span className="font-display text-lg text-carbon">{formatARS(pago.monto)}</span>
+            </div>
+          </div>
+
+          {/* Conceptos adicionales */}
+          <div>
+            <div className="flex items-center justify-between mb-2">
+              <p className="text-sm font-semibold text-carbon">Conceptos adicionales</p>
+              <div className="flex gap-2">
+                <button type="button" onClick={() => addConcepto('cargo')}
+                  className="text-xs flex items-center gap-1 text-green-700 bg-green-50 hover:bg-green-100 px-2 py-1 rounded-lg transition-colors">
+                  <Plus size={11} /> Cargo
+                </button>
+                <button type="button" onClick={() => addConcepto('descuento')}
+                  className="text-xs flex items-center gap-1 text-red-600 bg-red-50 hover:bg-red-100 px-2 py-1 rounded-lg transition-colors">
+                  <Minus size={11} /> Descuento
+                </button>
+              </div>
+            </div>
+            {conceptos.length === 0 && (
+              <p className="text-xs text-piedra/60 italic py-1">Sin conceptos extra. Podés agregar expensas, seguros, descuentos por arreglos, etc.</p>
+            )}
+            {conceptos.length > 0 && (
+              <div className="space-y-2">
+                {conceptos.map((c, i) => (
+                  <div key={i} className={`flex gap-2 items-center rounded-lg px-2 py-1.5 ${c.monto <= 0 ? 'bg-red-50' : 'bg-green-50/60'}`}>
+                    <button type="button" onClick={() => toggleSign(i)} title="Cambiar cargo/descuento"
+                      className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold flex-shrink-0 ${c.monto <= 0 ? 'bg-red-200 text-red-700' : 'bg-green-200 text-green-700'}`}>
+                      {c.monto <= 0 ? '−' : '+'}
+                    </button>
+                    <input className="form-input flex-1 text-sm py-1"
+                      placeholder={c.monto <= 0 ? 'Ej: Arreglo baño (asumido inquilino)' : 'Ej: Expensas junio'}
+                      value={c.descripcion}
+                      onChange={e => updateConcepto(i, 'descripcion', e.target.value)} />
+                    <input type="number" className="form-input w-28 text-sm py-1" placeholder="Monto"
+                      value={Math.abs(c.monto) || ''}
+                      min={0}
+                      onChange={e => updateConcepto(i, 'monto', e.target.value)} />
+                    <button onClick={() => setConceptos(prev => prev.filter((_, idx) => idx !== i))}
+                      className="text-piedra hover:text-red-500 flex-shrink-0"><Trash2 size={14} /></button>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+
+          {/* Forma de pago */}
+          <div>
+            <label className="form-label">Forma de pago</label>
+            <select className="form-select" value={formaPago} onChange={e => setFormaPago(e.target.value)}>
+              {FORMAS_PAGO.map(f => <option key={f}>{f}</option>)}
+            </select>
+          </div>
+
+          {/* Desglose y total */}
+          <div className="border border-arena rounded-xl overflow-hidden">
+            <div className="bg-crema/50 px-4 py-2 border-b border-crema">
+              <p className="text-xs font-semibold text-piedra uppercase tracking-wide">Desglose del cobro</p>
+            </div>
+            <div className="divide-y divide-crema">
+              <div className="flex justify-between px-4 py-2.5">
+                <span className="text-sm text-carbon">Alquiler base</span>
+                <span className="text-sm font-medium text-carbon">{formatARS(pago.monto)}</span>
+              </div>
+              {conceptos.filter(c => c.descripcion.trim() && c.monto !== 0).map((c, i) => (
+                <div key={i} className="flex justify-between px-4 py-2">
+                  <span className="text-sm text-carbon">{c.descripcion}</span>
+                  <span className={`text-sm font-medium ${c.monto < 0 ? 'text-red-600' : 'text-green-700'}`}>
+                    {c.monto < 0 ? '−' : '+'} {formatARS(Math.abs(c.monto))}
+                  </span>
+                </div>
+              ))}
+              <div className="flex justify-between px-4 py-3 bg-carbon">
+                <span className="text-sm font-bold text-white">Total cobrado</span>
+                <span className="font-display text-lg text-white">{formatARS(total)}</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div className="px-6 pb-5 flex gap-3 justify-end">
+          <button onClick={onClose} className="btn-secondary">Cancelar</button>
+          <button onClick={() => cobrar.mutate()} disabled={cobrar.isPending}
+            className="btn-primary flex items-center gap-2">
+            <CheckCircle size={14} />
+            {cobrar.isPending ? 'Registrando...' : 'Confirmar cobro'}
+          </button>
+        </div>
+      </div>
+    </div>
+  )
 }
 
 // ─── Modal Nuevo Pago ─────────────────────────────────────────────────────────
@@ -377,11 +542,35 @@ function ModalLiquidacion({ pago, vinculo, onClose }: ModalLiquidacionProps) {
         <div className="px-6 py-5 space-y-5">
           {toast && <div className="text-red-600 text-sm bg-red-50 px-3 py-2 rounded-lg">{toast}</div>}
 
-          {/* Total alquiler (readonly) */}
-          <div className="bg-crema rounded-xl px-4 py-3 flex items-center justify-between">
-            <span className="text-sm text-piedra">Alquiler cobrado</span>
-            <span className="font-display text-lg text-carbon">{formatARS(totalBase)}</span>
-          </div>
+          {/* Desglose cobro al inquilino */}
+          {pago.conceptosExtra && pago.conceptosExtra.length > 0 ? (
+            <div>
+              <p className="text-xs font-semibold text-piedra uppercase tracking-wide mb-2">Cobrado al inquilino</p>
+              <div className="border border-arena rounded-xl overflow-hidden">
+                <div className="flex justify-between px-4 py-2.5 border-b border-crema">
+                  <span className="text-sm text-piedra">Alquiler base</span>
+                  <span className="text-sm font-medium text-carbon">{formatARS(pago.monto)}</span>
+                </div>
+                {pago.conceptosExtra.map((c, i) => (
+                  <div key={i} className="flex justify-between px-4 py-2 border-b border-crema">
+                    <span className="text-sm text-carbon">{c.descripcion}</span>
+                    <span className={`text-sm font-medium ${c.monto < 0 ? 'text-red-600' : 'text-green-700'}`}>
+                      {c.monto < 0 ? '−' : '+'} {formatARS(Math.abs(c.monto))}
+                    </span>
+                  </div>
+                ))}
+                <div className="flex justify-between px-4 py-2.5 bg-crema">
+                  <span className="text-sm font-semibold text-carbon">Total cobrado</span>
+                  <span className="text-sm font-semibold text-carbon">{formatARS(totalBase)}</span>
+                </div>
+              </div>
+            </div>
+          ) : (
+            <div className="bg-crema rounded-xl px-4 py-3 flex items-center justify-between">
+              <span className="text-sm text-piedra">Alquiler cobrado</span>
+              <span className="font-display text-lg text-carbon">{formatARS(totalBase)}</span>
+            </div>
+          )}
 
           {/* Gastos pendientes del sistema */}
           {gastosPendientes.length > 0 && (
@@ -537,15 +726,11 @@ function PanelPagos({ vinculo }: PanelPagosProps) {
   const [toast, setToast] = useState('')
   const [modalNuevo, setModalNuevo] = useState(false)
   const [pagoLiquidar, setPagoLiquidar] = useState<Pago | null>(null)
+  const [pagoACobrar, setPagoACobrar] = useState<Pago | null>(null)
 
   const { data: pagos = [], isLoading } = useQuery<Pago[]>({
     queryKey: ['pagos', vinculo.id],
     queryFn: () => api.get('/pagos', { params: { vinculoId: vinculo.id } }).then(r => r.data),
-  })
-
-  const marcarPagado = useMutation({
-    mutationFn: (id: string) => api.patch(`/pagos/${id}/marcar-pagado`),
-    onSuccess: () => { qc.invalidateQueries({ queryKey: ['pagos', vinculo.id] }); toast2('Marcado como pagado ✓') },
   })
 
   const pagarPropietario = useMutation({
@@ -706,8 +891,7 @@ function PanelPagos({ vinculo }: PanelPagosProps) {
                       {/* Cobrar */}
                       {p.estado !== 'PAGADO' && p.estado !== 'ANULADO' && (
                         <button
-                          onClick={() => marcarPagado.mutate(p.id)}
-                          disabled={marcarPagado.isPending}
+                          onClick={() => setPagoACobrar(p)}
                           className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-green-600 hover:bg-green-700 text-white text-xs font-semibold transition-colors whitespace-nowrap"
                         >
                           <CheckCircle size={13} /> Marcar cobrado
@@ -777,6 +961,18 @@ function PanelPagos({ vinculo }: PanelPagosProps) {
           pago={pagoLiquidar}
           vinculo={vinculo}
           onClose={() => setPagoLiquidar(null)}
+        />
+      )}
+
+      {pagoACobrar && (
+        <ModalCobro
+          pago={pagoACobrar}
+          vinculo={vinculo}
+          onClose={() => setPagoACobrar(null)}
+          onCobrado={() => {
+            qc.invalidateQueries({ queryKey: ['pagos', vinculo.id] })
+            toast2('Cobro registrado ✓')
+          }}
         />
       )}
     </div>
