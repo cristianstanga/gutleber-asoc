@@ -183,22 +183,29 @@ async function avisarPropietarioMora() {
   })
 
   for (const p of pagosImpagos) {
-    // Buscar propietario: vinculo ADMINISTRACION activo en la misma propiedad
     if (!p.propiedadId) continue
-    const vinculoProp = await prisma.vinculo.findFirst({
-      where: { propiedadId: p.propiedadId, tipo: 'ADMINISTRACION', activo: true },
-      include: { persona: true },
-    })
 
-    if (vinculoProp?.persona?.whatsapp) {
+    // Buscar propietario: primero por propietarioId directo, luego fallback a ADMINISTRACION
+    const propConProp = await prisma.propiedad.findUnique({
+      where: { id: p.propiedadId },
+      include: { propietario: true },
+    })
+    const propietario = propConProp?.propietario ?? (
+      await prisma.vinculo.findFirst({
+        where: { propiedadId: p.propiedadId, tipo: 'ADMINISTRACION', activo: true },
+        include: { persona: true },
+      })
+    )?.persona
+
+    if (propietario?.whatsapp) {
       const monto = formatARS(p.monto)
       const msg =
-        `Hola ${vinculoProp.persona.nombre}! 📋\n\n` +
+        `Hola ${propietario.nombre}! 📋\n\n` +
         `Le informamos que el alquiler de *${p.propiedad?.direccion}* ` +
         `correspondiente a *${mesStr()}* (${monto}) aún figura como impago.\n\n` +
         `Estamos gestionando el cobro con el inquilino. Le mantendremos informado.\n` +
         `— *Gutleber & Asoc.* 🏢`
-      await enviarWA(vinculoProp.persona.whatsapp, msg, `propietario ${vinculoProp.persona.nombre}`)
+      await enviarWA(propietario.whatsapp, msg, `propietario ${propietario.nombre}`)
       await pausaEntreEnvios()
     }
   }
@@ -242,6 +249,7 @@ async function marcarMora() {
         `Le pedimos que regularice la situación a la brevedad.\n` +
         `*Gutleber & Asoc.* — Tel: 376 4XXX-XXXX`
       await enviarWA(p.persona?.whatsapp, msg, `inquilino en mora ${p.persona?.nombre}`)
+      await pausaEntreEnvios()
     }
   }
 }
@@ -278,19 +286,26 @@ async function alertarContratosVencer() {
       await enviarWA(c.persona.whatsapp, msgInquilino, `inquilino ${c.persona.nombre} (contrato)`)
       await pausaEntreEnvios()
 
-      // Notificar al propietario si existe vínculo de administración
-      const vinculoProp = await prisma.vinculo.findFirst({
-        where: { propiedadId: c.propiedadId, tipo: 'ADMINISTRACION', activo: true },
-        include: { persona: true },
+      // Notificar al propietario — primero propietarioId directo, luego fallback ADMINISTRACION
+      const propConProp = await prisma.propiedad.findUnique({
+        where: { id: c.propiedadId },
+        include: { propietario: true },
       })
-      if (vinculoProp?.persona?.whatsapp) {
+      const propietario = propConProp?.propietario ?? (
+        await prisma.vinculo.findFirst({
+          where: { propiedadId: c.propiedadId, tipo: 'ADMINISTRACION', activo: true },
+          include: { persona: true },
+        })
+      )?.persona
+
+      if (propietario?.whatsapp) {
         const msgProp =
-          `📋 Hola ${vinculoProp.persona.nombre},\n\n` +
+          `📋 Hola ${propietario.nombre},\n\n` +
           `El contrato de alquiler de *${c.propiedad.direccion}* ` +
           `vence el *${venc}* (en aprox. ${label}).\n\n` +
           `Estamos coordinando la renovación con el inquilino. Le mantendremos informado.\n` +
           `— *Gutleber & Asoc.* 🏢`
-        await enviarWA(vinculoProp.persona.whatsapp, msgProp, `propietario ${vinculoProp.persona.nombre} (contrato)`)
+        await enviarWA(propietario.whatsapp, msgProp, `propietario ${propietario.nombre} (contrato)`)
         await pausaEntreEnvios()
       }
 

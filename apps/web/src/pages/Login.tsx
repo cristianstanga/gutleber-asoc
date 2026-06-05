@@ -33,9 +33,8 @@ export default function Login() {
     <div className="min-h-screen bg-carbon flex items-center justify-center p-4">
       <div className="w-full max-w-sm">
         {/* Logo */}
-        <div className="text-center mb-8">
-          <h1 className="font-display text-white text-3xl">Gutleber & Asoc.</h1>
-          <p className="text-piedra text-[10px] tracking-[0.25em] mt-1">GESTIÓN · INVERSIÓN · PATRIMONIO</p>
+        <div className="flex justify-center mb-8">
+          <img src="/logo-login.svg" alt="Gutleber & Asoc." className="h-16 w-auto" />
         </div>
 
         <div className="card p-6">

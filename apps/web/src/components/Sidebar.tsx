@@ -53,10 +53,9 @@ export default function Sidebar() {
 
   return (
     <aside className="w-56 min-h-screen bg-carbon flex flex-col">
-      <div className="px-5 py-6 border-b border-white/10">
-        <p className="font-display text-white text-lg leading-tight">Gutleber</p>
-        <p className="font-display text-arena text-lg leading-tight">&amp; Asoc.</p>
-        <p className="text-[9px] text-piedra tracking-[0.2em] mt-1">GESTIÓN · INVERSIÓN · PATRIMONIO</p>
+      <div className="px-4 py-5 border-b border-white/10">
+        <img src="/emblema.svg" alt="Gutleber & Asoc." className="w-10 h-auto mb-2" />
+        <p className="text-[9px] text-piedra tracking-[0.2em]">GESTIÓN · INVERSIÓN · PATRIMONIO</p>
       </div>
 
       <nav className="flex-1 px-3 py-4 space-y-0.5">

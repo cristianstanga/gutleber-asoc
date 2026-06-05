@@ -248,9 +248,29 @@ router.patch('/:id/marcar-pagado', async (req, res) => {
   const pago = await prisma.pago.update({
     where: { id: req.params.id },
     data,
-    include: { persona: true, propiedad: true },
+    include: {
+      persona: true,
+      propiedad: { include: { propietario: true } },
+    },
   })
   res.json(pago)
+
+  // Notificar al propietario que se cobró — sin bloquear la respuesta
+  if (pago.tipo === 'ALQUILER' && pago.propiedad) {
+    const propietario = (pago.propiedad as any).propietario
+    if (propietario?.whatsapp) {
+      const monto = new Intl.NumberFormat('es-AR', { style: 'currency', currency: 'ARS', maximumFractionDigits: 0 }).format(pago.monto)
+      const fecha = new Date().toLocaleDateString('es-AR', { day: '2-digit', month: 'long' })
+      const msg =
+        `✅ Hola ${propietario.nombre}!\n\n` +
+        `Le informamos que el día *${fecha}* se cobró el alquiler de:\n` +
+        `📍 *${pago.propiedad.direccion}*\n` +
+        `💰 *${monto}*\n\n` +
+        `En los próximos días procesamos la transferencia.\n` +
+        `— *Gutleber & Asoc.* 🏢`
+      sendText(propietario.whatsapp, msg).catch(() => {})
+    }
+  }
 })
 
 // Marcar pagado al propietario (liquidación enviada)
