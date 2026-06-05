@@ -124,6 +124,8 @@ export async function initWhatsApp() {
     },
     printQRInTerminal: true,
     logger: logger as any,
+    // Evita "Key used already or never filled" al reconectar con sesión nueva
+    getMessage: async () => ({ conversation: '' }),
   })
   logger.info('🔌 Socket creado — esperando connection.update...')
 
