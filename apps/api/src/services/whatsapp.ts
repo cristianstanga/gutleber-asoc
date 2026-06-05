@@ -34,12 +34,23 @@ export async function getQRImage(): Promise<string | null> {
 }
 
 export async function clearSession() {
-  if (sock) { sock.end(undefined); sock = null }
+  if (sock) {
+    sock.end(new Error('clearSession'))
+    sock = null
+  }
   isConnected = false
   qrCode = null
-  if (fs.existsSync(SESSION_PATH)) {
-    fs.rmSync(SESSION_PATH, { recursive: true, force: true })
-    logger.info('🗑️ Sesión WhatsApp eliminada')
+  // SESSION_PATH puede ser un mount de Docker — no borrar el directorio,
+  // solo su contenido (rmSync del dir lanzaría EBUSY en volúmenes Docker)
+  try {
+    if (fs.existsSync(SESSION_PATH)) {
+      for (const file of fs.readdirSync(SESSION_PATH)) {
+        fs.rmSync(path.join(SESSION_PATH, file), { recursive: true, force: true })
+      }
+      logger.info('🗑️ Sesión WhatsApp eliminada')
+    }
+  } catch (err) {
+    logger.warn({ err }, '⚠️ Error limpiando sesión — continuando de todas formas')
   }
   // fire-and-forget — no await para no bloquear la respuesta HTTP
   initWhatsApp().catch((err) => logger.error({ err }, 'Error en clearSession→initWhatsApp'))
