@@ -3,6 +3,7 @@ import makeWASocket, {
   useMultiFileAuthState,
   fetchLatestBaileysVersion,
   makeCacheableSignalKeyStore,
+  LATEST_WA_WEB_VERSION,
 } from '@whiskeysockets/baileys'
 import { Boom } from '@hapi/boom'
 import path from 'path'
@@ -94,8 +95,17 @@ export async function initWhatsApp() {
   logger.info(`🚀 initWhatsApp: cargando sesión desde ${SESSION_PATH}`)
   const { state, saveCreds } = await useMultiFileAuthState(SESSION_PATH)
   logger.info('🔑 Sesión cargada — obteniendo versión WA...')
-  const { version, isLatest } = await fetchLatestBaileysVersion({ timeout: 5000 })
-  logger.info(`📦 WA version: ${version.join('.')} (latest: ${isLatest}) — creando socket...`)
+  // fetchLatestBaileysVersion hace un GET a GitHub que puede colgar si el VPS
+  // filtra el tráfico. Usamos un race con timeout corto y fallback a hardcoded.
+  let version = LATEST_WA_WEB_VERSION
+  try {
+    const result = await Promise.race([
+      fetchLatestBaileysVersion(),
+      new Promise<null>((resolve) => setTimeout(() => resolve(null), 3000)),
+    ])
+    if (result) version = result.version
+  } catch { /* usa versión hardcoded */ }
+  logger.info(`📦 WA version: ${version.join('.')} — creando socket...`)
 
   sock = makeWASocket({
     version,
