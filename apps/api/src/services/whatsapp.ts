@@ -78,7 +78,7 @@ async function mostrarEscribiendo(remoteJid: string, textoAEnviar: string) {
 export async function initWhatsApp() {
   try {
   const { state, saveCreds } = await useMultiFileAuthState(SESSION_PATH)
-  const { version } = await fetchLatestBaileysVersion()
+  const { version } = await fetchLatestBaileysVersion({ timeout: 5000 })
 
   sock = makeWASocket({
     version,
