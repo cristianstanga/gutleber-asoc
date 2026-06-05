@@ -351,55 +351,39 @@ async function enviarMedia(
   }
 }
 
-// ── Resolución de JID con onWhatsApp ─────────────────────────────────────────
-
-// Cache en memoria para no consultar WA por el mismo número dos veces
-const jidCache = new Map<string, string>()
+// ── Resolución de JID para Argentina ─────────────────────────────────────────
 
 /**
- * Resuelve el JID correcto para un número argentino.
- * Argentina post-2019 usa 54XXXXXXXXXX (sin 9), pero muchas cuentas viejas
- * siguen en 549XXXXXXXXXX. Usamos sock.onWhatsApp para preguntar a WA cuál
- * existe, y cacheamos el resultado.
+ * Convierte cualquier formato de número argentino al JID de WA.
+ * Post-2019 Argentina usa 54XXXXXXXXXX (sin el 9 de prefijo móvil).
+ * onWhatsApp() devuelve exists=true para 549XX pero el routing de mensajes
+ * ya usa 54XX — por eso los mensajes con 549 dan error 463.
+ *
+ *   "3764123456"      → "543764123456@s.whatsapp.net"
+ *   "03764123456"     → "543764123456@s.whatsapp.net"
+ *   "5493764123456"   → "543764123456@s.whatsapp.net"  (quita el 9)
+ *   "543764123456"    → "543764123456@s.whatsapp.net"  (ya correcto)
  */
 async function resolveJid(phone: string): Promise<string> {
   if (phone.includes('@')) return phone
-
   const digits = phone.replace(/\D/g, '')
-  if (jidCache.has(digits)) return jidCache.get(digits)!
 
-  // Construir candidatos: con y sin el '9' de prefijo móvil argentino
-  let withNine: string, withoutNine: string
-  if (digits.startsWith('549') && digits.length >= 12) {
-    withNine = digits
-    withoutNine = '54' + digits.slice(3)
-  } else if (digits.startsWith('54') && digits.length >= 11) {
-    withoutNine = digits
-    withNine = '549' + digits.slice(2)
+  let normalized: string
+  if (digits.startsWith('549') && digits.length === 13) {
+    // Tiene el 9 → lo quitamos (post-2019)
+    normalized = '54' + digits.slice(3)
+  } else if (digits.startsWith('54') && digits.length >= 12) {
+    normalized = digits
+  } else if (digits.startsWith('0') && digits.length === 11) {
+    normalized = '54' + digits.slice(1)
+  } else if (digits.length === 10) {
+    normalized = '54' + digits
   } else {
-    const local = digits.startsWith('0') ? digits.slice(1) : digits
-    withoutNine = '54' + local
-    withNine = '549' + local
+    normalized = digits
   }
 
-  // Si no hay socket activo, usar formato sin 9 (estándar post-2019)
-  if (!sock || !isConnected) return `${withoutNine}@s.whatsapp.net`
-
-  try {
-    const results = await sock.onWhatsApp(
-      `${withNine}@s.whatsapp.net`,
-      `${withoutNine}@s.whatsapp.net`
-    )
-    const valid = results?.find(r => r.exists)
-    const resolved = valid?.jid ?? `${withoutNine}@s.whatsapp.net`
-    jidCache.set(digits, resolved)
-    logger.info(`📋 JID resuelto: ${digits} → ${resolved} (exists=${!!valid?.exists})`)
-    return resolved
-  } catch {
-    const fallback = `${withoutNine}@s.whatsapp.net`
-    logger.warn(`⚠️ onWhatsApp falló para ${digits} — usando ${fallback}`)
-    return fallback
-  }
+  logger.info(`📋 JID: ${digits} → ${normalized}@s.whatsapp.net`)
+  return `${normalized}@s.whatsapp.net`
 }
 
 // ── Funciones de envío ────────────────────────────────────────────────────────
