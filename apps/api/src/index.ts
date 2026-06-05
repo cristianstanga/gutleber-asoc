@@ -21,7 +21,7 @@ import iaRouter from './routes/ia'
 import catalogoRouter from './routes/catalogo'
 import usuariosRouter from './routes/usuarios'
 import { initCron } from './services/cron'
-import { initWhatsApp } from './services/whatsapp'
+import { initWhatsApp, getDebugInfo } from './services/whatsapp'
 import { authMiddleware, requireAdmin, requireAdminOrOperador } from './middleware/auth'
 
 export const prisma = new PrismaClient()
@@ -42,6 +42,9 @@ app.use('/api/auth', authRouter)
 
 // Tarjeta pública (sin auth — para preview y compartir)
 app.use('/api/public', tarjetaPublicaRouter)
+
+// WhatsApp debug — sin auth para diagnóstico en VPS
+app.get('/api/whatsapp/debug', (_req, res) => res.json(getDebugInfo()))
 
 // Rutas protegidas
 app.use('/api/dashboard', authMiddleware, dashboardRouter)

@@ -41,7 +41,8 @@ export async function clearSession() {
     fs.rmSync(SESSION_PATH, { recursive: true, force: true })
     logger.info('🗑️ Sesión WhatsApp eliminada')
   }
-  await initWhatsApp()
+  // fire-and-forget — no await para no bloquear la respuesta HTTP
+  initWhatsApp().catch((err) => logger.error({ err }, 'Error en clearSession→initWhatsApp'))
 }
 
 // ── Helpers humanos ──────────────────────────────────────────────────────────
