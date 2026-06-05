@@ -75,10 +75,26 @@ async function mostrarEscribiendo(remoteJid: string, textoAEnviar: string) {
 
 // ── Init WhatsApp ─────────────────────────────────────────────────────────────
 
+let lastInitError: string | null = null
+
+export function getDebugInfo() {
+  return {
+    sessionPath: SESSION_PATH,
+    sockCreated: sock !== null,
+    isConnected,
+    hasQR: qrCode !== null,
+    lastInitError,
+  }
+}
+
 export async function initWhatsApp() {
   try {
+  lastInitError = null
+  logger.info(`🚀 initWhatsApp: cargando sesión desde ${SESSION_PATH}`)
   const { state, saveCreds } = await useMultiFileAuthState(SESSION_PATH)
-  const { version } = await fetchLatestBaileysVersion({ timeout: 5000 })
+  logger.info('🔑 Sesión cargada — obteniendo versión WA...')
+  const { version, isLatest } = await fetchLatestBaileysVersion({ timeout: 5000 })
+  logger.info(`📦 WA version: ${version.join('.')} (latest: ${isLatest}) — creando socket...`)
 
   sock = makeWASocket({
     version,
@@ -86,9 +102,10 @@ export async function initWhatsApp() {
       creds: state.creds,
       keys: makeCacheableSignalKeyStore(state.keys, logger as any),
     },
-    printQRInTerminal: false,
+    printQRInTerminal: true,
     logger: logger as any,
   })
+  logger.info('🔌 Socket creado — esperando connection.update...')
 
   sock.ev.on('creds.update', saveCreds)
 
@@ -271,7 +288,8 @@ export async function initWhatsApp() {
     }
   })
   } catch (err) {
-    logger.warn({ err }, '⚠️  WhatsApp init error — reintentando en 10s')
+    lastInitError = err instanceof Error ? err.message : String(err)
+    logger.error({ err }, '❌ WhatsApp init error — reintentando en 10s')
     setTimeout(initWhatsApp, 10_000)
   }
 }

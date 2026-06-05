@@ -1,10 +1,14 @@
 import { Router } from 'express'
-import { getStatus, getQRImage, restartClient, clearSession } from '../services/whatsapp'
+import { getStatus, getQRImage, restartClient, clearSession, getDebugInfo } from '../services/whatsapp'
 
 const router = Router()
 
 router.get('/status', (_req, res) => {
   res.json(getStatus())
+})
+
+router.get('/debug', (_req, res) => {
+  res.json(getDebugInfo())
 })
 
 router.get('/qr', async (_req, res) => {
