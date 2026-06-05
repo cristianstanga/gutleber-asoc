@@ -125,15 +125,16 @@ function ModalCobro({ pago, vinculo, onClose, onCobrado }: ModalCobroProps) {
   })
 
   function addConcepto(tipo: 'cargo' | 'descuento') {
-    setConceptos(prev => [...prev, { descripcion: '', monto: tipo === 'descuento' ? -1 : 0 }])
+    // cargo arranca en 1 (positivo = verde), descuento en -1 (negativo = rojo)
+    setConceptos(prev => [...prev, { descripcion: '', monto: tipo === 'descuento' ? -1 : 1 }])
   }
 
   function updateConcepto(i: number, key: 'descripcion' | 'monto', val: string) {
     setConceptos(prev => prev.map((c, idx) => {
       if (idx !== i) return c
       if (key === 'monto') {
-        const abs = Math.abs(Number(val))
-        const sign = c.monto <= 0 ? -1 : 1
+        const abs = Math.abs(Number(val)) || 0
+        const sign = c.monto < 0 ? -1 : 1  // < 0 estricto — 0 se trata como positivo
         return { ...c, monto: sign * abs }
       }
       return { ...c, [key]: val }
@@ -141,9 +142,11 @@ function ModalCobro({ pago, vinculo, onClose, onCobrado }: ModalCobroProps) {
   }
 
   function toggleSign(i: number) {
-    setConceptos(prev => prev.map((c, idx) =>
-      idx === i ? { ...c, monto: c.monto === 0 ? -1 : -c.monto } : c
-    ))
+    setConceptos(prev => prev.map((c, idx) => {
+      if (idx !== i) return c
+      const abs = Math.abs(c.monto) || 1
+      return { ...c, monto: c.monto < 0 ? abs : -abs }
+    }))
   }
 
   return (
@@ -176,42 +179,49 @@ function ModalCobro({ pago, vinculo, onClose, onCobrado }: ModalCobroProps) {
 
           {/* Conceptos adicionales */}
           <div>
-            <div className="flex items-center justify-between mb-2">
+            <div className="flex items-center justify-between mb-3">
               <p className="text-sm font-semibold text-carbon">Conceptos adicionales</p>
               <div className="flex gap-2">
                 <button type="button" onClick={() => addConcepto('cargo')}
-                  className="text-xs flex items-center gap-1 text-green-700 bg-green-50 hover:bg-green-100 px-2 py-1 rounded-lg transition-colors">
-                  <Plus size={11} /> Cargo
+                  className="text-xs flex items-center gap-1 font-semibold text-green-700 bg-green-100 hover:bg-green-200 px-3 py-1.5 rounded-lg transition-colors">
+                  <Plus size={12} /> Cargo
                 </button>
                 <button type="button" onClick={() => addConcepto('descuento')}
-                  className="text-xs flex items-center gap-1 text-red-600 bg-red-50 hover:bg-red-100 px-2 py-1 rounded-lg transition-colors">
-                  <Minus size={11} /> Descuento
+                  className="text-xs flex items-center gap-1 font-semibold text-red-600 bg-red-100 hover:bg-red-200 px-3 py-1.5 rounded-lg transition-colors">
+                  <Minus size={12} /> Descuento
                 </button>
               </div>
             </div>
             {conceptos.length === 0 && (
-              <p className="text-xs text-piedra/60 italic py-1">Sin conceptos extra. Podés agregar expensas, seguros, descuentos por arreglos, etc.</p>
+              <p className="text-xs text-piedra/60 italic py-1">Sin conceptos extra. Usá los botones para agregar expensas, seguros, descuentos por arreglos, etc.</p>
             )}
             {conceptos.length > 0 && (
               <div className="space-y-2">
-                {conceptos.map((c, i) => (
-                  <div key={i} className={`flex gap-2 items-center rounded-lg px-2 py-1.5 ${c.monto <= 0 ? 'bg-red-50' : 'bg-green-50/60'}`}>
-                    <button type="button" onClick={() => toggleSign(i)} title="Cambiar cargo/descuento"
-                      className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold flex-shrink-0 ${c.monto <= 0 ? 'bg-red-200 text-red-700' : 'bg-green-200 text-green-700'}`}>
-                      {c.monto <= 0 ? '−' : '+'}
-                    </button>
-                    <input className="form-input flex-1 text-sm py-1"
-                      placeholder={c.monto <= 0 ? 'Ej: Arreglo baño (asumido inquilino)' : 'Ej: Expensas junio'}
-                      value={c.descripcion}
-                      onChange={e => updateConcepto(i, 'descripcion', e.target.value)} />
-                    <input type="number" className="form-input w-28 text-sm py-1" placeholder="Monto"
-                      value={Math.abs(c.monto) || ''}
-                      min={0}
-                      onChange={e => updateConcepto(i, 'monto', e.target.value)} />
-                    <button onClick={() => setConceptos(prev => prev.filter((_, idx) => idx !== i))}
-                      className="text-piedra hover:text-red-500 flex-shrink-0"><Trash2 size={14} /></button>
-                  </div>
-                ))}
+                {conceptos.map((c, i) => {
+                  const esDescuento = c.monto < 0
+                  return (
+                    <div key={i} className={`flex gap-2 items-center rounded-xl px-3 py-2 border-l-4 ${esDescuento ? 'bg-red-50 border-red-400' : 'bg-green-50 border-green-400'}`}>
+                      <button type="button" onClick={() => toggleSign(i)} title="Cambiar a cargo/descuento"
+                        className={`w-7 h-7 rounded-full flex items-center justify-center text-sm font-bold flex-shrink-0 transition-colors ${esDescuento ? 'bg-red-200 text-red-700 hover:bg-red-300' : 'bg-green-200 text-green-700 hover:bg-green-300'}`}>
+                        {esDescuento ? '−' : '+'}
+                      </button>
+                      <input className="form-input flex-1 text-sm py-1.5 bg-white/80"
+                        placeholder={esDescuento ? 'Ej: Arreglo tablero (asumido inquilino)' : 'Ej: Expensas junio'}
+                        value={c.descripcion}
+                        onChange={e => updateConcepto(i, 'descripcion', e.target.value)} />
+                      <div className={`flex items-center gap-1 font-semibold text-sm w-32 ${esDescuento ? 'text-red-600' : 'text-green-700'}`}>
+                        <span className="flex-shrink-0">{esDescuento ? '−' : '+'}</span>
+                        <input type="number" className="form-input flex-1 text-sm py-1.5 bg-white/80 text-right"
+                          placeholder="0"
+                          value={Math.abs(c.monto) || ''}
+                          min={0}
+                          onChange={e => updateConcepto(i, 'monto', e.target.value)} />
+                      </div>
+                      <button onClick={() => setConceptos(prev => prev.filter((_, idx) => idx !== i))}
+                        className="text-piedra hover:text-red-500 flex-shrink-0"><Trash2 size={14} /></button>
+                    </div>
+                  )
+                })}
               </div>
             )}
           </div>
@@ -224,27 +234,38 @@ function ModalCobro({ pago, vinculo, onClose, onCobrado }: ModalCobroProps) {
             </select>
           </div>
 
-          {/* Desglose y total */}
+          {/* Desglose y total — siempre visible, se actualiza en tiempo real */}
           <div className="border border-arena rounded-xl overflow-hidden">
-            <div className="bg-crema/50 px-4 py-2 border-b border-crema">
-              <p className="text-xs font-semibold text-piedra uppercase tracking-wide">Desglose del cobro</p>
+            <div className="bg-crema/50 px-4 py-2.5 border-b border-arena">
+              <p className="text-xs font-semibold text-piedra uppercase tracking-wide">Vista previa del recibo</p>
             </div>
             <div className="divide-y divide-crema">
-              <div className="flex justify-between px-4 py-2.5">
+              {/* Alquiler base */}
+              <div className="flex justify-between items-center px-4 py-3">
                 <span className="text-sm text-carbon">Alquiler base</span>
-                <span className="text-sm font-medium text-carbon">{formatARS(pago.monto)}</span>
+                <span className="text-sm font-semibold text-carbon">{formatARS(pago.monto)}</span>
               </div>
-              {conceptos.filter(c => c.descripcion.trim() && c.monto !== 0).map((c, i) => (
-                <div key={i} className="flex justify-between px-4 py-2">
-                  <span className="text-sm text-carbon">{c.descripcion}</span>
-                  <span className={`text-sm font-medium ${c.monto < 0 ? 'text-red-600' : 'text-green-700'}`}>
-                    {c.monto < 0 ? '−' : '+'} {formatARS(Math.abs(c.monto))}
-                  </span>
-                </div>
-              ))}
-              <div className="flex justify-between px-4 py-3 bg-carbon">
+              {/* Conceptos con color */}
+              {conceptos.filter(c => c.descripcion.trim()).map((c, i) => {
+                const esDescuento = c.monto < 0
+                return (
+                  <div key={i} className={`flex justify-between items-center px-4 py-3 ${esDescuento ? 'bg-red-50/60' : 'bg-green-50/60'}`}>
+                    <div className="flex items-center gap-2">
+                      <span className={`w-5 h-5 rounded-full flex items-center justify-center text-xs font-bold flex-shrink-0 ${esDescuento ? 'bg-red-200 text-red-700' : 'bg-green-200 text-green-700'}`}>
+                        {esDescuento ? '−' : '+'}
+                      </span>
+                      <span className="text-sm text-carbon">{c.descripcion}</span>
+                    </div>
+                    <span className={`text-sm font-bold ${esDescuento ? 'text-red-600' : 'text-green-700'}`}>
+                      {esDescuento ? '−' : '+'} {formatARS(Math.abs(c.monto))}
+                    </span>
+                  </div>
+                )
+              })}
+              {/* Total */}
+              <div className="flex justify-between items-center px-4 py-3 bg-carbon">
                 <span className="text-sm font-bold text-white">Total cobrado</span>
-                <span className="font-display text-lg text-white">{formatARS(total)}</span>
+                <span className="font-display text-xl text-white">{formatARS(total)}</span>
               </div>
             </div>
           </div>
@@ -542,35 +563,36 @@ function ModalLiquidacion({ pago, vinculo, onClose }: ModalLiquidacionProps) {
         <div className="px-6 py-5 space-y-5">
           {toast && <div className="text-red-600 text-sm bg-red-50 px-3 py-2 rounded-lg">{toast}</div>}
 
-          {/* Desglose cobro al inquilino */}
-          {pago.conceptosExtra && pago.conceptosExtra.length > 0 ? (
-            <div>
-              <p className="text-xs font-semibold text-piedra uppercase tracking-wide mb-2">Cobrado al inquilino</p>
-              <div className="border border-arena rounded-xl overflow-hidden">
-                <div className="flex justify-between px-4 py-2.5 border-b border-crema">
-                  <span className="text-sm text-piedra">Alquiler base</span>
-                  <span className="text-sm font-medium text-carbon">{formatARS(pago.monto)}</span>
-                </div>
-                {pago.conceptosExtra.map((c, i) => (
-                  <div key={i} className="flex justify-between px-4 py-2 border-b border-crema">
-                    <span className="text-sm text-carbon">{c.descripcion}</span>
-                    <span className={`text-sm font-medium ${c.monto < 0 ? 'text-red-600' : 'text-green-700'}`}>
-                      {c.monto < 0 ? '−' : '+'} {formatARS(Math.abs(c.monto))}
+          {/* Desglose cobro al inquilino — siempre visible */}
+          <div>
+            <p className="text-xs font-semibold text-piedra uppercase tracking-wide mb-2">Cobrado al inquilino</p>
+            <div className="border border-arena rounded-xl overflow-hidden">
+              <div className="flex justify-between items-center px-4 py-3 border-b border-crema">
+                <span className="text-sm text-carbon">Alquiler base</span>
+                <span className="text-sm font-semibold text-carbon">{formatARS(pago.monto)}</span>
+              </div>
+              {(pago.conceptosExtra || []).map((c, i) => {
+                const esDescuento = c.monto < 0
+                return (
+                  <div key={i} className={`flex justify-between items-center px-4 py-3 border-b border-crema ${esDescuento ? 'bg-red-50/60' : 'bg-green-50/60'}`}>
+                    <div className="flex items-center gap-2">
+                      <span className={`w-5 h-5 rounded-full flex items-center justify-center text-xs font-bold flex-shrink-0 ${esDescuento ? 'bg-red-200 text-red-700' : 'bg-green-200 text-green-700'}`}>
+                        {esDescuento ? '−' : '+'}
+                      </span>
+                      <span className="text-sm text-carbon">{c.descripcion}</span>
+                    </div>
+                    <span className={`text-sm font-bold ${esDescuento ? 'text-red-600' : 'text-green-700'}`}>
+                      {esDescuento ? '−' : '+'} {formatARS(Math.abs(c.monto))}
                     </span>
                   </div>
-                ))}
-                <div className="flex justify-between px-4 py-2.5 bg-crema">
-                  <span className="text-sm font-semibold text-carbon">Total cobrado</span>
-                  <span className="text-sm font-semibold text-carbon">{formatARS(totalBase)}</span>
-                </div>
+                )
+              })}
+              <div className="flex justify-between items-center px-4 py-3 bg-crema">
+                <span className="text-sm font-bold text-carbon">Total cobrado al inquilino</span>
+                <span className="font-display text-base text-carbon">{formatARS(totalBase)}</span>
               </div>
             </div>
-          ) : (
-            <div className="bg-crema rounded-xl px-4 py-3 flex items-center justify-between">
-              <span className="text-sm text-piedra">Alquiler cobrado</span>
-              <span className="font-display text-lg text-carbon">{formatARS(totalBase)}</span>
-            </div>
-          )}
+          </div>
 
           {/* Gastos pendientes del sistema */}
           {gastosPendientes.length > 0 && (
