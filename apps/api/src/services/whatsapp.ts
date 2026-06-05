@@ -351,6 +351,42 @@ async function enviarMedia(
   }
 }
 
+// ── Normalización de número para JID de WhatsApp ─────────────────────────────
+
+/**
+ * Convierte cualquier formato de número argentino al JID correcto de WhatsApp.
+ * WA Argentina mobile: 549 + código de área (sin 0) + número
+ * Ejemplos:
+ *   "3764123456"       → "5493764123456"
+ *   "03764123456"      → "5493764123456"
+ *   "543764123456"     → "5493764123456"  (falta el 9)
+ *   "5493764123456"    → "5493764123456"  (ya correcto)
+ *   "+5493764123456"   → "5493764123456"
+ */
+function normalizePhone(phone: string): string {
+  if (phone.includes('@')) return phone  // ya es un JID completo
+  const digits = phone.replace(/\D/g, '')
+
+  // Ya tiene formato correcto: 549 + 9 o 10 dígitos más
+  if (digits.startsWith('549') && digits.length >= 12) return digits
+
+  // Tiene código de país 54 pero falta el 9 (ej: 543764123456 = 12 dígitos)
+  if (digits.startsWith('54') && !digits.startsWith('549') && digits.length === 12) {
+    return '549' + digits.slice(2)
+  }
+
+  // Número local con 0 adelante (ej: 03764123456 = 11 dígitos)
+  if (digits.startsWith('0') && digits.length === 11) {
+    return '549' + digits.slice(1)
+  }
+
+  // Número local sin código de área nacional (10 dígitos: areacode + número)
+  if (digits.length === 10) return '549' + digits
+
+  // Fallback: usar como está
+  return digits
+}
+
 // ── Funciones de envío ────────────────────────────────────────────────────────
 
 export async function sendText(to: string, message: string) {
@@ -358,7 +394,8 @@ export async function sendText(to: string, message: string) {
     logger.warn('WhatsApp no conectado — mensaje no enviado')
     return
   }
-  const jid = to.includes('@') ? to : `${to}@s.whatsapp.net`
+  const normalized = normalizePhone(to)
+  const jid = normalized.includes('@') ? normalized : `${normalized}@s.whatsapp.net`
   logger.info(`📤 Enviando a ${jid}: ${message.substring(0, 50)}...`)
   try {
     // Simular escritura humana antes de enviar — reduce riesgo de ban
@@ -377,7 +414,8 @@ export async function sendImageUrl(to: string, url: string, caption?: string) {
     logger.warn('WhatsApp no conectado — imagen no enviada')
     return
   }
-  const jid = to.includes('@') ? to : `${to}@s.whatsapp.net`
+  const n = normalizePhone(to)
+  const jid = n.includes('@') ? n : `${n}@s.whatsapp.net`
   logger.info(`📤 Enviando imagen a ${jid}: ${url.substring(0, 60)}`)
   try {
     await sock.sendMessage(jid, { image: { url }, caption: caption || '' })
@@ -394,7 +432,8 @@ export async function sendVideoUrl(to: string, url: string, caption?: string) {
     logger.warn('WhatsApp no conectado — video no enviado')
     return
   }
-  const jid = to.includes('@') ? to : `${to}@s.whatsapp.net`
+  const n = normalizePhone(to)
+  const jid = n.includes('@') ? n : `${n}@s.whatsapp.net`
   logger.info(`📤 Enviando video a ${jid}: ${url.substring(0, 60)}`)
   try {
     await sock.sendMessage(jid, { video: { url }, caption: caption || '' })
@@ -408,14 +447,16 @@ export async function sendVideoUrl(to: string, url: string, caption?: string) {
 /** Envía imagen desde Buffer (para imágenes generadas en memoria, ej. con Sharp) */
 export async function sendImage(to: string, buffer: Buffer, caption?: string) {
   if (!sock || !isConnected) return
-  const jid = to.includes('@') ? to : `${to}@s.whatsapp.net`
+  const n = normalizePhone(to)
+  const jid = n.includes('@') ? n : `${n}@s.whatsapp.net`
   await sock.sendMessage(jid, { image: buffer, caption })
 }
 
 /** Envía video desde Buffer */
 export async function sendVideo(to: string, buffer: Buffer, caption?: string) {
   if (!sock || !isConnected) return
-  const jid = to.includes('@') ? to : `${to}@s.whatsapp.net`
+  const n = normalizePhone(to)
+  const jid = n.includes('@') ? n : `${n}@s.whatsapp.net`
   await sock.sendMessage(jid, { video: buffer, caption })
 }
 
@@ -424,7 +465,8 @@ export async function sendPDF(to: string, buffer: Buffer, filename: string) {
     logger.warn('WhatsApp no conectado — PDF no enviado')
     return
   }
-  const jid = to.includes('@') ? to : `${to}@s.whatsapp.net`
+  const n = normalizePhone(to)
+  const jid = n.includes('@') ? n : `${n}@s.whatsapp.net`
   await sock.sendMessage(jid, {
     document: buffer,
     mimetype: 'application/pdf',
