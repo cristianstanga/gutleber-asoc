@@ -20,8 +20,10 @@ import gastosRouter from './routes/gastos'
 import iaRouter from './routes/ia'
 import catalogoRouter from './routes/catalogo'
 import usuariosRouter from './routes/usuarios'
+import webhookWhatsappRouter from './routes/webhook-whatsapp'
 import { initCron } from './services/cron'
-import { initWhatsApp, getDebugInfo } from './services/whatsapp'
+import { initWhatsApp, getDebugInfo, checkNumber } from './services/whatsapp'
+import { sendHelloWorld } from './services/whatsapp-meta'
 import { authMiddleware, requireAdmin, requireAdminOrOperador } from './middleware/auth'
 
 export const prisma = new PrismaClient()
@@ -45,6 +47,14 @@ app.use('/api/public', tarjetaPublicaRouter)
 
 // WhatsApp debug — sin auth para diagnóstico en VPS
 app.get('/api/whatsapp/debug', (_req, res) => res.json(getDebugInfo()))
+app.get('/api/whatsapp/check/:phone', async (req, res) => res.json(await checkNumber(req.params.phone)))
+app.get('/api/whatsapp/meta-test/:phone', async (req, res) => {
+  try { res.json({ ok: true, result: await sendHelloWorld(req.params.phone) }) }
+  catch (err) { res.status(500).json({ error: String(err) }) }
+})
+
+// Webhook Meta WhatsApp (sin auth — Meta hace su propia verificación)
+app.use('/api/webhooks/whatsapp', webhookWhatsappRouter)
 
 // Rutas protegidas
 app.use('/api/dashboard', authMiddleware, dashboardRouter)

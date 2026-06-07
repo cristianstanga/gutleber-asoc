@@ -65,6 +65,7 @@ export default function Inbox() {
   const [busqueda, setBusqueda] = useState('')
   const [texto, setTexto] = useState('')
   const [enviando, setEnviando] = useState(false)
+  const [errorEnvio, setErrorEnvio] = useState<string | null>(null)
   const [confirmDelete, setConfirmDelete] = useState(false)
   const chatRef = useRef<HTMLDivElement>(null)
 
@@ -101,8 +102,13 @@ export default function Inbox() {
     mutationFn: () => api.post(`/conversaciones/${convSeleccionada}/mensaje`, { mensaje: texto }),
     onSuccess: () => {
       setTexto('')
+      setErrorEnvio(null)
       qc.invalidateQueries({ queryKey: ['conversacion', convSeleccionada] })
       qc.invalidateQueries({ queryKey: ['conversaciones'] })
+    },
+    onError: (err: unknown) => {
+      const msg = (err as { response?: { data?: { error?: string } } })?.response?.data?.error
+      setErrorEnvio(msg || 'Error al enviar el mensaje')
     },
   })
 
@@ -309,13 +315,19 @@ export default function Inbox() {
 
           {/* Input */}
           <div className="bg-white border-t border-arena px-4 py-3">
+            {errorEnvio && (
+              <div className="mb-2 px-3 py-2 bg-red-50 border border-red-200 rounded-lg text-xs text-red-700 flex items-center gap-2">
+                <AlertTriangle size={12} />
+                {errorEnvio}
+              </div>
+            )}
             <div className="flex items-end gap-3">
               <textarea
                 className="flex-1 form-input resize-none text-sm max-h-32"
                 rows={1}
                 placeholder="Escribir mensaje..."
                 value={texto}
-                onChange={(e) => setTexto(e.target.value)}
+                onChange={(e) => { setTexto(e.target.value); setErrorEnvio(null) }}
                 onKeyDown={(e) => {
                   if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleEnviar() }
                 }}

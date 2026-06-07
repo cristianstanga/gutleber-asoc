@@ -99,6 +99,26 @@ export function getDebugInfo() {
   }
 }
 
+export async function checkNumber(phone: string) {
+  if (!sock || !isConnected) return { error: 'WA_DISCONNECTED' }
+  try {
+    const results = await sock.onWhatsApp(phone)
+    // Cachear el mapeo LID → phone para resolución futura
+    if (results) {
+      for (const r of results) {
+        if (r.lid && r.jid && typeof r.lid === 'string') {
+          const num = r.jid.split('@')[0]
+          contactPhoneMap.set(r.lid, num)
+          prisma.conversacion.updateMany({ where: { jid: r.lid, telefonoReal: null }, data: { telefonoReal: num } }).catch(() => {})
+        }
+      }
+    }
+    return { results }
+  } catch (err) {
+    return { error: String(err) }
+  }
+}
+
 export async function initWhatsApp() {
   try {
   lastInitError = null
@@ -145,17 +165,23 @@ export async function initWhatsApp() {
   sock.ev.on('creds.update', saveCreds)
 
   // ── Captura contactos para resolver LID → número real ──────────────────────
-  sock.ev.on('contacts.upsert', (contacts) => {
+  sock.ev.on('contacts.upsert', async (contacts) => {
     for (const c of contacts) {
-      // c.id puede ser @s.whatsapp.net o @lid
-      // c.notify es el nombre push, c.name es el nombre guardado en agenda
-      if (c.id) {
-        const num = c.id.split('@')[0]
-        // Si el JID es @s.whatsapp.net → el número ES el teléfono real
-        if (c.id.endsWith('@s.whatsapp.net') && num) {
-          // Mapear también por posibles LIDs relacionados
-          contactPhoneMap.set(c.id, num)
+      if (!c.id) continue
+      let num: string | null = null
+
+      if (c.id.endsWith('@s.whatsapp.net')) {
+        num = c.id.split('@')[0]
+        contactPhoneMap.set(c.id, num)
+        if (c.lid) {
+          contactPhoneMap.set(c.lid, num)
+          // Actualizar conv existente con @lid sin telefonoReal
+          prisma.conversacion.updateMany({ where: { jid: c.lid, telefonoReal: null }, data: { telefonoReal: num } }).catch(() => {})
         }
+      } else if (c.id.endsWith('@lid') && c.jid) {
+        num = c.jid.split('@')[0]
+        contactPhoneMap.set(c.id, num)
+        prisma.conversacion.updateMany({ where: { jid: c.id, telefonoReal: null }, data: { telefonoReal: num } }).catch(() => {})
       }
     }
     logger.info(`📇 Contactos actualizados: ${contacts.length} registros`)
@@ -180,6 +206,18 @@ export async function initWhatsApp() {
       isConnected = true
       qrCode = null
       logger.info('✅ WhatsApp conectado')
+    }
+  })
+
+  // ── ACK / errores de entrega ────────────────────────────────────────────────
+  sock.ev.on('messages.update', (updates) => {
+    for (const { key, update } of updates) {
+      if (update.status === 3) logger.info(`📬 Entregado: ${key.remoteJid}`)
+      if (update.status === 4) logger.info(`👁️ Leído: ${key.remoteJid}`)
+      // status 0 = ERROR (463, etc.)
+      if (update.status === 0) {
+        logger.error({ key, update }, `❌ Error de entrega WA (463?) para ${key.remoteJid}`)
+      }
     }
   })
 
@@ -380,13 +418,40 @@ async function enviarMedia(
  *   "543764123456"    → "543764123456@s.whatsapp.net"  (ya correcto)
  */
 async function resolveJid(phone: string): Promise<string> {
+  // @lid no se puede usar para enviar — resolver al JID de teléfono real
+  if (phone.endsWith('@lid')) {
+    // 1. Cache en memoria (llenado por contacts.upsert)
+    const cached = contactPhoneMap.get(phone)
+    if (cached) {
+      logger.info(`🔄 @lid resuelto (cache): ${phone} → ${cached}@s.whatsapp.net`)
+      return `${cached}@s.whatsapp.net`
+    }
+    // 2. Consultar a WA — onWhatsApp(@lid) devuelve el JID real
+    if (sock) {
+      try {
+        const results = await sock.onWhatsApp(phone)
+        const result = results?.[0]
+        if (result?.jid && result.jid.endsWith('@s.whatsapp.net')) {
+          const num = result.jid.split('@')[0]
+          contactPhoneMap.set(phone, num)
+          logger.info(`🔄 @lid resuelto (onWhatsApp): ${phone} → ${result.jid}`)
+          prisma.conversacion.updateMany({ where: { jid: phone, telefonoReal: null }, data: { telefonoReal: num } }).catch(() => {})
+          return result.jid
+        }
+      } catch (err) {
+        logger.warn({ err }, `@lid onWhatsApp fallido: ${phone}`)
+      }
+    }
+    logger.warn(`⚠️ @lid sin mapeo — enviando directo (puede dar 463): ${phone}`)
+    return phone
+  }
   if (phone.includes('@')) return phone
   const digits = phone.replace(/\D/g, '')
 
   let normalized: string
   if (digits.startsWith('549') && digits.length === 13) {
-    // Tiene el 9 → lo quitamos (post-2019)
-    normalized = '54' + digits.slice(3)
+    // Mantener el 9 — el formato sin 9 (post-2019) da 463 para números del interior
+    normalized = digits
   } else if (digits.startsWith('54') && digits.length >= 12) {
     normalized = digits
   } else if (digits.startsWith('0') && digits.length === 11) {
@@ -405,8 +470,7 @@ async function resolveJid(phone: string): Promise<string> {
 
 export async function sendText(to: string, message: string) {
   if (!sock || !isConnected) {
-    logger.warn('WhatsApp no conectado — mensaje no enviado')
-    return
+    throw new Error('WA_DISCONNECTED')
   }
   const jid = await resolveJid(to)
   logger.info(`📤 Enviando a ${jid}: ${message.substring(0, 50)}...`)

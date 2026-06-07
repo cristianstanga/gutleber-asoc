@@ -1,6 +1,6 @@
 import { Router } from 'express'
 import { prisma } from '../index'
-import { sendText } from '../services/whatsapp'
+import { sendText } from '../services/whatsapp-meta'
 
 const router = Router()
 
@@ -49,9 +49,16 @@ router.post('/:id/mensaje', async (req, res) => {
   const conv = await prisma.conversacion.findUnique({ where: { id: req.params.id } })
   if (!conv) return res.status(404).json({ error: 'Conversación no encontrada' })
 
-  // Usar jid completo si está disponible (evita bug con @lid)
-  const destinatario = conv.jid || conv.numero
-  await sendText(destinatario, mensaje)
+  // Si el jid es @lid, preferir telefonoReal (phone JID real) para evitar 463
+  const destinatario = (conv.jid?.endsWith('@lid') && conv.telefonoReal)
+    ? conv.telefonoReal
+    : (conv.jid || conv.numero)
+  try {
+    await sendText(destinatario, mensaje)
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : String(err)
+    return res.status(500).json({ error: `Error WA: ${msg}` })
+  }
 
   const item = await prisma.inboxItem.create({
     data: {
