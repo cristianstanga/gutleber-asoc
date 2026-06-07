@@ -8,7 +8,8 @@ router.get('/', (req, res) => {
   const mode = req.query['hub.mode']
   const token = req.query['hub.verify_token']
   const challenge = req.query['hub.challenge']
-  if (mode === 'subscribe' && token === process.env.WHATSAPP_VERIFY_TOKEN) {
+  const expected = process.env.WHATSAPP_VERIFY_TOKEN || 'gutleber_webhook_2026'
+  if (mode === 'subscribe' && token === expected) {
     logger.info('✅ Webhook Meta WA verificado')
     return res.status(200).send(challenge)
   }
