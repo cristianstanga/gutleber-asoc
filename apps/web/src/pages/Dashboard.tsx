@@ -4,8 +4,11 @@ import { useNavigate } from 'react-router-dom'
 import {
   Building2, Users, CreditCard, AlertTriangle, TrendingUp,
   MessageSquare, Clock, Home, Search, ChevronRight,
-  Calendar, Receipt, X
+  Calendar, Receipt, X, ArrowRight
 } from 'lucide-react'
+import {
+  PieChart, Pie, Cell, Tooltip, ResponsiveContainer
+} from 'recharts'
 import { api, formatARS, formatFecha } from '../lib/api'
 
 interface Kpis {
@@ -15,9 +18,24 @@ interface Kpis {
   totalInquilinos: number
   pagosPendientes: number
   pagosEnMora: number
+  pagosVencidos: number
   recaudadoMes: number
   contratosVencer: number
   inboxNoLeidos: number
+}
+
+interface CobrosDelMes {
+  esperado: number
+  cobrado: number
+  totalCuenta: number
+  cobradoCuenta: number
+  pendienteCuenta: number
+}
+
+interface EstadosPagos {
+  pendiente: number
+  vencido: number
+  mora: number
 }
 
 interface PagoAlerta {
@@ -66,6 +84,50 @@ const estadoBadge: Record<string, string> = {
 }
 const estadoLabel: Record<string, string> = {
   PENDIENTE: 'Pendiente', PAGADO: 'Pagado', VENCIDO: 'Vencido', MORA: 'En mora', ANULADO: 'Anulado',
+}
+
+// ─── Tooltip personalizado para recharts ──────────────────────────────────────
+
+function CustomTooltip({ active, payload }: { active?: boolean; payload?: Array<{ name: string; value: number; payload: { color: string } }> }) {
+  if (!active || !payload?.length) return null
+  return (
+    <div className="bg-white border border-arena rounded-lg shadow-lg px-3 py-2 text-xs">
+      <p className="font-semibold text-carbon">{payload[0].name}</p>
+      <p style={{ color: payload[0].payload.color }}>{payload[0].value}</p>
+    </div>
+  )
+}
+
+// ─── Donut simple (SVG puro, sin recharts) — para % de cobro ────────────────
+
+function DonutCobro({ cobrado, esperado, cobradoCuenta, totalCuenta }: {
+  cobrado: number; esperado: number; cobradoCuenta: number; totalCuenta: number
+}) {
+  const pct = esperado > 0 ? Math.round((cobrado / esperado) * 100) : 0
+  const r = 42
+  const circ = 2 * Math.PI * r
+  const dash = (pct / 100) * circ
+  const color = pct >= 80 ? '#16a34a' : pct >= 50 ? '#d97706' : '#dc2626'
+
+  return (
+    <div className="flex flex-col items-center justify-center h-full gap-1">
+      <svg width={110} height={110} viewBox="0 0 110 110">
+        <circle cx={55} cy={55} r={r} fill="none" stroke="#f5f2ed" strokeWidth={12} />
+        <circle cx={55} cy={55} r={r} fill="none" stroke={color} strokeWidth={12}
+          strokeDasharray={`${dash} ${circ}`}
+          strokeLinecap="round"
+          transform="rotate(-90 55 55)"
+          style={{ transition: 'stroke-dasharray 0.6s ease' }}
+        />
+        <text x={55} y={50} textAnchor="middle" fontSize={18} fontWeight={700} fill="#1a1a1a">{pct}%</text>
+        <text x={55} y={65} textAnchor="middle" fontSize={9} fill="#6b7280">cobrado</text>
+      </svg>
+      <div className="text-center">
+        <p className="text-xs text-carbon font-semibold">{cobradoCuenta} / {totalCuenta} contratos</p>
+        <p className="text-[10px] text-piedra">{formatARS(cobrado)} de {formatARS(esperado)}</p>
+      </div>
+    </div>
+  )
 }
 
 // ─── Buscador rápido ──────────────────────────────────────────────────────────
@@ -151,6 +213,7 @@ function BuscadorRapido() {
 // ─── Dashboard ────────────────────────────────────────────────────────────────
 
 export default function Dashboard() {
+  const navigate = useNavigate()
   const { data, isLoading } = useQuery({
     queryKey: ['dashboard'],
     queryFn: () => api.get('/dashboard').then((r) => r.data),
@@ -162,19 +225,31 @@ export default function Dashboard() {
   }
 
   const kpis: Kpis = data.kpis
+  const cobrosDelMes: CobrosDelMes = data.cobrosDelMes ?? { esperado: 0, cobrado: 0, totalCuenta: 0, cobradoCuenta: 0, pendienteCuenta: 0 }
+  const estadosPagos: EstadosPagos = data.estadosPagos ?? { pendiente: 0, vencido: 0, mora: 0 }
   const proximosVencimientos: ProximoVencimiento[] = data.proximosVencimientos ?? []
   const sinLiquidar: SinLiquidar[] = data.sinLiquidar ?? []
 
   const kpiCards = [
-    { label: 'Propiedades', value: kpis.totalPropiedades, sub: `${kpis.propEnAlquiler} en alquiler · ${kpis.propEnVenta} en venta`, Icon: Building2, color: 'text-piedra' },
+    { label: 'Propiedades', value: kpis.totalPropiedades, sub: `${kpis.propEnAlquiler} alquiladas · ${kpis.propEnVenta} en venta`, Icon: Building2, color: 'text-piedra' },
     { label: 'Inquilinos activos', value: kpis.totalInquilinos, sub: `${kpis.contratosVencer} contratos vencen pronto`, Icon: Users, color: 'text-piedra' },
-    { label: 'Pagos pendientes', value: kpis.pagosPendientes, sub: `${kpis.pagosEnMora} en mora`, Icon: CreditCard, color: kpis.pagosEnMora > 0 ? 'text-red-600' : 'text-piedra' },
+    { label: 'Pagos pendientes', value: kpis.pagosPendientes + kpis.pagosVencidos + kpis.pagosEnMora, sub: `${kpis.pagosEnMora} en mora · ${kpis.pagosVencidos} vencidos`, Icon: CreditCard, color: (kpis.pagosEnMora + kpis.pagosVencidos) > 0 ? 'text-red-600' : 'text-piedra' },
     { label: 'Recaudado este mes', value: formatARS(kpis.recaudadoMes), sub: '', Icon: TrendingUp, color: 'text-green-700' },
     { label: 'Inbox no leídos', value: kpis.inboxNoLeidos, sub: 'mensajes nuevos', Icon: MessageSquare, color: kpis.inboxNoLeidos > 0 ? 'text-blue-600' : 'text-piedra' },
   ]
 
+  // Datos para gráfica de estados de pagos
+  const estadosData = [
+    { name: 'Pendiente', value: estadosPagos.pendiente, color: '#d97706' },
+    { name: 'Vencido',   value: estadosPagos.vencido,   color: '#dc2626' },
+    { name: 'En mora',   value: estadosPagos.mora,       color: '#9f1239' },
+  ].filter(d => d.value > 0)
+
+  const totalProblemas = estadosPagos.pendiente + estadosPagos.vencido + estadosPagos.mora
+
   return (
     <div className="p-8 space-y-8">
+
       {/* Header + Buscador */}
       <div className="flex flex-col sm:flex-row sm:items-center gap-4">
         <div className="flex-1">
@@ -200,10 +275,85 @@ export default function Dashboard() {
         ))}
       </div>
 
+      {/* Gráficas */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+
+        {/* Tasa de cobro del mes */}
+        <div className="card p-5">
+          <h2 className="font-display text-base text-carbon mb-4 flex items-center gap-2">
+            <TrendingUp size={16} className="text-green-600" />
+            Cobros del mes
+          </h2>
+          {cobrosDelMes.totalCuenta === 0 ? (
+            <p className="text-piedra text-sm text-center py-6">Sin pagos registrados este mes</p>
+          ) : (
+            <DonutCobro
+              cobrado={cobrosDelMes.cobrado}
+              esperado={cobrosDelMes.esperado}
+              cobradoCuenta={cobrosDelMes.cobradoCuenta}
+              totalCuenta={cobrosDelMes.totalCuenta}
+            />
+          )}
+        </div>
+
+        {/* Estado de pagos con problema */}
+        <div className="card p-5">
+          <h2 className="font-display text-base text-carbon mb-4 flex items-center gap-2">
+            <AlertTriangle size={16} className="text-amber-500" />
+            Pagos con problema
+            {totalProblemas > 0 && (
+              <span className="ml-auto text-xs font-normal bg-red-100 text-red-700 px-2 py-0.5 rounded-full">{totalProblemas} total</span>
+            )}
+          </h2>
+          {totalProblemas === 0 ? (
+            <div className="flex flex-col items-center justify-center py-8 gap-2">
+              <div className="w-10 h-10 rounded-full bg-green-100 flex items-center justify-center">
+                <TrendingUp size={18} className="text-green-600" />
+              </div>
+              <p className="text-sm text-green-700 font-medium">Todo al día</p>
+              <p className="text-xs text-piedra">Sin pagos pendientes ni en mora</p>
+            </div>
+          ) : (
+            <div className="flex items-center gap-4">
+              <div className="w-36 h-36 flex-shrink-0">
+                <ResponsiveContainer width="100%" height="100%">
+                  <PieChart>
+                    <Pie data={estadosData} cx="50%" cy="50%" innerRadius={35} outerRadius={55}
+                      dataKey="value" paddingAngle={3}>
+                      {estadosData.map((entry, i) => (
+                        <Cell key={i} fill={entry.color} />
+                      ))}
+                    </Pie>
+                    <Tooltip content={<CustomTooltip />} />
+                  </PieChart>
+                </ResponsiveContainer>
+              </div>
+              <div className="flex-1 space-y-2">
+                {estadosData.map(d => (
+                  <div key={d.name} className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <div className="w-2.5 h-2.5 rounded-full flex-shrink-0" style={{ background: d.color }} />
+                      <span className="text-sm text-carbon">{d.name}</span>
+                    </div>
+                    <span className="text-sm font-bold" style={{ color: d.color }}>{d.value}</span>
+                  </div>
+                ))}
+                <button
+                  onClick={() => navigate('/pagos')}
+                  className="mt-3 w-full flex items-center justify-center gap-1.5 text-xs text-piedra hover:text-carbon border border-arena rounded-lg py-1.5 transition-colors"
+                >
+                  Ver todos en Pagos <ArrowRight size={11} />
+                </button>
+              </div>
+            </div>
+          )}
+        </div>
+      </div>
+
       {/* Operativo: Pendientes de liquidar + Próximos vencimientos */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
 
-        {/* Sin liquidar al propietario */}
+        {/* Sin liquidar al propietario — CLICKABLE */}
         {sinLiquidar.length > 0 && (
           <div>
             <h2 className="font-display text-base text-carbon mb-3 flex items-center gap-2">
@@ -216,24 +366,31 @@ export default function Dashboard() {
                 const honorarios = Math.round(p.monto * p.honorariosPct / 100)
                 const neto = p.monto - honorarios
                 return (
-                  <div key={p.pagoId} className="flex items-center justify-between px-4 py-3 border-b border-crema last:border-0 hover:bg-crema/50">
+                  <button
+                    key={p.pagoId}
+                    onClick={() => p.vinculoId && navigate('/pagos', { state: { vinculoId: p.vinculoId } })}
+                    className="w-full flex items-center justify-between px-4 py-3 border-b border-crema last:border-0 hover:bg-amber-50/60 transition-colors text-left group"
+                  >
                     <div className="min-w-0">
                       <p className="text-sm font-semibold text-carbon truncate">{p.nombre}</p>
                       <p className="text-xs text-piedra truncate">{p.propiedad}</p>
                       {p.periodo && <p className="text-[10px] text-muted">{p.periodo}</p>}
                     </div>
-                    <div className="text-right ml-3 flex-shrink-0">
-                      <p className="text-sm font-bold text-carbon">{formatARS(neto)}</p>
-                      <p className="text-[10px] text-piedra">- {p.honorariosPct}% hon.</p>
+                    <div className="flex items-center gap-2 ml-3 flex-shrink-0">
+                      <div className="text-right">
+                        <p className="text-sm font-bold text-carbon">{formatARS(neto)}</p>
+                        <p className="text-[10px] text-piedra">− {p.honorariosPct}% hon.</p>
+                      </div>
+                      <ArrowRight size={13} className="text-piedra opacity-0 group-hover:opacity-100 transition-opacity" />
                     </div>
-                  </div>
+                  </button>
                 )
               })}
             </div>
           </div>
         )}
 
-        {/* Próximos vencimientos de contratos */}
+        {/* Próximos vencimientos de contratos — CLICKABLE */}
         {proximosVencimientos.length > 0 && (
           <div>
             <h2 className="font-display text-base text-carbon mb-3 flex items-center gap-2">
@@ -243,18 +400,25 @@ export default function Dashboard() {
             </h2>
             <div className="card overflow-hidden">
               {proximosVencimientos.map(v => (
-                <div key={v.vinculoId} className="flex items-center justify-between px-4 py-3 border-b border-crema last:border-0 hover:bg-crema/50">
+                <button
+                  key={v.vinculoId}
+                  onClick={() => navigate('/pagos', { state: { vinculoId: v.vinculoId } })}
+                  className="w-full flex items-center justify-between px-4 py-3 border-b border-crema last:border-0 hover:bg-blue-50/40 transition-colors text-left group"
+                >
                   <div className="min-w-0">
                     <p className="text-sm font-semibold text-carbon truncate">{v.nombre}</p>
                     <p className="text-xs text-piedra truncate">{v.propiedad}</p>
                   </div>
-                  <div className="text-right ml-3 flex-shrink-0">
-                    <p className={`text-sm font-bold ${v.diasRestantes <= 30 ? 'text-red-600' : v.diasRestantes <= 60 ? 'text-amber-600' : 'text-carbon'}`}>
-                      {v.diasRestantes}d
-                    </p>
-                    <p className="text-[10px] text-piedra">{formatFecha(v.fechaFin)}</p>
+                  <div className="flex items-center gap-2 ml-3 flex-shrink-0">
+                    <div className="text-right">
+                      <p className={`text-sm font-bold ${v.diasRestantes <= 30 ? 'text-red-600' : v.diasRestantes <= 60 ? 'text-amber-600' : 'text-carbon'}`}>
+                        {v.diasRestantes}d
+                      </p>
+                      <p className="text-[10px] text-piedra">{formatFecha(v.fechaFin)}</p>
+                    </div>
+                    <ArrowRight size={13} className="text-piedra opacity-0 group-hover:opacity-100 transition-opacity" />
                   </div>
-                </div>
+                </button>
               ))}
             </div>
           </div>
@@ -280,7 +444,8 @@ export default function Dashboard() {
               </thead>
               <tbody>
                 {data.alertas.map((p: PagoAlerta) => (
-                  <tr key={p.id} className="border-b border-crema last:border-0 hover:bg-crema/50">
+                  <tr key={p.id} className="border-b border-crema last:border-0 hover:bg-crema/50 cursor-pointer"
+                    onClick={() => navigate('/pagos')}>
                     <td className="px-4 py-3 text-carbon">{p.persona ? `${p.persona.nombre} ${p.persona.apellido}` : '—'}</td>
                     <td className="px-4 py-3 text-carbon text-xs hidden md:table-cell">{p.propiedad?.direccion || '—'}</td>
                     <td className="px-4 py-3 text-carbon font-semibold">{formatARS(p.monto)}</td>

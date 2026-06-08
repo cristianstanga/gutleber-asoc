@@ -57,7 +57,10 @@ router.get('/', async (_req, res) => {
     totalInquilinos,
     pagosPendientes,
     pagosEnMora,
+    pagosVencidos,
     recaudadoMes,
+    esperadoMes,
+    pagadosMesCuenta,
     contratosVencer,
     inboxNoLeidos,
   ] = await Promise.all([
@@ -67,9 +70,20 @@ router.get('/', async (_req, res) => {
     prisma.persona.count({ where: { tipo: 'INQUILINO' } }),
     prisma.pago.count({ where: { estado: EstadoPago.PENDIENTE } }),
     prisma.pago.count({ where: { estado: EstadoPago.MORA } }),
+    prisma.pago.count({ where: { estado: EstadoPago.VENCIDO } }),
     prisma.pago.aggregate({
       where: { estado: EstadoPago.PAGADO, fechaPago: { gte: inicioMes, lte: finMes } },
       _sum: { monto: true },
+    }),
+    // Total esperado este mes (todos los pagos con vencimiento en el mes)
+    prisma.pago.aggregate({
+      where: { fechaVencimiento: { gte: inicioMes, lte: finMes }, estado: { not: EstadoPago.ANULADO } },
+      _sum: { monto: true },
+      _count: true,
+    }),
+    // Cuántos pagos del mes ya están cobrados
+    prisma.pago.count({
+      where: { estado: EstadoPago.PAGADO, fechaVencimiento: { gte: inicioMes, lte: finMes } },
     }),
     prisma.vinculo.count({
       where: {
@@ -113,12 +127,27 @@ router.get('/', async (_req, res) => {
     }),
   ])
 
+  const esperadoMesTotal = esperadoMes._sum.monto || 0
+  const esperadoMesCuenta = esperadoMes._count || 0
+
   res.json({
     kpis: {
       totalPropiedades, propEnAlquiler, propEnVenta, totalInquilinos,
-      pagosPendientes, pagosEnMora,
+      pagosPendientes, pagosEnMora, pagosVencidos,
       recaudadoMes: recaudadoMes._sum.monto || 0,
       contratosVencer, inboxNoLeidos,
+    },
+    cobrosDelMes: {
+      esperado: esperadoMesTotal,
+      cobrado: recaudadoMes._sum.monto || 0,
+      totalCuenta: esperadoMesCuenta,
+      cobradoCuenta: pagadosMesCuenta,
+      pendienteCuenta: esperadoMesCuenta - pagadosMesCuenta,
+    },
+    estadosPagos: {
+      pendiente: pagosPendientes,
+      vencido: pagosVencidos,
+      mora: pagosEnMora,
     },
     ultimosPagos,
     alertas,
