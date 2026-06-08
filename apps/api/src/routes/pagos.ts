@@ -286,6 +286,15 @@ router.patch('/:id/pagar-propietario', async (req, res) => {
   res.json(pago)
 })
 
+// Revertir pago al propietario (si se registró por error)
+router.patch('/:id/revertir-pago-propietario', async (req, res) => {
+  const pago = await prisma.pago.update({
+    where: { id: req.params.id },
+    data: { pagadoAlPropietario: false, fechaPagoPropietario: null },
+  })
+  res.json(pago)
+})
+
 router.patch('/:id/anular', async (req, res) => {
   const pago = await prisma.pago.update({
     where: { id: req.params.id },

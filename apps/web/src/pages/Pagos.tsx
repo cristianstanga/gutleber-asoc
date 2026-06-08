@@ -3,7 +3,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import {
   CreditCard, Send, CheckCircle, ChevronRight,
   Plus, Minus, Trash2, FileText, X, Building2, User, Calendar,
-  Home, Receipt, Wrench, Percent
+  Home, Receipt, Wrench, Percent, RotateCcw
 } from 'lucide-react'
 import { api, formatARS, formatFecha } from '../lib/api'
 
@@ -737,6 +737,67 @@ function ModalLiquidacion({ pago, vinculo, onClose }: ModalLiquidacionProps) {
   )
 }
 
+// ─── Modal Confirmar Transferencia al Propietario ─────────────────────────────
+
+interface ModalConfirmarTransferenciaProps {
+  pago: Pago
+  vinculo: Vinculo
+  onClose: () => void
+  onConfirmar: () => void
+  isPending: boolean
+}
+
+function ModalConfirmarTransferencia({ pago, vinculo, onClose, onConfirmar, isPending }: ModalConfirmarTransferenciaProps) {
+  const totalBase = pago.totalConExtras ?? pago.monto
+  const honorariosPct = vinculo.honorariosPct ?? 8
+  const honorarios = Math.round(totalBase * honorariosPct / 100)
+  const totalTransferir = totalBase - honorarios
+
+  return (
+    <div className="fixed inset-0 bg-carbon/40 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md">
+        <div className="flex items-center justify-between px-6 py-4 border-b border-arena">
+          <div>
+            <h2 className="font-display text-lg text-carbon">Confirmar transferencia</h2>
+            <p className="text-xs text-piedra mt-0.5">{pago.periodo} · {vinculo.propiedad.direccion}</p>
+          </div>
+          <button onClick={onClose} className="p-1 rounded hover:bg-crema text-piedra"><X size={18} /></button>
+        </div>
+
+        <div className="px-6 py-5 space-y-4">
+          {/* Desglose */}
+          <div className="border border-arena rounded-xl overflow-hidden">
+            <div className="flex justify-between items-center px-4 py-3 border-b border-crema">
+              <span className="text-sm text-piedra">Cobrado al inquilino</span>
+              <span className="text-sm font-semibold text-carbon">{formatARS(totalBase)}</span>
+            </div>
+            <div className="flex justify-between items-center px-4 py-3 border-b border-crema bg-red-50/40">
+              <span className="text-sm text-red-600">Honorarios ({honorariosPct}%)</span>
+              <span className="text-sm font-semibold text-red-600">− {formatARS(honorarios)}</span>
+            </div>
+            <div className="flex justify-between items-center px-4 py-4 bg-carbon">
+              <span className="text-sm font-bold text-white">A transferir al propietario</span>
+              <span className="font-display text-xl text-white">{formatARS(totalTransferir)}</span>
+            </div>
+          </div>
+
+          <p className="text-xs text-piedra bg-amber-50 border border-amber-200 rounded-lg px-3 py-2">
+            Al confirmar se registra como pagado al propietario. Podés revertirlo si cometés un error.
+          </p>
+        </div>
+
+        <div className="px-6 pb-5 flex gap-3 justify-end">
+          <button onClick={onClose} className="btn-secondary">Cancelar</button>
+          <button onClick={onConfirmar} disabled={isPending} className="btn-primary flex items-center gap-2">
+            <Send size={14} />
+            {isPending ? 'Registrando...' : 'Confirmar transferencia'}
+          </button>
+        </div>
+      </div>
+    </div>
+  )
+}
+
 // ─── Panel de pagos del contrato ──────────────────────────────────────────────
 
 interface PanelPagosProps {
@@ -749,6 +810,8 @@ function PanelPagos({ vinculo }: PanelPagosProps) {
   const [modalNuevo, setModalNuevo] = useState(false)
   const [pagoLiquidar, setPagoLiquidar] = useState<Pago | null>(null)
   const [pagoACobrar, setPagoACobrar] = useState<Pago | null>(null)
+  const [pagoATransferir, setPagoATransferir] = useState<Pago | null>(null)
+  const [confirmRevertirId, setConfirmRevertirId] = useState<string | null>(null)
 
   const { data: pagos = [], isLoading } = useQuery<Pago[]>({
     queryKey: ['pagos', vinculo.id],
@@ -757,7 +820,20 @@ function PanelPagos({ vinculo }: PanelPagosProps) {
 
   const pagarPropietario = useMutation({
     mutationFn: (id: string) => api.patch(`/pagos/${id}/pagar-propietario`),
-    onSuccess: () => { qc.invalidateQueries({ queryKey: ['pagos', vinculo.id] }); toast2('Pago al propietario registrado ✓') },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['pagos', vinculo.id] })
+      setPagoATransferir(null)
+      toast2('Transferencia al propietario registrada ✓')
+    },
+  })
+
+  const revertirPago = useMutation({
+    mutationFn: (id: string) => api.patch(`/pagos/${id}/revertir-pago-propietario`),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['pagos', vinculo.id] })
+      setConfirmRevertirId(null)
+      toast2('Transferencia revertida')
+    },
   })
 
   const enviarWA = useMutation({
@@ -946,8 +1022,7 @@ function PanelPagos({ vinculo }: PanelPagosProps) {
                             <Receipt size={12} /> Liquidar
                           </button>
                           <button
-                            onClick={() => pagarPropietario.mutate(p.id)}
-                            disabled={pagarPropietario.isPending}
+                            onClick={() => setPagoATransferir(p)}
                             className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-piedra/10 hover:bg-piedra/20 text-piedra text-xs font-medium transition-colors whitespace-nowrap"
                           >
                             <Send size={12} /> Transferir
@@ -955,10 +1030,38 @@ function PanelPagos({ vinculo }: PanelPagosProps) {
                         </>
                       )}
                       {p.estado === 'PAGADO' && p.pagadoAlPropietario && (
-                        <span className="inline-flex items-center gap-1 text-xs text-green-700 bg-green-50 px-2 py-1 rounded-full font-medium whitespace-nowrap">
-                          <CheckCircle size={11} /> Cobró
-                          {p.fechaPagoPropietario && <span className="text-green-500">{formatFecha(p.fechaPagoPropietario)}</span>}
-                        </span>
+                        <div className="flex flex-col gap-1">
+                          <span className="inline-flex items-center gap-1 text-xs text-green-700 bg-green-50 px-2 py-1 rounded-full font-medium whitespace-nowrap">
+                            <CheckCircle size={11} /> Cobró
+                            {p.fechaPagoPropietario && <span className="text-green-500">{formatFecha(p.fechaPagoPropietario)}</span>}
+                          </span>
+                          {/* Revertir — con confirmación inline */}
+                          {confirmRevertirId === p.id ? (
+                            <div className="flex items-center gap-1 mt-0.5">
+                              <span className="text-[10px] text-amber-700">¿Revertir?</span>
+                              <button
+                                onClick={() => revertirPago.mutate(p.id)}
+                                disabled={revertirPago.isPending}
+                                className="text-[10px] font-semibold text-red-600 hover:text-red-700 px-1.5 py-0.5 rounded bg-red-50 hover:bg-red-100 transition-colors"
+                              >
+                                Sí
+                              </button>
+                              <button
+                                onClick={() => setConfirmRevertirId(null)}
+                                className="text-[10px] text-piedra hover:text-carbon px-1.5 py-0.5 rounded bg-crema hover:bg-arena/30 transition-colors"
+                              >
+                                No
+                              </button>
+                            </div>
+                          ) : (
+                            <button
+                              onClick={() => setConfirmRevertirId(p.id)}
+                              className="flex items-center gap-1 text-[10px] text-piedra hover:text-amber-700 transition-colors mt-0.5"
+                            >
+                              <RotateCcw size={9} /> Revertir
+                            </button>
+                          )}
+                        </div>
                       )}
                     </div>
                   </td>
@@ -994,6 +1097,16 @@ function PanelPagos({ vinculo }: PanelPagosProps) {
             qc.invalidateQueries({ queryKey: ['pagos', vinculo.id] })
             toast2('Cobro registrado ✓')
           }}
+        />
+      )}
+
+      {pagoATransferir && (
+        <ModalConfirmarTransferencia
+          pago={pagoATransferir}
+          vinculo={vinculo}
+          onClose={() => setPagoATransferir(null)}
+          onConfirmar={() => pagarPropietario.mutate(pagoATransferir.id)}
+          isPending={pagarPropietario.isPending}
         />
       )}
     </div>
