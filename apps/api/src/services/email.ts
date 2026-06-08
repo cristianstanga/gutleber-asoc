@@ -3,23 +3,23 @@ import { logger } from '../index'
 
 function createTransport() {
   return nodemailer.createTransport({
-    host: process.env.SMTP_HOST || 'smtp.gmail.com',
-    port: Number(process.env.SMTP_PORT) || 587,
-    secure: process.env.SMTP_SECURE === 'true',
+    host: 'smtp.resend.com',
+    port: 465,
+    secure: true,
     auth: {
-      user: process.env.SMTP_USER,
+      user: 'resend',
       pass: process.env.SMTP_PASS,
     },
   })
 }
 
 export async function sendPasswordResetEmail(email: string, token: string) {
-  const baseUrl = process.env.APP_URL || 'https://app.automatizapp.pro'
+  const baseUrl = 'https://app.automatizapp.pro'
   const resetUrl = `${baseUrl}/reset-password?token=${token}`
-  const from = process.env.SMTP_FROM || process.env.SMTP_USER || 'noreply@gutleber.com.ar'
+  const from = 'sistema@automatizapp.pro'
 
-  if (!process.env.SMTP_USER || !process.env.SMTP_PASS) {
-    logger.warn(`📧 SMTP no configurado — token de reset para ${email}: ${token}`)
+  if (!process.env.SMTP_PASS) {
+    logger.warn(`📧 SMTP_PASS no configurado — token de reset para ${email}: ${token}`)
     return
   }
 
