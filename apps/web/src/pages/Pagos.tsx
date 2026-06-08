@@ -1,4 +1,5 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
+import { useLocation } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import {
   CreditCard, Send, CheckCircle, ChevronRight,
@@ -1116,6 +1117,8 @@ function PanelPagos({ vinculo }: PanelPagosProps) {
 // ─── Página principal ─────────────────────────────────────────────────────────
 
 export default function Pagos() {
+  const location = useLocation()
+  const vinculoIdDesdeNav = (location.state as { vinculoId?: string } | null)?.vinculoId
   const [vinculoSeleccionado, setVinculoSeleccionado] = useState<Vinculo | null>(null)
   const [filtroActivo, setFiltroActivo] = useState(true)
 
@@ -1125,6 +1128,14 @@ export default function Pagos() {
       api.get('/vinculos', { params: { tipo: 'ALQUILER', activo: filtroActivo } })
         .then(r => r.data),
   })
+
+  // Auto-seleccionar si se llegó desde el Dashboard via búsqueda
+  useEffect(() => {
+    if (vinculoIdDesdeNav && vinculos.length > 0 && !vinculoSeleccionado) {
+      const v = vinculos.find(v => v.id === vinculoIdDesdeNav)
+      if (v) setVinculoSeleccionado(v)
+    }
+  }, [vinculoIdDesdeNav, vinculos])
 
   // Ordenar: primero los que tienen próximo vencimiento
   const vinculosOrdenados = [...vinculos].sort((a, b) => {
