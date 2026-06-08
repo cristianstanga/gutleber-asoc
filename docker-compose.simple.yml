@@ -43,13 +43,19 @@ services:
       JWT_EXPIRES_IN: 7d
       NODE_ENV: production
       PORT: 3001
-      CORS_ORIGIN: http://${VPS_IP}:8082
-      PUBLIC_URL: http://${VPS_IP}:8082
+      CORS_ORIGIN: https://app.automatizapp.pro
+      PUBLIC_URL: https://automatizapp.pro
       WA_SESSION_PATH: /app/apps/api/baileys_auth_info
       ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY}
       INSTAGRAM_ACCESS_TOKEN: ${INSTAGRAM_ACCESS_TOKEN:-}
       INSTAGRAM_ACCOUNT_ID: ${INSTAGRAM_ACCOUNT_ID:-}
       CATALOGO_WA_NUMERO: ${CATALOGO_WA_NUMERO:-}
+      WHATSAPP_PHONE_NUMBER_ID: ${WHATSAPP_PHONE_NUMBER_ID}
+      WHATSAPP_BUSINESS_ACCOUNT_ID: ${WHATSAPP_BUSINESS_ACCOUNT_ID}
+      WHATSAPP_ACCESS_TOKEN: ${WHATSAPP_ACCESS_TOKEN}
+      WHATSAPP_VERIFY_TOKEN: gutleber_webhook_2026
+      SMTP_PASS: ${SMTP_PASS}
+      APP_URL: https://app.automatizapp.pro
     volumes:
       - gutleber-wa-session:/app/apps/api/baileys_auth_info
       - gutleber-uploads:/app/apps/api/uploads
