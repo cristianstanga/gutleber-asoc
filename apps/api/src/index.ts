@@ -71,8 +71,21 @@ app.use('/api/ia', authMiddleware, iaRouter)
 app.use('/api/catalogo', authMiddleware, catalogoRouter)
 app.use('/api/usuarios', authMiddleware, requireAdminOrOperador, usuariosRouter)
 
+async function fixImageUrls() {
+  // Reemplaza URLs viejas (https://automatizapp.pro/uploads/) por la URL correcta (https://app.automatizapp.pro/uploads/)
+  const OLD = 'https://automatizapp.pro/uploads/'
+  const NEW = 'https://app.automatizapp.pro/uploads/'
+  const [imgFixed, vidFixed] = await Promise.all([
+    prisma.$executeRaw`UPDATE "PropiedadImagen" SET url = REPLACE(url, ${OLD}, ${NEW}) WHERE url LIKE ${OLD + '%'}`,
+    prisma.$executeRaw`UPDATE "PropiedadVideo"  SET url = REPLACE(url, ${OLD}, ${NEW}) WHERE url LIKE ${OLD + '%'}`,
+  ])
+  if (imgFixed > 0 || vidFixed > 0)
+    logger.info(`🔧 URLs de archivos corregidas: ${imgFixed} imágenes, ${vidFixed} videos`)
+}
+
 app.listen(PORT, () => {
   logger.info(`🏢 Gutleber API corriendo en http://localhost:${PORT}`)
+  fixImageUrls().catch((err) => logger.warn({ err }, 'fixImageUrls falló'))
   initCron()
   initWhatsApp().catch((err) => logger.error({ err }, 'Error iniciando WhatsApp'))
 })

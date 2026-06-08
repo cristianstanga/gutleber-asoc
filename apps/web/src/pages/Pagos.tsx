@@ -45,6 +45,7 @@ interface Gasto {
 interface ConceptoExtra {
   descripcion: string
   monto: number
+  esInmobiliaria?: boolean  // queda en el estudio, no va al propietario
 }
 
 interface Pago {
@@ -126,8 +127,7 @@ function ModalCobro({ pago, vinculo, onClose, onCobrado }: ModalCobroProps) {
   })
 
   function addConcepto(tipo: 'cargo' | 'descuento') {
-    // cargo arranca en 1 (positivo = verde), descuento en -1 (negativo = rojo)
-    setConceptos(prev => [...prev, { descripcion: '', monto: tipo === 'descuento' ? -1 : 1 }])
+    setConceptos(prev => [...prev, { descripcion: '', monto: tipo === 'descuento' ? -1 : 1, esInmobiliaria: false }])
   }
 
   function updateConcepto(i: number, key: 'descripcion' | 'monto', val: string) {
@@ -135,7 +135,7 @@ function ModalCobro({ pago, vinculo, onClose, onCobrado }: ModalCobroProps) {
       if (idx !== i) return c
       if (key === 'monto') {
         const abs = Math.abs(Number(val)) || 0
-        const sign = c.monto < 0 ? -1 : 1  // < 0 estricto — 0 se trata como positivo
+        const sign = c.monto < 0 ? -1 : 1
         return { ...c, monto: sign * abs }
       }
       return { ...c, [key]: val }
@@ -148,6 +148,12 @@ function ModalCobro({ pago, vinculo, onClose, onCobrado }: ModalCobroProps) {
       const abs = Math.abs(c.monto) || 1
       return { ...c, monto: c.monto < 0 ? abs : -abs }
     }))
+  }
+
+  function toggleInmobiliaria(i: number) {
+    setConceptos(prev => prev.map((c, idx) =>
+      idx === i ? { ...c, esInmobiliaria: !c.esInmobiliaria } : c
+    ))
   }
 
   return (
@@ -200,8 +206,9 @@ function ModalCobro({ pago, vinculo, onClose, onCobrado }: ModalCobroProps) {
               <div className="space-y-2">
                 {conceptos.map((c, i) => {
                   const esDescuento = c.monto < 0
+                  const esInmo = !!c.esInmobiliaria
                   return (
-                    <div key={i} className={`flex gap-2 items-center rounded-xl px-3 py-2 border-l-4 ${esDescuento ? 'bg-red-50 border-red-400' : 'bg-green-50 border-green-400'}`}>
+                    <div key={i} className={`flex gap-2 items-center rounded-xl px-3 py-2 border-l-4 ${esInmo ? 'bg-amber-50 border-amber-400' : esDescuento ? 'bg-red-50 border-red-400' : 'bg-green-50 border-green-400'}`}>
                       <button type="button" onClick={() => toggleSign(i)} title="Cambiar a cargo/descuento"
                         className={`w-7 h-7 rounded-full flex items-center justify-center text-sm font-bold flex-shrink-0 transition-colors ${esDescuento ? 'bg-red-200 text-red-700 hover:bg-red-300' : 'bg-green-200 text-green-700 hover:bg-green-300'}`}>
                         {esDescuento ? '−' : '+'}
@@ -218,11 +225,19 @@ function ModalCobro({ pago, vinculo, onClose, onCobrado }: ModalCobroProps) {
                           min={0}
                           onChange={e => updateConcepto(i, 'monto', e.target.value)} />
                       </div>
+                      <button type="button" onClick={() => toggleInmobiliaria(i)}
+                        title={esInmo ? 'Queda en la inmobiliaria — click para quitar' : 'Marcar como ingreso de la inmobiliaria'}
+                        className={`flex-shrink-0 w-7 h-7 rounded-full flex items-center justify-center transition-colors ${esInmo ? 'bg-amber-400 text-white' : 'bg-white/60 text-piedra border border-arena hover:bg-amber-100 hover:text-amber-600'}`}>
+                        <Building2 size={12} />
+                      </button>
                       <button onClick={() => setConceptos(prev => prev.filter((_, idx) => idx !== i))}
                         className="text-piedra hover:text-red-500 flex-shrink-0"><Trash2 size={14} /></button>
                     </div>
                   )
                 })}
+                <p className="text-[10px] text-piedra/70 mt-1">
+                  <Building2 size={9} className="inline mr-1" />El ícono de edificio marca conceptos que quedan en la inmobiliaria y no van al propietario.
+                </p>
               </div>
             )}
           </div>
@@ -249,16 +264,18 @@ function ModalCobro({ pago, vinculo, onClose, onCobrado }: ModalCobroProps) {
               {/* Conceptos con color */}
               {conceptos.filter(c => c.descripcion.trim()).map((c, i) => {
                 const esDescuento = c.monto < 0
+                const esInmo = !!c.esInmobiliaria
                 return (
-                  <div key={i} className={`flex justify-between items-center px-4 py-3 ${esDescuento ? 'bg-red-50/60' : 'bg-green-50/60'}`}>
+                  <div key={i} className={`flex justify-between items-center px-4 py-3 ${esInmo ? 'bg-amber-50/60' : esDescuento ? 'bg-red-50/60' : 'bg-green-50/60'}`}>
                     <div className="flex items-center gap-2">
-                      <span className={`w-5 h-5 rounded-full flex items-center justify-center text-xs font-bold flex-shrink-0 ${esDescuento ? 'bg-red-200 text-red-700' : 'bg-green-200 text-green-700'}`}>
-                        {esDescuento ? '−' : '+'}
+                      <span className={`w-5 h-5 rounded-full flex items-center justify-center text-xs font-bold flex-shrink-0 ${esInmo ? 'bg-amber-200 text-amber-700' : esDescuento ? 'bg-red-200 text-red-700' : 'bg-green-200 text-green-700'}`}>
+                        {esInmo ? <Building2 size={9} /> : esDescuento ? '−' : '+'}
                       </span>
                       <span className="text-sm text-carbon">{c.descripcion}</span>
+                      {esInmo && <span className="text-[9px] text-amber-600 bg-amber-100 px-1.5 py-0.5 rounded-full font-semibold">inmob.</span>}
                     </div>
-                    <span className={`text-sm font-bold ${esDescuento ? 'text-red-600' : 'text-green-700'}`}>
-                      {esDescuento ? '−' : '+'} {formatARS(Math.abs(c.monto))}
+                    <span className={`text-sm font-bold ${esInmo ? 'text-amber-600' : esDescuento ? 'text-red-600' : 'text-green-700'}`}>
+                      + {formatARS(Math.abs(c.monto))}
                     </span>
                   </div>
                 )
@@ -334,13 +351,16 @@ function ModalNuevoPago({ vinculo, onClose, onCreated }: ModalNuevoPagoProps) {
   })
 
   function addExtra() {
-    setExtras([...extras, { descripcion: '', monto: 0 }])
+    setExtras([...extras, { descripcion: '', monto: 0, esInmobiliaria: false }])
   }
   function removeExtra(i: number) {
     setExtras(extras.filter((_, idx) => idx !== i))
   }
   function updateExtra(i: number, key: keyof ConceptoExtra, val: string) {
     setExtras(extras.map((e, idx) => idx === i ? { ...e, [key]: key === 'monto' ? Number(val) : val } : e))
+  }
+  function toggleExtraInmobiliaria(i: number) {
+    setExtras(extras.map((e, idx) => idx === i ? { ...e, esInmobiliaria: !e.esInmobiliaria } : e))
   }
 
   return (
@@ -408,10 +428,10 @@ function ModalNuevoPago({ vinculo, onClose, onCreated }: ModalNuevoPagoProps) {
             {extras.length > 0 && (
               <div className="space-y-2">
                 {extras.map((ex, i) => (
-                  <div key={i} className="flex gap-2 items-center">
+                  <div key={i} className={`flex gap-2 items-center rounded-lg px-2 py-1.5 border-l-2 ${ex.esInmobiliaria ? 'bg-amber-50 border-amber-400' : 'bg-white border-transparent'}`}>
                     <input
                       className="form-input flex-1 text-sm"
-                      placeholder="Descripción (ej: Depósito)"
+                      placeholder="Descripción (ej: Depósito de garantía)"
                       value={ex.descripcion}
                       onChange={e => updateExtra(i, 'descripcion', e.target.value)}
                     />
@@ -422,11 +442,19 @@ function ModalNuevoPago({ vinculo, onClose, onCreated }: ModalNuevoPagoProps) {
                       value={ex.monto || ''}
                       onChange={e => updateExtra(i, 'monto', e.target.value)}
                     />
-                    <button onClick={() => removeExtra(i)} className="text-piedra hover:text-red-500">
+                    <button type="button" onClick={() => toggleExtraInmobiliaria(i)}
+                      title={ex.esInmobiliaria ? 'Queda en la inmobiliaria — click para quitar' : 'Marcar como ingreso de la inmobiliaria'}
+                      className={`flex-shrink-0 w-7 h-7 rounded-full flex items-center justify-center transition-colors ${ex.esInmobiliaria ? 'bg-amber-400 text-white' : 'bg-crema text-piedra hover:bg-amber-100 hover:text-amber-600'}`}>
+                      <Building2 size={12} />
+                    </button>
+                    <button onClick={() => removeExtra(i)} className="text-piedra hover:text-red-500 flex-shrink-0">
                       <Trash2 size={14} />
                     </button>
                   </div>
                 ))}
+                <p className="text-[10px] text-piedra/70">
+                  <Building2 size={9} className="inline mr-1" />Activá el ícono de edificio en los conceptos que quedan en la inmobiliaria (comisión, firmas, etc.).
+                </p>
               </div>
             )}
           </div>
@@ -482,6 +510,10 @@ function ModalLiquidacion({ pago, vinculo, onClose }: ModalLiquidacionProps) {
   const [generando, setGenerando] = useState(false)
 
   const totalBase = pago.totalConExtras ?? pago.monto
+  // Extras que van al propietario (excluye retenciones de la inmobiliaria)
+  const extrasAlPropietario = (pago.conceptosExtra ?? [])
+    .filter(c => !c.esInmobiliaria)
+    .reduce((s, c) => s + c.monto, 0)
 
   // Gastos pendientes de esta propiedad/vínculo
   const { data: gastosPendientes = [] } = useQuery<Gasto[]>({
@@ -497,8 +529,9 @@ function ModalLiquidacion({ pago, vinculo, onClose }: ModalLiquidacionProps) {
     .reduce((s, g) => s + g.monto, 0)
   const montoGastosExtra = gastosExtra.reduce((s, g) => s + (Number(g.monto) || 0), 0)
   const totalGastos = montoGastosSeleccionados + montoGastosExtra
-  const honorarios = Math.round((totalBase - totalGastos) * honorariosPct / 100)
-  const totalPagado = totalBase - totalGastos - honorarios
+  // Honorarios: solo sobre el alquiler base menos gastos (no sobre extras ni retenciones)
+  const honorarios = Math.round((pago.monto - totalGastos) * honorariosPct / 100)
+  const totalPagado = (pago.monto - totalGastos - honorarios) + extrasAlPropietario
 
   function toggleGasto(id: string) {
     setGastosSeleccionados(prev =>
@@ -700,23 +733,31 @@ function ModalLiquidacion({ pago, vinculo, onClose }: ModalLiquidacionProps) {
           </div>
 
           {/* Resumen de cálculo */}
-          <div className="border border-arena rounded-xl overflow-hidden">
+          <div className="border border-arena rounded-xl overflow-hidden text-sm">
             <div className="flex justify-between px-4 py-2.5 border-b border-crema">
-              <span className="text-sm text-piedra">Alquiler cobrado</span>
-              <span className="text-sm font-semibold text-carbon">{formatARS(totalBase)}</span>
+              <span className="text-piedra">Alquiler base</span>
+              <span className="font-semibold text-carbon">{formatARS(pago.monto)}</span>
             </div>
             {totalGastos > 0 && (
               <div className="flex justify-between px-4 py-2.5 border-b border-crema bg-red-50/50">
-                <span className="text-sm text-red-600">Gastos descontados</span>
-                <span className="text-sm font-semibold text-red-600">- {formatARS(totalGastos)}</span>
+                <span className="text-red-600">Gastos descontados</span>
+                <span className="font-semibold text-red-600">- {formatARS(totalGastos)}</span>
               </div>
             )}
             <div className="flex justify-between px-4 py-2.5 border-b border-crema">
-              <span className="text-sm text-piedra">Honorarios ({honorariosPct}%)</span>
-              <span className="text-sm font-semibold text-piedra">- {formatARS(honorarios)}</span>
+              <span className="text-piedra">Honorarios ({honorariosPct}% sobre alquiler)</span>
+              <span className="font-semibold text-piedra">- {formatARS(honorarios)}</span>
             </div>
+            {extrasAlPropietario !== 0 && (
+              <div className="flex justify-between px-4 py-2.5 border-b border-crema bg-blue-50/30">
+                <span className="text-blue-700">Otros conceptos (expensas, depósito, etc.)</span>
+                <span className={`font-semibold ${extrasAlPropietario >= 0 ? 'text-blue-700' : 'text-red-600'}`}>
+                  {extrasAlPropietario >= 0 ? '+ ' : '- '}{formatARS(Math.abs(extrasAlPropietario))}
+                </span>
+              </div>
+            )}
             <div className="flex justify-between px-4 py-3 bg-crema">
-              <span className="text-sm font-bold text-carbon">A pagar al propietario</span>
+              <span className="font-bold text-carbon">A pagar al propietario</span>
               <span className="font-display text-lg text-carbon">{formatARS(totalPagado)}</span>
             </div>
           </div>
@@ -749,10 +790,23 @@ interface ModalConfirmarTransferenciaProps {
 }
 
 function ModalConfirmarTransferencia({ pago, vinculo, onClose, onConfirmar, isPending }: ModalConfirmarTransferenciaProps) {
-  const totalBase = pago.totalConExtras ?? pago.monto
   const honorariosPct = vinculo.honorariosPct ?? 8
-  const honorarios = Math.round(totalBase * honorariosPct / 100)
-  const totalTransferir = totalBase - honorarios
+  const conceptos = pago.conceptosExtra ?? []
+
+  // Comisión: SOLO sobre el alquiler base (pago.monto), no sobre extras
+  const honorarios = Math.round(pago.monto * honorariosPct / 100)
+
+  // Extras que van al propietario (todo lo que no es "para la inmobiliaria")
+  const extrasParaPropietario = conceptos
+    .filter(c => !c.esInmobiliaria)
+    .reduce((s, c) => s + c.monto, 0)
+
+  // Extras que quedan en la inmobiliaria
+  const extrasInmobiliaria = conceptos
+    .filter(c => c.esInmobiliaria && c.monto > 0)
+    .reduce((s, c) => s + c.monto, 0)
+
+  const totalTransferir = (pago.monto - honorarios) + extrasParaPropietario
 
   return (
     <div className="fixed inset-0 bg-carbon/40 backdrop-blur-sm flex items-center justify-center z-50 p-4">
@@ -767,17 +821,39 @@ function ModalConfirmarTransferencia({ pago, vinculo, onClose, onConfirmar, isPe
 
         <div className="px-6 py-5 space-y-4">
           {/* Desglose */}
-          <div className="border border-arena rounded-xl overflow-hidden">
+          <div className="border border-arena rounded-xl overflow-hidden text-sm">
+            {/* Alquiler base */}
             <div className="flex justify-between items-center px-4 py-3 border-b border-crema">
-              <span className="text-sm text-piedra">Cobrado al inquilino</span>
-              <span className="text-sm font-semibold text-carbon">{formatARS(totalBase)}</span>
+              <span className="text-piedra">Alquiler base</span>
+              <span className="font-semibold text-carbon">{formatARS(pago.monto)}</span>
             </div>
+            {/* Honorarios solo sobre el alquiler */}
             <div className="flex justify-between items-center px-4 py-3 border-b border-crema bg-red-50/40">
-              <span className="text-sm text-red-600">Honorarios ({honorariosPct}%)</span>
-              <span className="text-sm font-semibold text-red-600">− {formatARS(honorarios)}</span>
+              <span className="text-red-600">Honorarios administración ({honorariosPct}%)</span>
+              <span className="font-semibold text-red-600">− {formatARS(honorarios)}</span>
             </div>
+            {/* Extras al propietario */}
+            {extrasParaPropietario !== 0 && (
+              <div className="flex justify-between items-center px-4 py-3 border-b border-crema bg-blue-50/30">
+                <span className="text-blue-700">Otros conceptos al propietario</span>
+                <span className={`font-semibold ${extrasParaPropietario >= 0 ? 'text-blue-700' : 'text-red-600'}`}>
+                  {extrasParaPropietario >= 0 ? '+' : '−'} {formatARS(Math.abs(extrasParaPropietario))}
+                </span>
+              </div>
+            )}
+            {/* Retención inmobiliaria (solo informativo) */}
+            {extrasInmobiliaria > 0 && (
+              <div className="flex justify-between items-center px-4 py-3 border-b border-crema bg-amber-50/40">
+                <div className="flex items-center gap-1.5">
+                  <Building2 size={12} className="text-amber-600" />
+                  <span className="text-amber-700">Retención inmobiliaria</span>
+                </div>
+                <span className="font-semibold text-amber-600">+ {formatARS(extrasInmobiliaria)}</span>
+              </div>
+            )}
+            {/* Total */}
             <div className="flex justify-between items-center px-4 py-4 bg-carbon">
-              <span className="text-sm font-bold text-white">A transferir al propietario</span>
+              <span className="font-bold text-white">A transferir al propietario</span>
               <span className="font-display text-xl text-white">{formatARS(totalTransferir)}</span>
             </div>
           </div>

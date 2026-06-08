@@ -44,7 +44,7 @@ services:
       NODE_ENV: production
       PORT: 3001
       CORS_ORIGIN: https://app.automatizapp.pro
-      PUBLIC_URL: https://automatizapp.pro
+      PUBLIC_URL: https://app.automatizapp.pro
       WA_SESSION_PATH: /app/apps/api/baileys_auth_info
       ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY}
       INSTAGRAM_ACCESS_TOKEN: ${INSTAGRAM_ACCESS_TOKEN:-}
