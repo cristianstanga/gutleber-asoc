@@ -112,6 +112,7 @@ export default function Sidebar() {
         >
           <LogOut size={12} /> Salir
         </button>
+        <p className="mt-3 text-white/20 text-[9px] font-mono tracking-wide">{__APP_VERSION__}</p>
       </div>
     </aside>
   )
