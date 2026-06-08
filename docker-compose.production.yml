@@ -52,6 +52,13 @@ services:
       PORT: 3001
       CORS_ORIGIN: https://${DOMAIN}
       WA_SESSION_PATH: /app/apps/api/baileys_auth_info
+      SMTP_HOST: smtp.resend.com
+      SMTP_PORT: "465"
+      SMTP_SECURE: "true"
+      SMTP_USER: resend
+      SMTP_PASS: ${SMTP_PASS}
+      SMTP_FROM: sistema@automatizapp.pro
+      APP_URL: https://app.${DOMAIN}
     volumes:
       - gutleber-wa-session:/app/apps/api/baileys_auth_info
       - gutleber-uploads:/app/apps/api/uploads
