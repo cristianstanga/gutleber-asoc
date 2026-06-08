@@ -23,6 +23,7 @@ const CREMA   = '#F5F0EA'
 export interface ConceptoExtra {
   descripcion: string
   monto: number
+  esInmobiliaria?: boolean
 }
 
 export interface DatosRecibo {
@@ -56,9 +57,10 @@ export interface DatosLiquidacion {
   pago: number
   totalPagos: number
   totalLiquidacion: number
+  alquilerBase?: number
   honorariosPct?: number
   gastos?: { descripcion: string; monto: number }[]
-  conceptosInquilino?: { descripcion: string; monto: number }[]
+  conceptosInquilino?: { descripcion: string; monto: number; esInmobiliaria?: boolean }[]
   formaPago: string
 }
 
@@ -209,39 +211,61 @@ function dibujarRecibo(
 
   doc.fillColor(PIEDRA).font('Helvetica-Bold').fontSize(7.5).text('Correspondiente al mes de:', M, y)
   doc.fillColor(CARBON).font('Helvetica').fontSize(8).text(d.mes, M + 104, y)
-  doc.fillColor(PIEDRA).font('Helvetica-Bold').fontSize(7.5).text('Alquiler:', M + 310, y)
-  doc.fillColor(CARBON).font('Helvetica').fontSize(9).text(formatARS(d.alquiler), M + 346, y)
-  y += 14
-
-  // Otros conceptos
-  if (d.conceptosExtra.length > 0) {
-    doc.fillColor(PIEDRA).font('Helvetica-Bold').fontSize(7.5).text('Otros conceptos:', M + 150, y); y += 10
-    for (const c of d.conceptosExtra) {
-      doc.fillColor(CARBON).font('Helvetica').fontSize(7.5)
-         .text(c.descripcion, M + 162, y)
-         .text(formatARS(c.monto), M + W - 2, y, { width: 80, align: 'right' })
-      y += 10
-    }
-  }
   y += 12
 
-  // Firma + total (debajo a la derecha)
+  // ── Tabla de conceptos ────────────────────────────────────────────────────
+  const AX = M + W - 104  // x-inicio columna importe
+  const AW = 100           // ancho columna importe
+  const DX = M + 4         // x-inicio columna descripción
+  const DW = AX - DX - 6  // ancho columna descripción
+
+  // Encabezado de tabla
+  doc.rect(M, y, W, 14).fill(CARBON)
+  doc.fillColor(WHITE).font('Helvetica-Bold').fontSize(7.5).text('CONCEPTO', DX, y + 3.5)
+  doc.fillColor(WHITE).font('Helvetica-Bold').fontSize(7.5).text('IMPORTE', AX, y + 3.5, { width: AW, align: 'right' })
+  y += 14
+
+  // Alquiler base
+  doc.rect(M, y, W, 14).fill(WHITE)
+  doc.rect(M, y, W, 14).stroke(ARENA)
+  doc.fillColor(CARBON).font('Helvetica').fontSize(8.5).text(`Alquiler — ${d.mes}`, DX, y + 3, { width: DW })
+  doc.fillColor(CARBON).font('Helvetica-Bold').fontSize(8.5).text(formatARS(d.alquiler), AX, y + 3, { width: AW, align: 'right' })
+  y += 14
+
+  // Conceptos extra
+  for (const c of d.conceptosExtra.filter(x => x.descripcion?.trim())) {
+    const esDesc = c.monto < 0
+    doc.rect(M, y, W, 13).fill(esDesc ? '#FFF5F5' : '#F0FDF4')
+    doc.rect(M, y, W, 13).stroke(ARENA)
+    const prefix = esDesc ? '−  ' : '+  '
+    doc.fillColor(CARBON).font('Helvetica').fontSize(8)
+       .text(prefix + c.descripcion, DX + 4, y + 2.5, { width: DW - 4 })
+    doc.fillColor(esDesc ? '#B91C1C' : '#166534').font('Helvetica-Bold').fontSize(8)
+       .text(formatARS(Math.abs(c.monto)), AX, y + 2.5, { width: AW, align: 'right' })
+    y += 13
+  }
+
+  // Fila total
+  doc.rect(M, y, W, 1).fill(CARBON); y += 1
+  doc.rect(M, y, W, 18).fill(CREMA)
+  doc.fillColor(CARBON).font('Helvetica-Bold').fontSize(9).text('TOTAL', DX, y + 5)
+  doc.fillColor(CARBON).font('Helvetica-Bold').fontSize(11).text(formatARS(d.totalRecibo), AX, y + 4, { width: AW, align: 'right' })
+  y += 18
+
+  // En letras
+  y += 6
+  doc.rect(M, y, W, 12).fill(CREMA)
+  doc.fillColor(PIEDRA).font('Helvetica').fontSize(6.5)
+     .text(`Son: ${enLetras(d.totalRecibo)}.`, DX, y + 3, { width: W - 8 })
+  y += 16
+
+  // Firma + pie
   doc.moveTo(M, y).lineTo(M + 138, y).strokeColor(CARBON).lineWidth(0.5).stroke()
   doc.fillColor(CARBON).font('Helvetica').fontSize(7).text('Firma y aclaración', M + 14, y + 3)
-
-  doc.rect(M + W - 158, y - 8, 158, 36).fill(CREMA)
-  doc.rect(M + W - 158, y - 8, 158, 36).stroke(ARENA)
-  doc.fillColor(PIEDRA).font('Helvetica-Bold').fontSize(8).text('Total Recibo:', M + W - 152, y - 4)
-  doc.fillColor(CARBON).font('Helvetica-Bold').fontSize(12)
-     .text(formatARS(d.totalRecibo), M + W - 152, y + 8)
-  y += 28
-
-  // Pie
-  doc.fillColor(CARBON).font('Helvetica-Bold').fontSize(7.5).text(`** ${tipo} **`, M, y)
-  doc.font('Helvetica').fontSize(7).text(`Recibi(mos) la suma de: ${enLetras(d.totalRecibo)}.`, M + 42, y)
-  y += 10
-  doc.fillColor(PIEDRA).font('Helvetica-Bold').fontSize(7.5).text('Forma de pago:', M + 42, y)
-  doc.fillColor(CARBON).font('Helvetica').fontSize(7.5).text(d.formaPago, M + 100, y)
+  doc.fillColor(CARBON).font('Helvetica-Bold').fontSize(7.5).text(`** ${tipo} **`, M + 200, y)
+  y += 14
+  doc.fillColor(PIEDRA).font('Helvetica-Bold').fontSize(7.5).text('Forma de pago:', M + 200, y)
+  doc.fillColor(CARBON).font('Helvetica').fontSize(7.5).text(d.formaPago, M + 262, y)
 }
 
 // ─── Dibujar liquidación (mitad de página) ────────────────────────────────────
@@ -257,11 +281,19 @@ function dibujarLiquidacion(
   const W  = PW - M * 2
 
   const gastos           = d.gastos ?? []
-  const conceptosInq     = d.conceptosInquilino ?? []
+  const conceptosInq     = (d.conceptosInquilino ?? []).filter(c => c.descripcion?.trim())
+  const conceptosProp    = conceptosInq.filter(c => !c.esInmobiliaria)
+  const alquilerBase     = d.alquilerBase ?? d.totalLiquidacion
   const totalGastos      = gastos.reduce((s, g) => s + g.monto, 0)
   const honorariosPct    = d.honorariosPct ?? 8
-  const honorarios       = Math.round((d.totalLiquidacion - totalGastos) * honorariosPct / 100)
-  const totalPagado      = d.totalLiquidacion - totalGastos - honorarios
+  const honorarios       = Math.round(alquilerBase * honorariosPct / 100)
+  const extrasParaProp   = conceptosProp.reduce((s, c) => s + c.monto, 0)
+  const totalATransferir = (alquilerBase - honorarios) + extrasParaProp - totalGastos
+
+  const AX = M + W - 104
+  const AW = 100
+  const DX = M + 4
+  const DW = AX - DX - 6
 
   let y = yBase
 
@@ -287,101 +319,103 @@ function dibujarLiquidacion(
   doc.fillColor(CARBON).font('Helvetica').fontSize(8).text(d.propietario.iva || 'Responsable Monotributo', M + 220, y)
   doc.fillColor(PIEDRA).font('Helvetica-Bold').fontSize(7.5).text('Localidad:', M + 340, y)
   doc.fillColor(CARBON).font('Helvetica').fontSize(8).text('Posadas', M + 380, y)
-  y += 14
+  y += 16
 
-  // Tabla inmueble/detalles/importe
+  // Barra informativa inmueble
+  doc.rect(M, y, W, 0.5).fill(ARENA); y += 4
   doc.rect(M, y, W, 14).fill(CREMA)
-  doc.fillColor(CARBON).font('Helvetica-Bold').fontSize(8)
-     .text('Inmueble', M + 4, y + 3)
-     .text('Detalles', M + 270, y + 3)
-     .text('Importe', M + W - 58, y + 3)
-  doc.rect(M, y + 13, W, 0.5).fill(ARENA)
-  y += 17
-
   const descProp = d.propiedad.codigo
     ? `(${d.propiedad.codigo}) ${d.propiedad.descripcion}`
     : d.propiedad.descripcion
-  doc.fillColor(CARBON).font('Helvetica').fontSize(7.5)
-     .text(descProp, M + 4, y, { width: 245 })
-  doc.text(`${d.mes} [ pago ${d.pago} / ${d.totalPagos} ]`, M + 270, y, { width: 140 })
-  doc.font('Helvetica-Bold').fontSize(8.5)
-     .text(formatARS(d.totalLiquidacion), M + W - 2, y, { width: 70, align: 'right' })
+  doc.fillColor(CARBON).font('Helvetica-Bold').fontSize(8)
+     .text(`Inmueble: ${descProp}`, DX, y + 3, { width: 310 })
+  doc.fillColor(PIEDRA).font('Helvetica').fontSize(7.5)
+     .text(`${d.mes}  ·  Pago ${d.pago} / ${d.totalPagos}`, M + W - 180, y + 3.5, { width: 176, align: 'right' })
+  y += 18
+
+  // ── Tabla de conceptos ────────────────────────────────────────────────────
+
+  // Encabezado tabla
+  doc.rect(M, y, W, 14).fill(CARBON)
+  doc.fillColor(WHITE).font('Helvetica-Bold').fontSize(7.5).text('CONCEPTO', DX, y + 3.5)
+  doc.fillColor(WHITE).font('Helvetica-Bold').fontSize(7.5).text('IMPORTE', AX, y + 3.5, { width: AW, align: 'right' })
   y += 14
 
-  // Desglose conceptos cobrados al inquilino (si hay)
-  if (conceptosInq.length > 0) {
-    const montoBase = d.totalLiquidacion - conceptosInq.reduce((s, c) => s + c.monto, 0)
-    doc.fillColor(PIEDRA).font('Helvetica').fontSize(6.5)
-       .text(`  Alquiler base: ${formatARS(montoBase)}`, M + 4, y)
-    y += 8
-    for (const c of conceptosInq) {
-      const signo = c.monto < 0 ? '−' : '+'
-      doc.fillColor(PIEDRA).font('Helvetica').fontSize(6.5)
-         .text(`  ${signo} ${c.descripcion}: ${formatARS(Math.abs(c.monto))}`, M + 4, y)
-      y += 7
-    }
-    y += 4
-  } else {
-    y += 38
+  // Alquiler base
+  doc.rect(M, y, W, 14).fill(WHITE)
+  doc.rect(M, y, W, 14).stroke(ARENA)
+  doc.fillColor(CARBON).font('Helvetica').fontSize(8.5).text(`Alquiler base — ${d.mes}`, DX, y + 3, { width: DW })
+  doc.fillColor(CARBON).font('Helvetica-Bold').fontSize(8.5).text(formatARS(alquilerBase), AX, y + 3, { width: AW, align: 'right' })
+  y += 14
+
+  // Extras para propietario
+  for (const c of conceptosProp) {
+    const esDesc = c.monto < 0
+    doc.rect(M, y, W, 13).fill(esDesc ? '#FFF5F5' : '#F0FDF4')
+    doc.rect(M, y, W, 13).stroke(ARENA)
+    const prefix = esDesc ? '−  ' : '+  '
+    doc.fillColor(CARBON).font('Helvetica').fontSize(8)
+       .text(prefix + c.descripcion, DX + 4, y + 2.5, { width: DW - 4 })
+    doc.fillColor(esDesc ? '#B91C1C' : '#166534').font('Helvetica-Bold').fontSize(8)
+       .text(formatARS(Math.abs(c.monto)), AX, y + 2.5, { width: AW, align: 'right' })
+    y += 13
   }
 
-  // Firma
-  const firmaY = yBase + 255
-  doc.moveTo(M, firmaY).lineTo(M + 138, firmaY).strokeColor(CARBON).lineWidth(0.5).stroke()
-  doc.fillColor(CARBON).font('Helvetica').fontSize(7).text('Firma y aclaración', M + 14, firmaY + 3)
-
-  // Gastos variables (izquierda, debajo de la tabla)
-  if (gastos.length > 0) {
-    doc.fillColor(PIEDRA).font('Helvetica-Bold').fontSize(7.5).text('Gastos descontados:', M + 4, y)
-    y += 10
-    for (const g of gastos) {
-      doc.fillColor(CARBON).font('Helvetica').fontSize(7.5).text(`• ${g.descripcion}`, M + 10, y)
-      doc.text(`- ${formatARS(g.monto)}`, M + W - 2, y, { width: 80, align: 'right' })
-      y += 9
-    }
-    y += 4
+  // Subtotal cobrado al inquilino (solo si hay extras)
+  if (conceptosProp.length > 0) {
+    doc.rect(M, y, W, 0.5).fill(ARENA); y += 0.5
+    doc.rect(M, y, W, 13).fill('#EEF2FF')
+    doc.fillColor(PIEDRA).font('Helvetica-Bold').fontSize(7.5)
+       .text('Total cobrado al inquilino', DX, y + 3, { width: DW })
+    doc.fillColor(CARBON).font('Helvetica-Bold').fontSize(8)
+       .text(formatARS(alquilerBase + extrasParaProp), AX, y + 2.5, { width: AW, align: 'right' })
+    y += 13
   }
 
-  // Totales (abajo derecha)
-  const rowCount = 2 + (gastos.length > 0 ? 1 : 0)
-  const tw = 160, tx = M + W - tw
-  const totH = 18 + rowCount * 16 + 6
-  const totY = yBase + 220
-  doc.rect(tx, totY, tw, totH).fill(CREMA)
-  doc.rect(tx, totY, tw, totH).stroke(ARENA)
+  // ── Deducciones ───────────────────────────────────────────────────────────
+  y += 4
+  doc.fillColor(PIEDRA).font('Helvetica-Bold').fontSize(7.5).text('DEDUCCIONES', DX, y)
+  y += 11
 
-  let ty = totY + 6
-  doc.fillColor(PIEDRA).font('Helvetica-Bold').fontSize(8.5).text('Total Liquidación:', tx + 6, ty)
-  doc.fillColor(CARBON).font('Helvetica-Bold').fontSize(9)
-     .text(formatARS(d.totalLiquidacion), tx + 6, ty, { width: tw - 10, align: 'right' })
-  ty += 16
+  // Honorarios (sobre alquiler base solamente)
+  doc.rect(M, y, W, 13).fill('#FFF9E6')
+  doc.rect(M, y, W, 13).stroke(ARENA)
+  doc.fillColor(CARBON).font('Helvetica').fontSize(8)
+     .text(`Honorarios administración (${honorariosPct}%)`, DX + 4, y + 2.5, { width: DW - 4 })
+  doc.fillColor('#92400E').font('Helvetica-Bold').fontSize(8)
+     .text(`- ${formatARS(honorarios)}`, AX, y + 2.5, { width: AW, align: 'right' })
+  y += 13
 
-  if (gastos.length > 0) {
-    doc.fillColor(PIEDRA).font('Helvetica-Bold').fontSize(8.5).text(`Gastos (${gastos.length}):`, tx + 6, ty)
-    doc.fillColor(CARBON).font('Helvetica').fontSize(9)
-       .text(`- ${formatARS(totalGastos)}`, tx + 6, ty, { width: tw - 10, align: 'right' })
-    ty += 16
+  // Gastos
+  for (const g of gastos) {
+    doc.rect(M, y, W, 13).fill('#FFF5F5')
+    doc.rect(M, y, W, 13).stroke(ARENA)
+    doc.fillColor(CARBON).font('Helvetica').fontSize(8)
+       .text(`Gastos: ${g.descripcion}`, DX + 4, y + 2.5, { width: DW - 4 })
+    doc.fillColor('#B91C1C').font('Helvetica-Bold').fontSize(8)
+       .text(`- ${formatARS(g.monto)}`, AX, y + 2.5, { width: AW, align: 'right' })
+    y += 13
   }
 
-  doc.fillColor(PIEDRA).font('Helvetica-Bold').fontSize(8.5).text(`Honorarios ${honorariosPct}%:`, tx + 6, ty)
-  doc.fillColor(CARBON).font('Helvetica').fontSize(9)
-     .text(`- ${formatARS(honorarios)}`, tx + 6, ty, { width: tw - 10, align: 'right' })
-  ty += 14
+  // ── Total a transferir ────────────────────────────────────────────────────
+  doc.rect(M, y, W, 1.5).fill(CARBON); y += 1.5
+  doc.rect(M, y, W, 19).fill(CARBON)
+  doc.fillColor(ARENA).font('Helvetica-Bold').fontSize(9).text('TOTAL A TRANSFERIR', DX, y + 5)
+  doc.fillColor(WHITE).font('Helvetica-Bold').fontSize(11)
+     .text(formatARS(totalATransferir), AX, y + 4, { width: AW, align: 'right' })
+  y += 19
 
-  doc.rect(tx + 4, ty, tw - 8, 0.5).fill(CARBON)
-  ty += 4
-
-  doc.fillColor(CARBON).font('Helvetica-Bold').fontSize(9.5).text('Total Pagado:', tx + 6, ty)
-  doc.fillColor(CARBON).font('Helvetica-Bold').fontSize(10)
-     .text(formatARS(totalPagado), tx + 6, ty, { width: tw - 10, align: 'right' })
-
-  // Pie
-  const pieY = yBase + 285
-  doc.fillColor(CARBON).font('Helvetica-Bold').fontSize(7.5).text(`-- ${tipo} --`, M, pieY)
+  // ── Firma + pie ───────────────────────────────────────────────────────────
+  y += 8
+  doc.moveTo(M, y).lineTo(M + 138, y).strokeColor(CARBON).lineWidth(0.5).stroke()
+  doc.fillColor(CARBON).font('Helvetica').fontSize(7).text('Firma y aclaración', M + 14, y + 3)
+  doc.fillColor(CARBON).font('Helvetica-Bold').fontSize(7.5).text(`-- ${tipo} --`, M + 200, y)
+  y += 14
   doc.font('Helvetica').fontSize(7)
-     .text(`Total a liquidar:  ${enLetras(totalPagado)}.`, M + 40, pieY)
-  doc.fillColor(PIEDRA).font('Helvetica-Bold').fontSize(7.5).text('Forma de pago:', M + 40, pieY + 10)
-  doc.fillColor(CARBON).font('Helvetica').fontSize(7.5).text(d.formaPago, M + 100, pieY + 10)
+     .text(`Total a liquidar: ${enLetras(totalATransferir)}.`, M + 200, y, { width: W - 200 })
+  y += 10
+  doc.fillColor(PIEDRA).font('Helvetica-Bold').fontSize(7.5).text('Forma de pago:', M + 200, y)
+  doc.fillColor(CARBON).font('Helvetica').fontSize(7.5).text(d.formaPago, M + 262, y)
 }
 
 // ─── Separador de corte ───────────────────────────────────────────────────────

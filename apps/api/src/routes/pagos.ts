@@ -154,7 +154,7 @@ async function buildDatosLiquidacion(pagoId: string): Promise<DatosLiquidacion |
   // Honorarios del vínculo (default 8)
   const honorariosPct = pago.vinculo?.honorariosPct ?? 8
 
-  const conceptosInquilino = (pago.conceptosExtra as { descripcion: string; monto: number }[] | null) || []
+  const conceptosInquilino = (pago.conceptosExtra as { descripcion: string; monto: number; esInmobiliaria?: boolean }[] | null) || []
 
   return {
     nroLiquidacion: pago.nroRecibo,
@@ -164,6 +164,7 @@ async function buildDatosLiquidacion(pagoId: string): Promise<DatosLiquidacion |
     mes: mesCap,
     pago: nroPago,
     totalPagos,
+    alquilerBase: pago.monto,
     totalLiquidacion: total,
     honorariosPct,
     gastos: [],
