@@ -50,14 +50,18 @@ services:
       JWT_EXPIRES_IN: 7d
       NODE_ENV: production
       PORT: 3001
-      CORS_ORIGIN: https://${DOMAIN}
+      CORS_ORIGIN: https://app.${DOMAIN}
       WA_SESSION_PATH: /app/apps/api/baileys_auth_info
-      SMTP_HOST: smtp.resend.com
-      SMTP_PORT: "465"
-      SMTP_SECURE: "true"
-      SMTP_USER: resend
+      # WhatsApp Meta Cloud API
+      WHATSAPP_PHONE_NUMBER_ID: ${WHATSAPP_PHONE_NUMBER_ID}
+      WHATSAPP_BUSINESS_ACCOUNT_ID: ${WHATSAPP_BUSINESS_ACCOUNT_ID}
+      WHATSAPP_ACCESS_TOKEN: ${WHATSAPP_ACCESS_TOKEN}
+      WHATSAPP_VERIFY_TOKEN: gutleber_webhook_2026
+      # Email (Resend)
       SMTP_PASS: ${SMTP_PASS}
-      SMTP_FROM: sistema@automatizapp.pro
+      # IA
+      ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY}
+      # Dominio público para links en emails
       APP_URL: https://app.${DOMAIN}
     volumes:
       - gutleber-wa-session:/app/apps/api/baileys_auth_info
