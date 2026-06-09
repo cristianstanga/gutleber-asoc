@@ -6,6 +6,7 @@ import {
   DatosRecibo, DatosLiquidacion, ConceptoExtra,
 } from '../services/pdf'
 import { sendPDF, sendText } from '../services/whatsapp'
+import { sendText as sendMetaText } from '../services/whatsapp-meta'
 
 const router = Router()
 
@@ -283,8 +284,45 @@ router.patch('/:id/pagar-propietario', async (req, res) => {
   const pago = await prisma.pago.update({
     where: { id: req.params.id },
     data: { pagadoAlPropietario: true, fechaPagoPropietario: new Date() },
+    include: {
+      propiedad: true,
+      vinculo: { select: { honorariosPct: true } },
+    },
   })
   res.json(pago)
+
+  // Notificar al propietario vía WhatsApp
+  if (pago.propiedadId) {
+    const vAdmin = await prisma.vinculo.findFirst({
+      where: { propiedadId: pago.propiedadId, tipo: 'ADMINISTRACION', activo: true },
+      include: { persona: true },
+    })
+    const tel = vAdmin?.persona?.whatsapp
+    if (tel) {
+      const honorariosPct = pago.vinculo?.honorariosPct ?? 8
+      const conceptos = (pago.conceptosExtra as ConceptoExtra[] | null) ?? []
+      const extrasParaProp = conceptos.filter(c => !c.esInmobiliaria).reduce((s, c) => s + c.monto, 0)
+      const honorarios = Math.round(pago.monto * honorariosPct / 100)
+      const totalTransferir = (pago.monto - honorarios) + extrasParaProp
+      const fmt = (n: number) => new Intl.NumberFormat('es-AR', { style: 'currency', currency: 'ARS', maximumFractionDigits: 0 }).format(n)
+      const fecha = new Date().toLocaleDateString('es-AR', { day: '2-digit', month: 'long', year: 'numeric' })
+      const nombre = vAdmin!.persona!.nombre
+      const lineasExtras = extrasParaProp !== 0
+        ? `Otros conceptos: ${extrasParaProp > 0 ? '+' : ''}${fmt(extrasParaProp)}\n`
+        : ''
+      const msg =
+        `💸 *Hola ${nombre}, transferencia procesada*\n\n` +
+        `📍 ${pago.propiedad?.direccion ?? ''}\n` +
+        `📅 ${fecha}\n\n` +
+        `Alquiler cobrado: ${fmt(pago.monto)}\n` +
+        `Honorarios (${honorariosPct}%): -${fmt(honorarios)}\n` +
+        lineasExtras +
+        `━━━━━━━━━━━━━\n` +
+        `*Total transferido: ${fmt(totalTransferir)}*\n\n` +
+        `_Gutleber & Asoc._`
+      sendMetaText(tel, msg).catch(() => {})
+    }
+  }
 })
 
 // Revertir pago al propietario (si se registró por error)
