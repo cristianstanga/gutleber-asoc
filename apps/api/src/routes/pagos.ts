@@ -6,7 +6,7 @@ import {
   DatosRecibo, DatosLiquidacion, ConceptoExtra,
 } from '../services/pdf'
 import { sendPDF, sendText } from '../services/whatsapp'
-import { sendText as sendMetaText, sendTemplate } from '../services/whatsapp-meta'
+import { sendText as sendMetaText, sendTemplate, sendPDF as sendMetaPDF } from '../services/whatsapp-meta'
 
 const router = Router()
 
@@ -439,8 +439,8 @@ router.post('/:id/enviar-whatsapp', async (req, res) => {
     const saludo =
       `Hola ${pago.persona.nombre}, le enviamos el comprobante de pago correspondiente ` +
       `al período ${pago.periodo || ''} de *${pago.propiedad?.direccion || ''}*. ¡Gracias!`
-    await sendText(pago.persona.whatsapp, saludo)
-    await sendPDF(pago.persona.whatsapp, buffer, `Recibo ${pago.periodo || pago.id}.pdf`)
+    await sendMetaText(pago.persona.whatsapp, saludo)
+    await sendMetaPDF(pago.persona.whatsapp, buffer, `Recibo ${pago.periodo || pago.id}.pdf`)
 
     await prisma.pago.update({ where: { id: pago.id }, data: { comprobanteEnviado: true } })
     await prisma.inboxItem.create({
