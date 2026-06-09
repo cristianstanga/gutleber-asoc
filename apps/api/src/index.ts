@@ -22,8 +22,7 @@ import catalogoRouter from './routes/catalogo'
 import usuariosRouter from './routes/usuarios'
 import webhookWhatsappRouter from './routes/webhook-whatsapp'
 import { initCron } from './services/cron'
-import { initWhatsApp, getDebugInfo, checkNumber } from './services/whatsapp'
-import { sendHelloWorld } from './services/whatsapp-meta'
+import { sendHelloWorld, getStatus as getWAStatus } from './services/whatsapp-meta'
 import { authMiddleware, requireAdmin, requireAdminOrOperador } from './middleware/auth'
 
 export const prisma = new PrismaClient()
@@ -45,9 +44,8 @@ app.use('/api/auth', authRouter)
 // Tarjeta pública (sin auth — para preview y compartir)
 app.use('/api/public', tarjetaPublicaRouter)
 
-// WhatsApp debug — sin auth para diagnóstico en VPS
-app.get('/api/whatsapp/debug', (_req, res) => res.json(getDebugInfo()))
-app.get('/api/whatsapp/check/:phone', async (req, res) => res.json(await checkNumber(req.params.phone)))
+// WhatsApp — sin auth para diagnóstico
+app.get('/api/whatsapp/debug', (_req, res) => res.json(getWAStatus()))
 app.get('/api/whatsapp/meta-test/:phone', async (req, res) => {
   try { res.json({ ok: true, result: await sendHelloWorld(req.params.phone) }) }
   catch (err) { res.status(500).json({ error: String(err) }) }
@@ -87,7 +85,6 @@ app.listen(PORT, () => {
   logger.info(`🏢 Gutleber API corriendo en http://localhost:${PORT}`)
   fixImageUrls().catch((err) => logger.warn({ err }, 'fixImageUrls falló'))
   initCron()
-  initWhatsApp().catch((err) => logger.error({ err }, 'Error iniciando WhatsApp'))
 })
 
 // ── Prevenir crashes por errores no capturados (Baileys, etc.) ────────────────

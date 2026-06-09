@@ -12,7 +12,7 @@
 import cron from 'node-cron'
 import { prisma, logger } from '../index'
 import { EstadoPago, TipoPago, Moneda } from '@prisma/client'
-import { sendText } from './whatsapp'
+import { sendText } from './whatsapp-meta'
 import { enviarCatalogoWA } from './catalogo-wa'
 
 // Espera aleatoria entre mensajes para parecer humano (5–12 segundos)

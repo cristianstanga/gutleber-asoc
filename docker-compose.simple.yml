@@ -9,7 +9,6 @@ networks:
 
 volumes:
   gutleber-postgres-data:
-  gutleber-wa-session:
   gutleber-uploads:
 
 services:
@@ -45,7 +44,6 @@ services:
       PORT: 3001
       CORS_ORIGIN: https://app.automatizapp.pro
       PUBLIC_URL: https://app.automatizapp.pro
-      WA_SESSION_PATH: /app/apps/api/baileys_auth_info
       ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY}
       INSTAGRAM_ACCESS_TOKEN: ${INSTAGRAM_ACCESS_TOKEN:-}
       INSTAGRAM_ACCOUNT_ID: ${INSTAGRAM_ACCOUNT_ID:-}
@@ -57,7 +55,6 @@ services:
       SMTP_PASS: ${SMTP_PASS}
       APP_URL: https://app.automatizapp.pro
     volumes:
-      - gutleber-wa-session:/app/apps/api/baileys_auth_info
       - gutleber-uploads:/app/apps/api/uploads
     depends_on:
       gutleber-postgres:

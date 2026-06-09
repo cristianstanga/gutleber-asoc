@@ -1,6 +1,6 @@
 import { prisma, logger } from '../index'
 import { generarTarjeta } from './tarjeta'
-import { sendImage, sendText } from './whatsapp'
+import { sendImage, sendText } from './whatsapp-meta'
 import { TipoVinculo } from '@prisma/client'
 
 const DESTINO_DEFAULT = process.env.CATALOGO_WA_NUMERO || ''

@@ -5,7 +5,6 @@ import {
   generarReciboPDF, generarLiquidacionPDF,
   DatosRecibo, DatosLiquidacion, ConceptoExtra,
 } from '../services/pdf'
-import { sendPDF, sendText } from '../services/whatsapp'
 import { sendText as sendMetaText, sendTemplate, sendPDF as sendMetaPDF } from '../services/whatsapp-meta'
 
 const router = Router()

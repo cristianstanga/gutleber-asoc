@@ -87,14 +87,21 @@ export async function sendVideoUrl(to: string, url: string, caption?: string): P
 }
 
 export async function sendPDF(to: string, buffer: Buffer, filename: string): Promise<void> {
-  // PDF vía buffer no está soportado directamente por Meta Cloud API — necesita URL pública.
-  // Por ahora logueamos un warning; migrar a URL cuando tengamos storage en la nube.
-  logger.warn({ to, filename }, '⚠️ Meta WA: sendPDF requiere URL pública — no implementado aún')
+  logger.warn({ to, filename }, '⚠️ Meta WA: sendPDF requiere URL pública — pendiente migración a cloud storage')
+}
+
+export async function sendImage(to: string, buffer: Buffer, caption?: string): Promise<void> {
+  logger.warn({ to, caption }, '⚠️ Meta WA: sendImage por buffer requiere URL pública — pendiente migración a cloud storage')
 }
 
 export function getStatus() {
   const configured = !!(process.env.WHATSAPP_PHONE_NUMBER_ID && process.env.WHATSAPP_ACCESS_TOKEN)
-  return { connected: configured, provider: 'meta', session: 'cloud-api' }
+  return {
+    connected: configured,
+    provider: 'meta-cloud-api',
+    phoneNumberId: process.env.WHATSAPP_PHONE_NUMBER_ID ?? null,
+    businessAccountId: process.env.WHATSAPP_BUSINESS_ACCOUNT_ID ?? null,
+  }
 }
 
 /** Envía el template hello_world — solo para testing de conectividad */

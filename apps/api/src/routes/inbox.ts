@@ -1,5 +1,6 @@
 import { Router } from 'express'
 import { prisma } from '../index'
+import { sendText } from '../services/whatsapp-meta'
 
 const router = Router()
 
@@ -34,7 +35,6 @@ router.post('/enviar', async (req, res) => {
   const persona = await prisma.persona.findUnique({ where: { id: personaId } })
   if (!persona?.whatsapp) return res.status(400).json({ error: 'Sin WhatsApp' })
 
-  const { sendText } = await import('../services/whatsapp')
   await sendText(persona.whatsapp, mensaje)
 
   const item = await prisma.inboxItem.create({

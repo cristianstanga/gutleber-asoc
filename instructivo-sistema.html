@@ -1,0 +1,1085 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Sistema Gutleber & Asoc. — Instructivo Operativo</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Playfair+Display:wght@600;700&display=swap');
+
+  :root {
+    --carbon: #1a1a1a;
+    --piedra: #6b7280;
+    --arena: #e5e1d8;
+    --crema: #f5f2ed;
+    --accent: #2563eb;
+    --accent-light: #eff6ff;
+    --green: #16a34a;
+    --amber: #d97706;
+    --red: #dc2626;
+    --border: #e2e8f0;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: 'Inter', sans-serif;
+    font-size: 10.5pt;
+    line-height: 1.65;
+    color: var(--carbon);
+    background: #fff;
+  }
+
+  /* ── Tipografía ── */
+  h1.display { font-family: 'Playfair Display', serif; font-size: 34pt; font-weight: 700; line-height: 1.15; }
+  h2 { font-family: 'Playfair Display', serif; font-size: 16pt; font-weight: 600; color: var(--carbon); margin-bottom: 10px; }
+  h3 { font-size: 11.5pt; font-weight: 600; color: var(--carbon); margin-bottom: 6px; }
+  h4 { font-size: 10pt; font-weight: 600; color: var(--piedra); text-transform: uppercase; letter-spacing: .05em; margin-bottom: 4px; }
+  p { margin-bottom: 8px; color: #374151; }
+
+  /* ── Layout ── */
+  .page {
+    width: 210mm;
+    min-height: 297mm;
+    margin: 0 auto;
+    padding: 18mm 20mm;
+    position: relative;
+    background: #fff;
+  }
+
+  /* ── Portada ── */
+  .cover {
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    min-height: 297mm;
+    padding: 22mm 22mm;
+  }
+  .cover-top { }
+  .cover-logo {
+    font-family: 'Playfair Display', serif;
+    font-size: 13pt;
+    font-weight: 700;
+    color: var(--carbon);
+    letter-spacing: .03em;
+    margin-bottom: 6mm;
+  }
+  .cover-logo span { color: var(--accent); }
+  .cover-rule { height: 3px; background: linear-gradient(90deg, var(--accent), var(--arena)); border: none; width: 60mm; margin-bottom: 14mm; }
+  .cover-title { color: var(--carbon); margin-bottom: 5mm; }
+  .cover-subtitle { font-size: 13pt; color: var(--piedra); font-weight: 400; margin-bottom: 14mm; }
+  .cover-desc { max-width: 130mm; color: var(--piedra); font-size: 10pt; line-height: 1.7; }
+  .cover-bottom {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-end;
+    border-top: 1px solid var(--border);
+    padding-top: 6mm;
+  }
+  .cover-meta { font-size: 8.5pt; color: var(--piedra); line-height: 1.8; }
+  .cover-version {
+    font-size: 8pt;
+    color: var(--piedra);
+    background: var(--crema);
+    border: 1px solid var(--arena);
+    padding: 3px 10px;
+    border-radius: 20px;
+  }
+
+  /* ── Secciones ── */
+  .section { margin-bottom: 14mm; }
+  .section-header {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    border-bottom: 2px solid var(--accent);
+    padding-bottom: 6px;
+    margin-bottom: 10px;
+  }
+  .section-number {
+    background: var(--accent);
+    color: #fff;
+    font-size: 9pt;
+    font-weight: 700;
+    width: 22px;
+    height: 22px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+  }
+  .section-header h2 { margin-bottom: 0; border: none; }
+
+  /* ── Índice ── */
+  .toc-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    padding: 4px 0;
+    border-bottom: 1px dotted var(--border);
+    font-size: 10pt;
+  }
+  .toc-item:last-child { border-bottom: none; }
+  .toc-page { color: var(--piedra); font-size: 9pt; }
+
+  /* ── Módulos ── */
+  .module-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+    margin-bottom: 10px;
+  }
+  .module-card {
+    background: var(--crema);
+    border: 1px solid var(--arena);
+    border-radius: 8px;
+    padding: 10px 12px;
+  }
+  .module-card h3 { font-size: 10.5pt; margin-bottom: 4px; }
+  .module-card p { font-size: 9pt; color: var(--piedra); margin-bottom: 0; }
+
+  /* ── Tabla operativa ── */
+  .op-table { width: 100%; border-collapse: collapse; font-size: 9.5pt; margin-bottom: 10px; }
+  .op-table th { background: var(--crema); color: var(--piedra); text-transform: uppercase; font-size: 8pt; letter-spacing: .05em; padding: 6px 10px; text-align: left; border-bottom: 2px solid var(--border); }
+  .op-table td { padding: 7px 10px; border-bottom: 1px solid var(--border); vertical-align: top; }
+  .op-table tr:last-child td { border-bottom: none; }
+  .op-table tr:hover td { background: var(--crema); }
+
+  /* ── Badges / pills ── */
+  .badge {
+    display: inline-block;
+    padding: 2px 8px;
+    border-radius: 20px;
+    font-size: 8pt;
+    font-weight: 600;
+  }
+  .badge-blue { background: var(--accent-light); color: var(--accent); }
+  .badge-green { background: #dcfce7; color: var(--green); }
+  .badge-amber { background: #fef3c7; color: var(--amber); }
+  .badge-red { background: #fee2e2; color: var(--red); }
+  .badge-gray { background: #f3f4f6; color: var(--piedra); }
+
+  /* ── Roles ── */
+  .role-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 8px;
+    margin-bottom: 10px;
+  }
+  .role-card {
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 10px;
+    text-align: center;
+  }
+  .role-icon { font-size: 18pt; margin-bottom: 4px; }
+  .role-card h4 { font-size: 9pt; text-transform: uppercase; letter-spacing: .06em; margin-bottom: 4px; }
+  .role-card p { font-size: 8.5pt; color: var(--piedra); margin: 0; }
+
+  /* ── Tech ── */
+  .tech-block { margin-bottom: 12px; }
+  .tech-block h3 { font-size: 10.5pt; font-weight: 600; color: var(--accent); border-left: 3px solid var(--accent); padding-left: 8px; margin-bottom: 6px; }
+  .tech-row { display: flex; justify-content: space-between; align-items: baseline; padding: 4px 0; border-bottom: 1px solid var(--border); font-size: 9.5pt; }
+  .tech-row:last-child { border-bottom: none; }
+  .tech-name { font-weight: 500; }
+  .tech-detail { color: var(--piedra); font-size: 9pt; text-align: right; max-width: 60%; }
+
+  /* ── Flujos ── */
+  .flow {
+    display: flex;
+    gap: 6px;
+    align-items: flex-start;
+    flex-wrap: wrap;
+    margin-bottom: 8px;
+  }
+  .flow-step {
+    background: var(--accent);
+    color: #fff;
+    border-radius: 6px;
+    padding: 4px 10px;
+    font-size: 8.5pt;
+    font-weight: 500;
+    white-space: nowrap;
+  }
+  .flow-arrow { color: var(--piedra); align-self: center; font-size: 11pt; }
+
+  /* ── Info boxes ── */
+  .infobox {
+    border-left: 3px solid;
+    padding: 8px 12px;
+    border-radius: 0 6px 6px 0;
+    margin-bottom: 8px;
+    font-size: 9.5pt;
+  }
+  .infobox-blue { border-color: var(--accent); background: var(--accent-light); }
+  .infobox-amber { border-color: var(--amber); background: #fef3c7; }
+  .infobox-green { border-color: var(--green); background: #f0fdf4; }
+  .infobox strong { font-weight: 600; }
+
+  /* ── Lista ── */
+  ul.styled { padding-left: 0; list-style: none; }
+  ul.styled li { padding: 3px 0 3px 16px; position: relative; font-size: 9.5pt; color: #374151; }
+  ul.styled li::before { content: "▸"; position: absolute; left: 0; color: var(--accent); font-size: 9pt; }
+
+  /* ── Pie de página ── */
+  .footer {
+    position: fixed;
+    bottom: 10mm;
+    left: 20mm;
+    right: 20mm;
+    display: flex;
+    justify-content: space-between;
+    font-size: 7.5pt;
+    color: var(--piedra);
+    border-top: 1px solid var(--border);
+    padding-top: 4px;
+  }
+
+  /* ── Saltos de página ── */
+  .page-break { page-break-after: always; break-after: page; }
+  .avoid-break { page-break-inside: avoid; break-inside: avoid; }
+
+  /* ── Print ── */
+  @media print {
+    body { font-size: 10pt; }
+    .page { margin: 0; padding: 14mm 18mm 18mm; }
+    .cover { padding: 18mm 20mm; }
+    .footer { display: flex; }
+    a { color: inherit; text-decoration: none; }
+  }
+
+  @page {
+    size: A4;
+    margin: 0;
+  }
+</style>
+</head>
+<body>
+
+<!-- ══════════════════════════════════════════════════════════════
+     PORTADA
+══════════════════════════════════════════════════════════════ -->
+<div class="page cover">
+  <div class="cover-top">
+    <div class="cover-logo">Gutleber <span>&</span> Asoc.</div>
+    <hr class="cover-rule" />
+    <h1 class="display cover-title">Sistema de Gestión<br>Inmobiliaria</h1>
+    <p class="cover-subtitle">Instructivo Operativo y Ficha Técnica</p>
+    <p class="cover-desc">
+      Documentación completa de las funcionalidades del sistema de administración de alquileres,
+      propiedades y comunicación con inquilinos y propietarios. Incluye guía de operación para
+      cada módulo y descripción técnica de la plataforma.
+    </p>
+  </div>
+  <div class="cover-bottom">
+    <div class="cover-meta">
+      <strong>Gutleber &amp; Asoc. — Estudio Inmobiliario</strong><br>
+      Versión 1.0 · Junio 2026<br>
+      Plataforma: <em>automatizapp.pro</em>
+    </div>
+    <div class="cover-version">v1.0 — 2026-06-08</div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════════════════════════
+     ÍNDICE
+══════════════════════════════════════════════════════════════ -->
+<div class="page page-break">
+  <div class="footer">
+    <span>Gutleber &amp; Asoc. — Sistema de Gestión Inmobiliaria</span>
+    <span>Índice</span>
+  </div>
+
+  <div class="section">
+    <div class="section-header">
+      <h2>Índice de contenidos</h2>
+    </div>
+
+    <div class="toc-item"><span>1. Acceso al sistema y roles de usuario</span><span class="toc-page">3</span></div>
+    <div class="toc-item"><span>2. Dashboard — Vista general y búsqueda rápida</span><span class="toc-page">3</span></div>
+    <div class="toc-item"><span>3. Propiedades — Alta y gestión del portfolio</span><span class="toc-page">4</span></div>
+    <div class="toc-item"><span>4. Personas — Inquilinos, propietarios y garantes</span><span class="toc-page">4</span></div>
+    <div class="toc-item"><span>5. Contratos — Vínculos y condiciones de alquiler</span><span class="toc-page">5</span></div>
+    <div class="toc-item"><span>6. Pagos — Cobro de alquiler y liquidación al propietario</span><span class="toc-page">5</span></div>
+    <div class="toc-item"><span>7. Ajuste de índices — ICL / IPC / UVA</span><span class="toc-page">7</span></div>
+    <div class="toc-item"><span>8. Inbox y comunicaciones WhatsApp</span><span class="toc-page">7</span></div>
+    <div class="toc-item"><span>9. Generador de contratos y tarjetas</span><span class="toc-page">8</span></div>
+    <div class="toc-item"><span>10. Portal del inquilino / Portal del propietario</span><span class="toc-page">8</span></div>
+    <div class="toc-item"><span>11. Ficha técnica — Stack y arquitectura</span><span class="toc-page">9</span></div>
+    <div class="toc-item"><span>12. Infraestructura y variables de entorno</span><span class="toc-page">10</span></div>
+    <div class="toc-item"><span>13. Pendientes y hoja de ruta</span><span class="toc-page">11</span></div>
+  </div>
+
+  <!-- Resumen de módulos -->
+  <div class="section">
+    <div class="section-header">
+      <h2>Resumen de módulos disponibles</h2>
+    </div>
+    <div class="module-grid">
+      <div class="module-card avoid-break">
+        <h3>🏠 Propiedades</h3>
+        <p>Registro de inmuebles con fotos, características, precio y estado de disponibilidad.</p>
+      </div>
+      <div class="module-card avoid-break">
+        <h3>👥 Personas</h3>
+        <p>Cartera de inquilinos, propietarios, garantes e interesados con datos de contacto.</p>
+      </div>
+      <div class="module-card avoid-break">
+        <h3>📄 Contratos</h3>
+        <p>Vínculos entre persona y propiedad. Plazos, alquiler inicial, índice de ajuste y honorarios.</p>
+      </div>
+      <div class="module-card avoid-break">
+        <h3>💳 Pagos</h3>
+        <p>Cobro de alquiler, emisión de recibo PDF, envío por WhatsApp y liquidación al propietario.</p>
+      </div>
+      <div class="module-card avoid-break">
+        <h3>📊 Dashboard</h3>
+        <p>KPIs del portfolio, alertas de mora, pendientes de liquidar y contratos por vencer.</p>
+      </div>
+      <div class="module-card avoid-break">
+        <h3>💬 Inbox WA</h3>
+        <p>Bandeja de mensajes WhatsApp entrantes. Asistente IA para atención de consultas.</p>
+      </div>
+      <div class="module-card avoid-break">
+        <h3>📈 Índices</h3>
+        <p>Ajuste automático de alquileres por ICL, IPC o UVA según periodicidad del contrato.</p>
+      </div>
+      <div class="module-card avoid-break">
+        <h3>🖨️ Generadores</h3>
+        <p>Generador de contratos en PDF y tarjetas de presentación de propiedades.</p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════════════════════════
+     PÁG 3 — ACCESO + DASHBOARD
+══════════════════════════════════════════════════════════════ -->
+<div class="page page-break">
+  <div class="footer">
+    <span>Gutleber &amp; Asoc. — Sistema de Gestión Inmobiliaria</span>
+    <span>Acceso y Dashboard — pág. 3</span>
+  </div>
+
+  <!-- 1. Acceso -->
+  <div class="section avoid-break">
+    <div class="section-header">
+      <div class="section-number">1</div>
+      <h2>Acceso al sistema y roles de usuario</h2>
+    </div>
+
+    <p>El sistema es accesible desde cualquier navegador web en <strong>app.automatizapp.pro</strong>. El login requiere email y contraseña. Si se olvidó la contraseña se puede recuperar por email desde el enlace "Olvidé mi contraseña".</p>
+
+    <div class="role-grid">
+      <div class="role-card">
+        <div class="role-icon">🔑</div>
+        <h4>Admin</h4>
+        <p>Acceso total. Gestión de usuarios, todas las funciones.</p>
+      </div>
+      <div class="role-card">
+        <div class="role-icon">👤</div>
+        <h4>Operador</h4>
+        <p>Acceso a todas las funciones operativas excepto gestión de usuarios.</p>
+      </div>
+      <div class="role-card">
+        <div class="role-icon">🏢</div>
+        <h4>Propietario</h4>
+        <p>Solo visualiza sus propiedades y estados de pago.</p>
+      </div>
+      <div class="role-card">
+        <div class="role-icon">🏠</div>
+        <h4>Inquilino</h4>
+        <p>Solo visualiza su contrato y pagos pendientes.</p>
+      </div>
+    </div>
+
+    <div class="infobox infobox-blue">
+      <strong>Recupero de contraseña:</strong> Ingresar email en la pantalla "Olvidé mi contraseña". Llega un enlace válido por 1 hora a la dirección registrada (enviado desde sistema@automatizapp.pro).
+    </div>
+  </div>
+
+  <!-- 2. Dashboard -->
+  <div class="section">
+    <div class="section-header">
+      <div class="section-number">2</div>
+      <h2>Dashboard — Vista general y búsqueda rápida</h2>
+    </div>
+
+    <p>La pantalla de inicio muestra en tiempo real el estado del portfolio inmobiliario y las acciones urgentes pendientes.</p>
+
+    <h3>KPIs visibles</h3>
+    <table class="op-table avoid-break">
+      <tr><th>Indicador</th><th>Descripción</th></tr>
+      <tr><td><strong>Propiedades</strong></td><td>Total de inmuebles en el sistema, desglosado en alquiler / venta.</td></tr>
+      <tr><td><strong>Inquilinos activos</strong></td><td>Personas con contrato de alquiler vigente. Incluye cuántos contratos vencen pronto.</td></tr>
+      <tr><td><strong>Pagos pendientes</strong></td><td>Pagos en estado Pendiente o Vencido. Si hay mora, el número aparece en rojo.</td></tr>
+      <tr><td><strong>Recaudado este mes</strong></td><td>Suma de todos los cobros confirmados en el mes calendario actual.</td></tr>
+      <tr><td><strong>Inbox no leídos</strong></td><td>Mensajes WhatsApp entrantes sin leer.</td></tr>
+    </table>
+
+    <h3>Búsqueda rápida</h3>
+    <p>En el encabezado del Dashboard hay un campo de búsqueda que permite encontrar cualquier inquilino, propietario o dirección de propiedad. Al hacer clic en un resultado, el sistema navega directamente a la pantalla de Pagos con ese contrato pre-seleccionado.</p>
+
+    <h3>Bloques operativos</h3>
+    <table class="op-table avoid-break">
+      <tr><th>Bloque</th><th>Qué muestra</th></tr>
+      <tr>
+        <td><strong>Pendientes de liquidar al propietario</strong></td>
+        <td>Alquileres ya cobrados al inquilino que todavía no se transfirieron al propietario. Muestra el neto a transferir (monto cobrado menos honorarios del estudio).</td>
+      </tr>
+      <tr>
+        <td><strong>Contratos por vencer (90 días)</strong></td>
+        <td>Contratos cuya fecha de finalización cae dentro de los próximos 90 días. Días en rojo ≤ 30, ámbar ≤ 60, normal ≤ 90.</td>
+      </tr>
+      <tr>
+        <td><strong>Alertas de pagos</strong></td>
+        <td>Pagos en estado Pendiente, Vencido o En mora ordenados por fecha de vencimiento.</td>
+      </tr>
+      <tr>
+        <td><strong>Últimos movimientos</strong></td>
+        <td>Los 5 pagos más recientes registrados en el sistema.</td>
+      </tr>
+    </table>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════════════════════════
+     PÁG 4 — PROPIEDADES + PERSONAS
+══════════════════════════════════════════════════════════════ -->
+<div class="page page-break">
+  <div class="footer">
+    <span>Gutleber &amp; Asoc. — Sistema de Gestión Inmobiliaria</span>
+    <span>Propiedades y Personas — pág. 4</span>
+  </div>
+
+  <!-- 3. Propiedades -->
+  <div class="section">
+    <div class="section-header">
+      <div class="section-number">3</div>
+      <h2>Propiedades — Alta y gestión del portfolio</h2>
+    </div>
+
+    <p>Registro central de todos los inmuebles que administra el estudio. Cada propiedad puede estar simultáneamente en alquiler, en venta o en administración.</p>
+
+    <h3>Datos de una propiedad</h3>
+    <div class="module-grid">
+      <div>
+        <ul class="styled">
+          <li>Dirección completa (con búsqueda en mapa)</li>
+          <li>Tipo: casa / departamento / local / oficina / terreno</li>
+          <li>Superficie, dormitorios, baños, cochera, piso</li>
+          <li>Estado: en alquiler / en venta / administrada</li>
+          <li>Propietario vinculado</li>
+        </ul>
+      </div>
+      <div>
+        <ul class="styled">
+          <li>Precio de alquiler base e índice de ajuste</li>
+          <li>Valor de venta (en USD o ARS)</li>
+          <li>Descripción y notas internas</li>
+          <li>Fotos y videos subidos al sistema</li>
+          <li>Barrio / zona</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="infobox infobox-amber">
+      <strong>Nota:</strong> Las imágenes y videos se almacenan actualmente en el servidor. Se planea migrarlos a almacenamiento en la nube (Cloudflare R2) en una versión futura para mayor durabilidad.
+    </div>
+
+    <h3>Estados de disponibilidad</h3>
+    <table class="op-table avoid-break">
+      <tr><th>Estado</th><th>Descripción</th></tr>
+      <tr><td><span class="badge badge-blue">En alquiler</span></td><td>Propiedad actualmente alquilada. Tiene un contrato vigente.</td></tr>
+      <tr><td><span class="badge badge-green">En venta</span></td><td>Propiedad publicada para la venta. Puede estar alquilada simultáneamente.</td></tr>
+      <tr><td><span class="badge badge-gray">Administrada</span></td><td>Propiedad bajo administración sin alquiler activo.</td></tr>
+    </table>
+  </div>
+
+  <!-- 4. Personas -->
+  <div class="section">
+    <div class="section-header">
+      <div class="section-number">4</div>
+      <h2>Personas — Inquilinos, propietarios y garantes</h2>
+    </div>
+
+    <p>Cartera unificada de todos los contactos del estudio. Una misma persona puede tener diferentes roles a lo largo del tiempo.</p>
+
+    <h3>Tipos de persona</h3>
+    <table class="op-table avoid-break">
+      <tr><th>Tipo</th><th>Función</th></tr>
+      <tr>
+        <td><span class="badge badge-blue">Inquilino</span></td>
+        <td>Persona que alquila una propiedad. Se vincula a través de un contrato. Puede tener acceso al portal de inquilinos.</td>
+      </tr>
+      <tr>
+        <td><span class="badge badge-amber">Propietario</span></td>
+        <td>Dueño de una o más propiedades. Recibe las liquidaciones. Puede tener acceso al portal de propietarios.</td>
+      </tr>
+      <tr>
+        <td><span class="badge badge-gray">Garante</span></td>
+        <td>Garante de un contrato. Se registra para tener sus datos disponibles.</td>
+      </tr>
+      <tr>
+        <td><span class="badge badge-green">Interesado</span></td>
+        <td>Persona que consultó por una propiedad pero aún no es cliente. Puede venir del inbox de WhatsApp.</td>
+      </tr>
+    </table>
+
+    <h3>Datos registrados</h3>
+    <ul class="styled">
+      <li>Nombre, apellido y DNI (único en el sistema)</li>
+      <li>Teléfono WhatsApp (para notificaciones automáticas)</li>
+      <li>Email (para recibos y comunicaciones)</li>
+      <li>Notas internas</li>
+    </ul>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════════════════════════
+     PÁG 5 — CONTRATOS
+══════════════════════════════════════════════════════════════ -->
+<div class="page page-break">
+  <div class="footer">
+    <span>Gutleber &amp; Asoc. — Sistema de Gestión Inmobiliaria</span>
+    <span>Contratos — pág. 5</span>
+  </div>
+
+  <!-- 5. Contratos -->
+  <div class="section">
+    <div class="section-header">
+      <div class="section-number">5</div>
+      <h2>Contratos — Vínculos y condiciones de alquiler</h2>
+    </div>
+
+    <p>Un contrato (llamado "vínculo" en el sistema) relaciona a una persona con una propiedad bajo condiciones específicas. Es el eje central de toda la operatoria de alquiler.</p>
+
+    <h3>Datos de un contrato</h3>
+    <table class="op-table avoid-break">
+      <tr><th>Campo</th><th>Descripción</th></tr>
+      <tr><td><strong>Propiedad</strong></td><td>Inmueble del contrato (selección del listado de propiedades)</td></tr>
+      <tr><td><strong>Inquilino</strong></td><td>Persona vinculada como inquilino</td></tr>
+      <tr><td><strong>Tipo</strong></td><td>Alquiler, Venta o Administración</td></tr>
+      <tr><td><strong>Fecha inicio / fin</strong></td><td>Vigencia del contrato. El sistema alerta si la fecha de fin se acerca.</td></tr>
+      <tr><td><strong>Duración</strong></td><td>En meses (ej. 24 meses)</td></tr>
+      <tr><td><strong>Alquiler inicial</strong></td><td>Monto al inicio del contrato</td></tr>
+      <tr><td><strong>Alquiler actual</strong></td><td>Monto vigente (actualizado por índice)</td></tr>
+      <tr><td><strong>Índice de ajuste</strong></td><td>ICL, IPC o UVA</td></tr>
+      <tr><td><strong>Periodicidad de ajuste</strong></td><td>Cada cuántos meses se aplica el índice (ej. 3 meses)</td></tr>
+      <tr><td><strong>Honorarios %</strong></td><td>Porcentaje que retiene el estudio en cada liquidación (por defecto: 8%)</td></tr>
+      <tr><td><strong>Notas</strong></td><td>Observaciones internas del contrato</td></tr>
+    </table>
+
+    <h3>Flujo de vida de un contrato</h3>
+    <div class="flow avoid-break">
+      <div class="flow-step">Alta del contrato</div>
+      <div class="flow-arrow">→</div>
+      <div class="flow-step">Generación mensual de pagos</div>
+      <div class="flow-arrow">→</div>
+      <div class="flow-step">Cobro y liquidación</div>
+      <div class="flow-arrow">→</div>
+      <div class="flow-step">Ajuste por índice</div>
+      <div class="flow-arrow">→</div>
+      <div class="flow-step">Renovación o cierre</div>
+    </div>
+
+    <div class="infobox infobox-blue">
+      <strong>Generador de contratos PDF:</strong> Desde el menú "Contrato Gen." se puede generar el documento legal del contrato en formato PDF listo para firmar, con todos los datos del vínculo pre-cargados.
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════════════════════════
+     PÁG 6 — PAGOS (parte 1)
+══════════════════════════════════════════════════════════════ -->
+<div class="page page-break">
+  <div class="footer">
+    <span>Gutleber &amp; Asoc. — Sistema de Gestión Inmobiliaria</span>
+    <span>Pagos — pág. 6</span>
+  </div>
+
+  <!-- 6. Pagos -->
+  <div class="section">
+    <div class="section-header">
+      <div class="section-number">6</div>
+      <h2>Pagos — Cobro de alquiler y liquidación al propietario</h2>
+    </div>
+
+    <p>Módulo central de la operatoria diaria. La pantalla de Pagos muestra todos los alquileres agrupados por contrato, con dos columnas de acción: una para la relación con el <strong>inquilino</strong> y otra para la relación con el <strong>propietario</strong>.</p>
+
+    <h3>Estados de un pago</h3>
+    <table class="op-table avoid-break">
+      <tr><th>Estado</th><th>Significado</th></tr>
+      <tr><td><span class="badge badge-amber">Pendiente</span></td><td>El pago fue generado pero aún no se cobró.</td></tr>
+      <tr><td><span class="badge badge-red">Vencido / En mora</span></td><td>Pasó la fecha de vencimiento sin cobrar.</td></tr>
+      <tr><td><span class="badge badge-green">Pagado</span></td><td>Cobrado al inquilino. Pendiente de liquidar al propietario.</td></tr>
+      <tr><td><span class="badge badge-gray">Anulado</span></td><td>Pago anulado manualmente.</td></tr>
+    </table>
+
+    <h3>Columna Inquilino — acciones disponibles</h3>
+    <table class="op-table avoid-break">
+      <tr><th>Acción</th><th>Cuándo aparece</th><th>Qué hace</th></tr>
+      <tr>
+        <td><strong>Cobrar</strong></td>
+        <td>Estado Pendiente / Vencido</td>
+        <td>Abre formulario para registrar el cobro: monto, forma de pago (efectivo / transferencia / otro), conceptos extra (expensas, servicios), y número de recibo automático.</td>
+      </tr>
+      <tr>
+        <td><strong>Recibo PDF</strong></td>
+        <td>Estado Pagado</td>
+        <td>Genera y descarga el recibo oficial en PDF con número correlativo, datos del inquilino, propiedad, período y monto desglosado.</td>
+      </tr>
+      <tr>
+        <td><strong>Enviar WA</strong></td>
+        <td>Pagado, recibo no enviado</td>
+        <td>Envía el recibo por WhatsApp al número del inquilino. Marca el pago como "comprobante enviado".</td>
+      </tr>
+      <tr>
+        <td><strong>Reenviar WA</strong></td>
+        <td>Pagado, recibo ya enviado</td>
+        <td>Permite reenviar el comprobante ante pedido del inquilino.</td>
+      </tr>
+    </table>
+
+    <h3>Columna Propietario — acciones disponibles</h3>
+    <table class="op-table avoid-break">
+      <tr><th>Acción</th><th>Cuándo aparece</th><th>Qué hace</th></tr>
+      <tr>
+        <td><strong>Esperando cobro</strong></td>
+        <td>No cobrado aún</td>
+        <td>Indicador visual. No es una acción — muestra que primero hay que cobrar al inquilino.</td>
+      </tr>
+      <tr>
+        <td><strong>Liquidar</strong> (próximamente)</td>
+        <td>Pagado, no transferido</td>
+        <td>Genera la liquidación para el propietario (PDF con detalle de cobros y deducciones).</td>
+      </tr>
+      <tr>
+        <td><strong>Transferir</strong></td>
+        <td>Pagado, no transferido</td>
+        <td>Abre modal de desglose mostrando: monto cobrado al inquilino, honorarios del estudio (%), y neto a transferir al propietario. Al confirmar, registra la transferencia con fecha.</td>
+      </tr>
+      <tr>
+        <td><strong>✓ Cobró + fecha</strong></td>
+        <td>Transferido</td>
+        <td>Indicador de que la transferencia fue realizada, con la fecha en que se hizo.</td>
+      </tr>
+      <tr>
+        <td><strong>Revertir</strong></td>
+        <td>Transferido</td>
+        <td>Permite deshacer la transferencia registrada (por error). Solicita confirmación inline antes de ejecutar.</td>
+      </tr>
+    </table>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════════════════════════
+     PÁG 7 — PAGOS (parte 2) + ÍNDICES + INBOX
+══════════════════════════════════════════════════════════════ -->
+<div class="page page-break">
+  <div class="footer">
+    <span>Gutleber &amp; Asoc. — Sistema de Gestión Inmobiliaria</span>
+    <span>Índices e Inbox — pág. 7</span>
+  </div>
+
+  <div class="section">
+    <h3>Modal desglose de transferencia al propietario</h3>
+    <p>Al presionar "Transferir", el sistema muestra un resumen antes de confirmar:</p>
+    <table class="op-table avoid-break">
+      <tr><th>Concepto</th><th>Ejemplo</th></tr>
+      <tr><td>Cobrado al inquilino</td><td>$ 180.000</td></tr>
+      <tr><td>Honorarios del estudio (8%)</td><td>− $ 14.400</td></tr>
+      <tr><td><strong>Neto a transferir al propietario</strong></td><td><strong>$ 165.600</strong></td></tr>
+    </table>
+    <p>El porcentaje de honorarios proviene del campo configurado en cada contrato individualmente.</p>
+
+    <h3>Conceptos extra en un cobro</h3>
+    <p>Al registrar un cobro se pueden agregar conceptos adicionales al alquiler base:</p>
+    <ul class="styled">
+      <li>Expensas (ordinarias o extraordinarias)</li>
+      <li>Servicios (luz, gas, agua, etc.)</li>
+      <li>Honorarios adicionales</li>
+      <li>Depósito de garantía</li>
+      <li>Cualquier otro concepto libre con monto</li>
+    </ul>
+    <p>El recibo PDF refleja el desglose completo de todos los conceptos cobrados.</p>
+  </div>
+
+  <!-- 7. Índices -->
+  <div class="section">
+    <div class="section-header">
+      <div class="section-number">7</div>
+      <h2>Ajuste de índices — ICL / IPC / UVA</h2>
+    </div>
+
+    <p>El sistema permite actualizar los alquileres aplicando los índices oficiales de ajuste según lo pactado en cada contrato.</p>
+
+    <table class="op-table avoid-break">
+      <tr><th>Índice</th><th>Fuente</th><th>Periodicidad habitual</th></tr>
+      <tr><td><strong>ICL</strong></td><td>Índice para Contratos de Locación (BCRA)</td><td>Trimestral</td></tr>
+      <tr><td><strong>IPC</strong></td><td>Índice de Precios al Consumidor (INDEC)</td><td>Trimestral / semestral</td></tr>
+      <tr><td><strong>UVA</strong></td><td>Unidad de Valor Adquisitivo (BCRA)</td><td>Mensual</td></tr>
+    </table>
+
+    <p>Desde la pantalla de Índices se ingresa el valor actualizado del índice y el sistema recalcula los alquileres de todos los contratos que lo usan y cuya fecha de próxima actualización haya llegado.</p>
+  </div>
+
+  <!-- 8. Inbox -->
+  <div class="section">
+    <div class="section-header">
+      <div class="section-number">8</div>
+      <h2>Inbox y comunicaciones WhatsApp</h2>
+    </div>
+
+    <p>El sistema integra WhatsApp Business Cloud API de Meta para recibir y responder mensajes directamente desde la plataforma.</p>
+
+    <h3>Funciones del Inbox</h3>
+    <ul class="styled">
+      <li>Bandeja de entrada con todos los mensajes recibidos por WhatsApp</li>
+      <li>Identificación automática de remitentes conocidos (inquilinos / propietarios)</li>
+      <li>Asistente de inteligencia artificial (IA) para sugerir respuestas</li>
+      <li>Seguimiento de conversaciones con etapas: Nuevo → Consultando → Interesado → Cliente</li>
+      <li>Vinculación de conversaciones con propiedades de interés</li>
+      <li>Marcado de mensajes como leídos</li>
+    </ul>
+
+    <h3>Notificaciones automáticas salientes</h3>
+    <table class="op-table avoid-break">
+      <tr><th>Evento</th><th>Destinatario</th><th>Contenido</th></tr>
+      <tr>
+        <td>Cobro de alquiler registrado</td>
+        <td>Inquilino</td>
+        <td>Aviso con monto cobrado, período y nro. de recibo</td>
+      </tr>
+      <tr>
+        <td>Envío de recibo</td>
+        <td>Inquilino</td>
+        <td>Mensaje con PDF del recibo adjunto</td>
+      </tr>
+    </table>
+
+    <div class="infobox infobox-amber">
+      <strong>Limitación Meta:</strong> WhatsApp solo permite texto libre en mensajes dentro de la ventana de 24 horas desde el último mensaje del usuario. Para notificaciones proactivas (ej. recordatorio de vencimiento) se requiere aprobación de plantillas (templates) en Meta Business Manager.
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════════════════════════
+     PÁG 8 — GENERADORES + PORTALES
+══════════════════════════════════════════════════════════════ -->
+<div class="page page-break">
+  <div class="footer">
+    <span>Gutleber &amp; Asoc. — Sistema de Gestión Inmobiliaria</span>
+    <span>Generadores y Portales — pág. 8</span>
+  </div>
+
+  <!-- 9. Generadores -->
+  <div class="section">
+    <div class="section-header">
+      <div class="section-number">9</div>
+      <h2>Generador de contratos y tarjetas de propiedad</h2>
+    </div>
+
+    <h3>Generador de contratos PDF</h3>
+    <p>Permite crear el documento del contrato de alquiler en formato PDF con todos los datos pre-cargados del sistema. El proceso:</p>
+    <div class="flow avoid-break">
+      <div class="flow-step">Seleccionar contrato</div>
+      <div class="flow-arrow">→</div>
+      <div class="flow-step">Revisar datos</div>
+      <div class="flow-arrow">→</div>
+      <div class="flow-step">Generar PDF</div>
+      <div class="flow-arrow">→</div>
+      <div class="flow-step">Descargar / imprimir</div>
+    </div>
+
+    <h3>Tarjetas de propiedad</h3>
+    <p>Genera fichas visuales de propiedades para publicar o compartir. Incluye fotos, características, precio y datos de contacto del estudio. Diseñadas para compartir por WhatsApp o imprimir.</p>
+
+    <div class="infobox infobox-blue">
+      <strong>Catálogo WA:</strong> Las propiedades en venta o alquiler pueden compartirse como catálogo interactivo vía WhatsApp para que los interesados vean las opciones disponibles y consulten directamente.
+    </div>
+  </div>
+
+  <!-- 10. Portales -->
+  <div class="section">
+    <div class="section-header">
+      <div class="section-number">10</div>
+      <h2>Portal del inquilino / Portal del propietario</h2>
+    </div>
+
+    <p>El sistema incluye portales de acceso limitado para que inquilinos y propietarios puedan consultar su información sin necesitar la asistencia del estudio.</p>
+
+    <h3>Portal del inquilino</h3>
+    <p>Acceso con credenciales propias. El inquilino puede ver:</p>
+    <ul class="styled">
+      <li>Datos de su contrato vigente (propiedad, fechas, alquiler actual)</li>
+      <li>Historial de pagos y estado de cada período</li>
+      <li>Fecha del próximo vencimiento</li>
+    </ul>
+
+    <h3>Portal del propietario</h3>
+    <p>Acceso con credenciales propias. El propietario puede ver:</p>
+    <ul class="styled">
+      <li>Sus propiedades en el sistema</li>
+      <li>Estado de alquiler de cada inmueble</li>
+      <li>Historial de liquidaciones recibidas</li>
+    </ul>
+
+    <h3>Gestión de usuarios</h3>
+    <p>El administrador del sistema puede crear cuentas para inquilinos y propietarios desde el menú "Usuarios". Se asigna rol (Inquilino / Propietario), se vincula con la persona correspondiente en la base de datos, y se envía la contraseña inicial. El usuario puede cambiarla más tarde desde el perfil.</p>
+
+    <table class="op-table avoid-break">
+      <tr><th>Rol</th><th>Pantalla al iniciar sesión</th><th>Acciones disponibles</th></tr>
+      <tr><td>Admin / Operador</td><td>Dashboard completo</td><td>Todas las funciones del sistema</td></tr>
+      <tr><td>Propietario</td><td>Mis Propiedades</td><td>Solo lectura: propiedades y liquidaciones</td></tr>
+      <tr><td>Inquilino</td><td>Mi Contrato</td><td>Solo lectura: contrato y pagos propios</td></tr>
+    </table>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════════════════════════
+     PÁG 9 — FICHA TÉCNICA
+══════════════════════════════════════════════════════════════ -->
+<div class="page page-break">
+  <div class="footer">
+    <span>Gutleber &amp; Asoc. — Sistema de Gestión Inmobiliaria</span>
+    <span>Ficha Técnica — pág. 9</span>
+  </div>
+
+  <!-- 11. Tech -->
+  <div class="section">
+    <div class="section-header">
+      <div class="section-number">11</div>
+      <h2>Ficha técnica — Stack y arquitectura</h2>
+    </div>
+
+    <p>El sistema es una aplicación web full-stack desarrollada como monorepo. Se compone de un frontend (aplicación web), un backend (API REST) y una base de datos relacional, todos corriendo en contenedores Docker.</p>
+
+    <div class="module-grid" style="margin-bottom: 14px;">
+      <div class="module-card avoid-break">
+        <h3>Frontend</h3>
+        <p>Aplicación web SPA servida como archivos estáticos. Se accede desde el navegador en <em>app.automatizapp.pro</em>.</p>
+      </div>
+      <div class="module-card avoid-break">
+        <h3>Backend</h3>
+        <p>API REST en Node.js. Recibe las peticiones del frontend, aplica lógica de negocio, accede a la base de datos y envía notificaciones.</p>
+      </div>
+    </div>
+
+    <div class="tech-block avoid-break">
+      <h3>Frontend</h3>
+      <div class="tech-row"><span class="tech-name">React 18</span><span class="tech-detail">Framework de UI basado en componentes</span></div>
+      <div class="tech-row"><span class="tech-name">TypeScript</span><span class="tech-detail">Tipado estático sobre JavaScript</span></div>
+      <div class="tech-row"><span class="tech-name">Vite</span><span class="tech-detail">Bundler y servidor de desarrollo ultrarrápido</span></div>
+      <div class="tech-row"><span class="tech-name">React Router v6</span><span class="tech-detail">Navegación entre páginas (SPA)</span></div>
+      <div class="tech-row"><span class="tech-name">TanStack Query (React Query)</span><span class="tech-detail">Caché, sincronización y estado del servidor</span></div>
+      <div class="tech-row"><span class="tech-name">Tailwind CSS</span><span class="tech-detail">Estilos utility-first, tokens de diseño personalizados</span></div>
+      <div class="tech-row"><span class="tech-name">Lucide React</span><span class="tech-detail">Librería de íconos SVG</span></div>
+      <div class="tech-row"><span class="tech-name">Zustand</span><span class="tech-detail">Gestión de estado global (autenticación)</span></div>
+      <div class="tech-row"><span class="tech-name">Axios</span><span class="tech-detail">Cliente HTTP para comunicación con la API</span></div>
+    </div>
+
+    <div class="tech-block avoid-break">
+      <h3>Backend</h3>
+      <div class="tech-row"><span class="tech-name">Node.js 20</span><span class="tech-detail">Runtime de JavaScript del lado del servidor</span></div>
+      <div class="tech-row"><span class="tech-name">TypeScript</span><span class="tech-detail">Tipado estático en servidor</span></div>
+      <div class="tech-row"><span class="tech-name">Express.js</span><span class="tech-detail">Framework web para API REST</span></div>
+      <div class="tech-row"><span class="tech-name">Prisma ORM</span><span class="tech-detail">Acceso a base de datos, migraciones y tipos TypeScript</span></div>
+      <div class="tech-row"><span class="tech-name">JWT (jsonwebtoken)</span><span class="tech-detail">Autenticación sin estado (tokens con expiración 7 días)</span></div>
+      <div class="tech-row"><span class="tech-name">bcrypt</span><span class="tech-detail">Hash seguro de contraseñas</span></div>
+      <div class="tech-row"><span class="tech-name">Nodemailer</span><span class="tech-detail">Envío de emails transaccionales (recupero de contraseña)</span></div>
+      <div class="tech-row"><span class="tech-name">Resend (vía SMTP)</span><span class="tech-detail">Servicio de entrega de email — remitente sistema@automatizapp.pro</span></div>
+      <div class="tech-row"><span class="tech-name">node-cron</span><span class="tech-detail">Tareas programadas (marcado de pagos vencidos, ajuste de índices)</span></div>
+      <div class="tech-row"><span class="tech-name">PDFKit / html-pdf</span><span class="tech-detail">Generación de recibos y contratos en PDF</span></div>
+    </div>
+
+    <div class="tech-block avoid-break">
+      <h3>Base de datos</h3>
+      <div class="tech-row"><span class="tech-name">PostgreSQL 16</span><span class="tech-detail">Base de datos relacional principal</span></div>
+      <div class="tech-row"><span class="tech-name">Prisma Migrations</span><span class="tech-detail">Control de versiones del esquema de la base de datos</span></div>
+    </div>
+
+    <div class="tech-block avoid-break">
+      <h3>Integraciones externas</h3>
+      <div class="tech-row"><span class="tech-name">WhatsApp Business Cloud API (Meta)</span><span class="tech-detail">Envío y recepción de mensajes WhatsApp vía webhook oficial</span></div>
+      <div class="tech-row"><span class="tech-name">Anthropic Claude API</span><span class="tech-detail">IA para sugerencias de respuesta en el inbox de WhatsApp</span></div>
+      <div class="tech-row"><span class="tech-name">Resend</span><span class="tech-detail">Entrega confiable de emails transaccionales</span></div>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════════════════════════
+     PÁG 10 — INFRAESTRUCTURA
+══════════════════════════════════════════════════════════════ -->
+<div class="page page-break">
+  <div class="footer">
+    <span>Gutleber &amp; Asoc. — Sistema de Gestión Inmobiliaria</span>
+    <span>Infraestructura — pág. 10</span>
+  </div>
+
+  <!-- 12. Infraestructura -->
+  <div class="section">
+    <div class="section-header">
+      <div class="section-number">12</div>
+      <h2>Infraestructura y despliegue</h2>
+    </div>
+
+    <div class="tech-block avoid-break">
+      <h3>Servidor y contenedores</h3>
+      <div class="tech-row"><span class="tech-name">VPS (Servidor privado virtual)</span><span class="tech-detail">Servidor dedicado propio. IP: 82.29.60.243</span></div>
+      <div class="tech-row"><span class="tech-name">Docker + Docker Compose</span><span class="tech-detail">Contenedores aislados para cada servicio</span></div>
+      <div class="tech-row"><span class="tech-name">Dokploy</span><span class="tech-detail">Panel de deploy automático desde GitHub. Repositorio: git push → deploy automático</span></div>
+    </div>
+
+    <div class="tech-block avoid-break">
+      <h3>Servicios (contenedores)</h3>
+      <table class="op-table">
+        <tr><th>Contenedor</th><th>Descripción</th><th>Puerto</th></tr>
+        <tr><td><code>gutleber-api</code></td><td>API REST (Node.js + Express)</td><td>3001 (interno)</td></tr>
+        <tr><td><code>gutleber-web</code></td><td>Frontend React (archivos estáticos en Nginx)</td><td>8082 → 80</td></tr>
+        <tr><td><code>gutleber-postgres</code></td><td>Base de datos PostgreSQL 16</td><td>5432 (interno)</td></tr>
+      </table>
+    </div>
+
+    <div class="tech-block avoid-break">
+      <h3>Dominios y acceso</h3>
+      <div class="tech-row"><span class="tech-name">app.automatizapp.pro</span><span class="tech-detail">Aplicación web (frontend) — acceso de usuarios</span></div>
+      <div class="tech-row"><span class="tech-name">automatizapp.pro/api</span><span class="tech-detail">API REST — solo uso interno del frontend</span></div>
+      <div class="tech-row"><span class="tech-name">SSL / HTTPS</span><span class="tech-detail">Certificado Let's Encrypt gestionado por Dokploy (renovación automática)</span></div>
+    </div>
+
+    <div class="tech-block avoid-break">
+      <h3>Flujo de deploy</h3>
+      <div class="flow" style="flex-wrap: wrap;">
+        <div class="flow-step">Cambio en código local</div>
+        <div class="flow-arrow">→</div>
+        <div class="flow-step">git push origin main</div>
+        <div class="flow-arrow">→</div>
+        <div class="flow-step">Dokploy detecta push</div>
+        <div class="flow-arrow">→</div>
+        <div class="flow-step">Build Docker</div>
+        <div class="flow-arrow">→</div>
+        <div class="flow-step">Prisma migrate deploy</div>
+        <div class="flow-arrow">→</div>
+        <div class="flow-step">Reinicio de contenedor</div>
+      </div>
+    </div>
+
+    <div class="tech-block avoid-break">
+      <h3>Variables de entorno (configurables en Dokploy)</h3>
+      <table class="op-table">
+        <tr><th>Variable</th><th>Descripción</th></tr>
+        <tr><td><code>DB_PASSWORD</code></td><td>Contraseña de la base de datos PostgreSQL</td></tr>
+        <tr><td><code>JWT_SECRET</code></td><td>Clave secreta para firma de tokens de sesión</td></tr>
+        <tr><td><code>SMTP_PASS</code></td><td>API key de Resend para envío de emails</td></tr>
+        <tr><td><code>ANTHROPIC_API_KEY</code></td><td>API key para el asistente de IA en el inbox</td></tr>
+        <tr><td><code>WHATSAPP_PHONE_NUMBER_ID</code></td><td>ID del número de teléfono en Meta WhatsApp</td></tr>
+        <tr><td><code>WHATSAPP_BUSINESS_ACCOUNT_ID</code></td><td>ID de la cuenta de negocio Meta</td></tr>
+        <tr><td><code>WHATSAPP_ACCESS_TOKEN</code></td><td>Token de acceso a la API de Meta (renovar cada 24hs o usar token permanente)</td></tr>
+      </table>
+    </div>
+
+    <div class="infobox infobox-amber avoid-break">
+      <strong>Pendiente urgente — Token permanente Meta:</strong> El token de WhatsApp actual tiene duración de 24 horas. Para producción es necesario generar un <em>System User Token</em> desde Meta Business Suite → Configuración → Usuarios del sistema, con scope <code>whatsapp_business_messaging</code>. Este token no vence.
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════════════════════════
+     PÁG 11 — HOJA DE RUTA
+══════════════════════════════════════════════════════════════ -->
+<div class="page">
+  <div class="footer">
+    <span>Gutleber &amp; Asoc. — Sistema de Gestión Inmobiliaria</span>
+    <span>Hoja de ruta — pág. 11</span>
+  </div>
+
+  <!-- 13. Pendientes -->
+  <div class="section">
+    <div class="section-header">
+      <div class="section-number">13</div>
+      <h2>Pendientes y hoja de ruta</h2>
+    </div>
+
+    <h3>🔴 Urgente — requieren atención antes de usar con clientes</h3>
+    <table class="op-table avoid-break">
+      <tr><th>#</th><th>Tarea</th><th>Detalle</th></tr>
+      <tr>
+        <td>1</td>
+        <td><strong>Número real de WhatsApp en Meta</strong></td>
+        <td>Registrar el número 5493765410765 en Meta → WhatsApp → Phone Numbers. Actualizar WHATSAPP_PHONE_NUMBER_ID en Dokploy y hacer redeploy. Bloqueado: Meta permite una sola eliminación del número de prueba por día.</td>
+      </tr>
+      <tr>
+        <td>2</td>
+        <td><strong>Token permanente de Meta</strong></td>
+        <td>El token actual vence cada 24 horas. Generar System User Token desde Meta Business Suite → Usuarios del sistema → scope whatsapp_business_messaging. Actualizar WHATSAPP_ACCESS_TOKEN en Dokploy.</td>
+      </tr>
+      <tr>
+        <td>3</td>
+        <td><strong>Confirmar ANTHROPIC_API_KEY</strong></td>
+        <td>Verificar que la clave de IA esté cargada en Dokploy. Sin ella falla la función de respuesta inteligente en el inbox.</td>
+      </tr>
+    </table>
+
+    <h3>🟡 Funcionalidades en desarrollo</h3>
+    <table class="op-table avoid-break">
+      <tr><th>#</th><th>Funcionalidad</th><th>Descripción</th></tr>
+      <tr>
+        <td>4</td>
+        <td><strong>Notificación WA al propietario por transferencia</strong></td>
+        <td>Al registrar una transferencia al propietario, enviarle automáticamente un WhatsApp con el detalle de la liquidación.</td>
+      </tr>
+      <tr>
+        <td>5</td>
+        <td><strong>Revisión completa del flujo de ajuste de índices</strong></td>
+        <td>Verificar que el cron aplique correctamente el nuevo monto, que afecte los pagos futuros y que notifique al propietario del ajuste.</td>
+      </tr>
+      <tr>
+        <td>6</td>
+        <td><strong>Templates WA para notificaciones proactivas</strong></td>
+        <td>Crear y aprobar plantillas en Meta Business Manager para poder enviar notificaciones fuera de la ventana de 24hs (ej: recordatorio de vencimiento, aviso de ajuste).</td>
+      </tr>
+    </table>
+
+    <h3>🟢 Infraestructura futura</h3>
+    <table class="op-table avoid-break">
+      <tr><th>#</th><th>Mejora</th><th>Descripción</th></tr>
+      <tr>
+        <td>7</td>
+        <td><strong>Dominio definitivo gutleber.com.ar</strong></td>
+        <td>Al comprar el dominio: actualizar Dokploy Domains, URL del webhook de Meta, y variables CORS_ORIGIN y APP_URL en el servidor.</td>
+      </tr>
+      <tr>
+        <td>8</td>
+        <td><strong>Backup automático PostgreSQL</strong></td>
+        <td>La base de datos está en un volumen Docker sin respaldo externo. Implementar cron de pg_dump a almacenamiento externo (S3 o similar).</td>
+      </tr>
+      <tr>
+        <td>9</td>
+        <td><strong>Fotos de propiedades en la nube</strong></td>
+        <td>Las imágenes se almacenan en el servidor local. Migrar a Cloudflare R2 o S3 para mayor durabilidad y escalabilidad.</td>
+      </tr>
+      <tr>
+        <td>10</td>
+        <td><strong>Integración Instagram</strong></td>
+        <td>Publicación automática de propiedades en Instagram. Variables preparadas, pendiente de configurar tokens.</td>
+      </tr>
+    </table>
+  </div>
+
+  <!-- Cierre -->
+  <div style="margin-top: 16mm; border-top: 1px solid var(--border); padding-top: 8mm; display: flex; justify-content: space-between; align-items: flex-end;">
+    <div>
+      <p style="font-size: 9pt; color: var(--piedra); margin: 0;"><strong>Gutleber &amp; Asoc.</strong> — Estudio Inmobiliario</p>
+      <p style="font-size: 8.5pt; color: var(--piedra); margin: 0;">Sistema desarrollado a medida · Versión 1.0 · Junio 2026</p>
+    </div>
+    <div style="text-align: right;">
+      <p style="font-size: 8.5pt; color: var(--piedra); margin: 0;">Plataforma: <em>automatizapp.pro</em></p>
+      <p style="font-size: 8.5pt; color: var(--piedra); margin: 0;">Deploy: Dokploy · VPS propio</p>
+    </div>
+  </div>
+</div>
+
+</body>
+</html>

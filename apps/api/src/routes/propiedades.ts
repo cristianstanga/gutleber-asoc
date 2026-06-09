@@ -5,7 +5,7 @@ import { prisma } from '../index'
 import { upload, uploadVideo, getPublicUrl } from '../services/upload'
 import { publicarPropiedad } from '../services/instagram'
 import { generarTarjeta } from '../services/tarjeta'
-import { sendImage } from '../services/whatsapp'
+import { sendImage } from '../services/whatsapp-meta'
 import { AuthRequest, requireAdmin } from '../middleware/auth'
 import { generarResumenPropietarioPDF } from '../services/pdf'
 
