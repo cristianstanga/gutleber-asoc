@@ -261,20 +261,25 @@ router.patch('/:id/marcar-pagado', async (req, res) => {
   res.json(pago)
 
   // Notificar al propietario que se cobró — sin bloquear la respuesta
-  if (pago.tipo === 'ALQUILER' && pago.propiedad) {
-    const propietario = (pago.propiedad as any).propietario
-    if (propietario?.whatsapp) {
+  if (pago.tipo === 'ALQUILER' && pago.propiedadId) {
+    const vAdmin = await prisma.vinculo.findFirst({
+      where: { propiedadId: pago.propiedadId, tipo: 'ADMINISTRACION', activo: true },
+      include: { persona: true },
+    })
+    const tel = vAdmin?.persona?.whatsapp
+    if (tel) {
+      const nombre = vAdmin!.persona!.nombre
       const montoTotal = pago.totalConExtras ?? pago.monto
-      const monto = new Intl.NumberFormat('es-AR', { style: 'currency', currency: 'ARS', maximumFractionDigits: 0 }).format(montoTotal)
-      const fecha = new Date().toLocaleDateString('es-AR', { day: '2-digit', month: 'long' })
+      const fmt = (n: number) => new Intl.NumberFormat('es-AR', { style: 'currency', currency: 'ARS', maximumFractionDigits: 0 }).format(n)
+      const fecha = new Date().toLocaleDateString('es-AR', { day: '2-digit', month: 'long', year: 'numeric' })
       const msg =
-        `✅ Hola ${propietario.nombre}!\n\n` +
-        `Le informamos que el día *${fecha}* se cobró el alquiler de:\n` +
-        `📍 *${pago.propiedad.direccion}*\n` +
-        `💰 *${monto}*\n\n` +
-        `En los próximos días procesamos la transferencia.\n` +
-        `— *Gutleber & Asoc.* 🏢`
-      sendText(propietario.whatsapp, msg).catch(() => {})
+        `✅ *Hola ${nombre}, se cobró el alquiler*\n\n` +
+        `📍 ${pago.propiedad?.direccion ?? ''}\n` +
+        `📅 ${fecha}\n` +
+        `💰 *${fmt(montoTotal)}*\n\n` +
+        `En breve procesamos la liquidación.\n` +
+        `_Gutleber & Asoc._`
+      sendMetaText(tel, msg).catch(() => {})
     }
   }
 })
