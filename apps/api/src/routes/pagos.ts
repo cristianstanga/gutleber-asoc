@@ -323,6 +323,26 @@ router.patch('/:id/pagar-propietario', async (req, res) => {
   }
 })
 
+// Revertir cobro al inquilino (vuelve a PENDIENTE para poder re-cobrarlo)
+router.patch('/:id/revertir-cobro', async (req, res) => {
+  const current = await prisma.pago.findUnique({ where: { id: req.params.id } })
+  if (!current) return res.status(404).json({ error: 'Pago no encontrado' })
+  if (current.pagadoAlPropietario) return res.status(400).json({ error: 'Ya transferido al propietario — no se puede revertir' })
+  const pago = await prisma.pago.update({
+    where: { id: req.params.id },
+    data: {
+      estado: EstadoPago.PENDIENTE,
+      fechaPago: null,
+      formaPago: null,
+      conceptosExtra: [],
+      totalConExtras: null,
+      comprobanteEnviado: false,
+      nroRecibo: null,
+    },
+  })
+  res.json(pago)
+})
+
 // Revertir pago al propietario (si se registró por error)
 router.patch('/:id/revertir-pago-propietario', async (req, res) => {
   const pago = await prisma.pago.update({

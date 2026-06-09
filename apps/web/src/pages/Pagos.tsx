@@ -889,6 +889,7 @@ function PanelPagos({ vinculo }: PanelPagosProps) {
   const [pagoACobrar, setPagoACobrar] = useState<Pago | null>(null)
   const [pagoATransferir, setPagoATransferir] = useState<Pago | null>(null)
   const [confirmRevertirId, setConfirmRevertirId] = useState<string | null>(null)
+  const [confirmRevertirCobroId, setConfirmRevertirCobroId] = useState<string | null>(null)
 
   const { data: pagos = [], isLoading } = useQuery<Pago[]>({
     queryKey: ['pagos', vinculo.id],
@@ -910,6 +911,19 @@ function PanelPagos({ vinculo }: PanelPagosProps) {
       qc.invalidateQueries({ queryKey: ['pagos', vinculo.id] })
       setConfirmRevertirId(null)
       toast2('Transferencia revertida')
+    },
+  })
+
+  const revertirCobro = useMutation({
+    mutationFn: (id: string) => api.patch(`/pagos/${id}/revertir-cobro`),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['pagos', vinculo.id] })
+      setConfirmRevertirCobroId(null)
+      toast2('Cobro revertido — pago vuelve a Pendiente')
+    },
+    onError: (e: unknown) => {
+      const msg = (e as { response?: { data?: { error?: string } } })?.response?.data?.error ?? 'Error al revertir'
+      toast2(msg)
     },
   })
 
@@ -1075,6 +1089,33 @@ function PanelPagos({ vinculo }: PanelPagosProps) {
                             >
                               <Send size={12} /> {p.comprobanteEnviado ? 'Reenviar WA' : 'Enviar WA'}
                             </button>
+                          )}
+                          {!p.pagadoAlPropietario && (
+                            confirmRevertirCobroId === p.id ? (
+                              <div className="flex items-center gap-1 mt-0.5">
+                                <span className="text-[10px] text-red-700">¿Revertir cobro?</span>
+                                <button
+                                  onClick={() => revertirCobro.mutate(p.id)}
+                                  disabled={revertirCobro.isPending}
+                                  className="text-[10px] font-semibold text-red-600 hover:text-red-700 px-1.5 py-0.5 rounded bg-red-50 hover:bg-red-100 transition-colors"
+                                >
+                                  Sí
+                                </button>
+                                <button
+                                  onClick={() => setConfirmRevertirCobroId(null)}
+                                  className="text-[10px] text-piedra hover:text-carbon px-1.5 py-0.5 rounded bg-crema hover:bg-arena/30 transition-colors"
+                                >
+                                  No
+                                </button>
+                              </div>
+                            ) : (
+                              <button
+                                onClick={() => setConfirmRevertirCobroId(p.id)}
+                                className="flex items-center gap-1 text-[10px] text-red-500 hover:text-red-700 mt-0.5 transition-colors"
+                              >
+                                <RotateCcw size={10} /> Revertir cobro
+                              </button>
+                            )
                           )}
                         </>
                       )}
