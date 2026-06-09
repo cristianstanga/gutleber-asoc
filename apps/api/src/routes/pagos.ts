@@ -272,12 +272,16 @@ router.patch('/:id/marcar-pagado', async (req, res) => {
       const montoTotal = pago.totalConExtras ?? pago.monto
       const fmt = (n: number) => new Intl.NumberFormat('es-AR', { style: 'currency', currency: 'ARS', maximumFractionDigits: 0 }).format(n)
       const fecha = new Date().toLocaleDateString('es-AR', { day: '2-digit', month: 'long', year: 'numeric' })
-      sendTemplate(tel, 'gutleber_pago_cobrado', [
-        nombre,
-        pago.propiedad?.direccion ?? '',
-        fecha,
-        fmt(montoTotal),
-      ]).catch(() => {})
+      const dir = pago.propiedad?.direccion ?? ''
+      sendTemplate(tel, 'gutleber_pago_cobrado', [nombre, dir, fecha, fmt(montoTotal)])
+        .catch(() => {
+          // Template pendiente de aprobación — fallback texto libre (ventana 24hs)
+          const msg =
+            `✅ *Hola ${nombre}, se cobró el alquiler*\n\n` +
+            `📍 ${dir}\n📅 ${fecha}\n💰 *${fmt(montoTotal)}*\n\n` +
+            `En breve procesamos la liquidación.\n_Gutleber & Asoc._`
+          sendMetaText(tel, msg).catch(() => {})
+        })
     }
   }
 })
@@ -310,15 +314,17 @@ router.patch('/:id/pagar-propietario', async (req, res) => {
       const fmt = (n: number) => new Intl.NumberFormat('es-AR', { style: 'currency', currency: 'ARS', maximumFractionDigits: 0 }).format(n)
       const fecha = new Date().toLocaleDateString('es-AR', { day: '2-digit', month: 'long', year: 'numeric' })
       const nombre = vAdmin!.persona!.nombre
-      sendTemplate(tel, 'gutleber_transferencia', [
-        nombre,
-        pago.propiedad?.direccion ?? '',
-        fecha,
-        fmt(pago.monto),
-        String(honorariosPct),
-        fmt(honorarios),
-        fmt(totalTransferir),
-      ]).catch(() => {})
+      const dir = pago.propiedad?.direccion ?? ''
+      sendTemplate(tel, 'gutleber_transferencia', [nombre, dir, fecha, fmt(pago.monto), String(honorariosPct), fmt(honorarios), fmt(totalTransferir)])
+        .catch(() => {
+          // Template pendiente de aprobación — fallback texto libre (ventana 24hs)
+          const msg =
+            `💸 *Hola ${nombre}, transferencia procesada*\n\n` +
+            `📍 ${dir}\n📅 ${fecha}\n\n` +
+            `Alquiler: ${fmt(pago.monto)}\nHonorarios (${honorariosPct}%): -${fmt(honorarios)}\n` +
+            `━━━━━━━━━━━\n*Total transferido: ${fmt(totalTransferir)}*\n\n_Gutleber & Asoc._`
+          sendMetaText(tel, msg).catch(() => {})
+        })
     }
   }
 })
