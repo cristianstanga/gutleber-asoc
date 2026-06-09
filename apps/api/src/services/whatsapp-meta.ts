@@ -107,3 +107,30 @@ export async function sendHelloWorld(to: string): Promise<unknown> {
     template: { name: 'hello_world', language: { code: 'en_US' } },
   })
 }
+
+/** Envía un template aprobado con sus parámetros de cuerpo */
+export async function sendTemplate(
+  to: string,
+  name: string,
+  bodyParams: string[]
+): Promise<void> {
+  const phone = toMetaPhone(to)
+  logger.info(`📤 Meta WA template "${name}" → ${phone}`)
+  await metaPost('messages', {
+    messaging_product: 'whatsapp',
+    recipient_type: 'individual',
+    to: phone,
+    type: 'template',
+    template: {
+      name,
+      language: { code: 'es' },
+      components: bodyParams.length > 0 ? [
+        {
+          type: 'body',
+          parameters: bodyParams.map(text => ({ type: 'text', text })),
+        },
+      ] : [],
+    },
+  })
+  logger.info(`✅ Meta WA template "${name}" enviado a ${phone}`)
+}

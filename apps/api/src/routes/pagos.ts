@@ -6,7 +6,7 @@ import {
   DatosRecibo, DatosLiquidacion, ConceptoExtra,
 } from '../services/pdf'
 import { sendPDF, sendText } from '../services/whatsapp'
-import { sendText as sendMetaText } from '../services/whatsapp-meta'
+import { sendText as sendMetaText, sendTemplate } from '../services/whatsapp-meta'
 
 const router = Router()
 
@@ -272,14 +272,12 @@ router.patch('/:id/marcar-pagado', async (req, res) => {
       const montoTotal = pago.totalConExtras ?? pago.monto
       const fmt = (n: number) => new Intl.NumberFormat('es-AR', { style: 'currency', currency: 'ARS', maximumFractionDigits: 0 }).format(n)
       const fecha = new Date().toLocaleDateString('es-AR', { day: '2-digit', month: 'long', year: 'numeric' })
-      const msg =
-        `✅ *Hola ${nombre}, se cobró el alquiler*\n\n` +
-        `📍 ${pago.propiedad?.direccion ?? ''}\n` +
-        `📅 ${fecha}\n` +
-        `💰 *${fmt(montoTotal)}*\n\n` +
-        `En breve procesamos la liquidación.\n` +
-        `_Gutleber & Asoc._`
-      sendMetaText(tel, msg).catch(() => {})
+      sendTemplate(tel, 'gutleber_pago_cobrado', [
+        nombre,
+        pago.propiedad?.direccion ?? '',
+        fecha,
+        fmt(montoTotal),
+      ]).catch(() => {})
     }
   }
 })
@@ -312,20 +310,15 @@ router.patch('/:id/pagar-propietario', async (req, res) => {
       const fmt = (n: number) => new Intl.NumberFormat('es-AR', { style: 'currency', currency: 'ARS', maximumFractionDigits: 0 }).format(n)
       const fecha = new Date().toLocaleDateString('es-AR', { day: '2-digit', month: 'long', year: 'numeric' })
       const nombre = vAdmin!.persona!.nombre
-      const lineasExtras = extrasParaProp !== 0
-        ? `Otros conceptos: ${extrasParaProp > 0 ? '+' : ''}${fmt(extrasParaProp)}\n`
-        : ''
-      const msg =
-        `💸 *Hola ${nombre}, transferencia procesada*\n\n` +
-        `📍 ${pago.propiedad?.direccion ?? ''}\n` +
-        `📅 ${fecha}\n\n` +
-        `Alquiler cobrado: ${fmt(pago.monto)}\n` +
-        `Honorarios (${honorariosPct}%): -${fmt(honorarios)}\n` +
-        lineasExtras +
-        `━━━━━━━━━━━━━\n` +
-        `*Total transferido: ${fmt(totalTransferir)}*\n\n` +
-        `_Gutleber & Asoc._`
-      sendMetaText(tel, msg).catch(() => {})
+      sendTemplate(tel, 'gutleber_transferencia', [
+        nombre,
+        pago.propiedad?.direccion ?? '',
+        fecha,
+        fmt(pago.monto),
+        String(honorariosPct),
+        fmt(honorarios),
+        fmt(totalTransferir),
+      ]).catch(() => {})
     }
   }
 })
