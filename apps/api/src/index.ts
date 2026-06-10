@@ -78,6 +78,48 @@ app.get('/api/whatsapp/test-template/:phone/:name/:lang', async (req, res) => {
   } catch (err) { res.status(500).json({ error: String(err) }) }
 })
 
+// Crea los templates en el WABA correcto (one-time setup)
+app.post('/api/whatsapp/crear-templates', async (_req, res) => {
+  const token = process.env.WHATSAPP_ACCESS_TOKEN
+  const wabaId = '1748009346185242'
+  if (!token) return res.status(500).json({ error: 'Token no configurado' })
+
+  const templates = [
+    {
+      name: 'gutleber_pago_cobrado',
+      language: 'es_AR',
+      category: 'UTILITY',
+      components: [{
+        type: 'BODY',
+        text: 'Hola {{1}}, le informamos que se registró el cobro del alquiler. 📍 {{2}} 📅 {{3}} 💰 {{4}} En breve procesamos la liquidación y transferencia. Gutleber & Asoc.',
+        example: { body_text: [['Francisco', 'Mitre 450 Oberá', '10 de junio de 2026', '$ 150.000']] },
+      }],
+    },
+    {
+      name: 'gutleber_transferencia',
+      language: 'es_AR',
+      category: 'UTILITY',
+      components: [{
+        type: 'BODY',
+        text: 'Hola {{1}}, se procesó la transferencia de su propiedad. 📍 {{2}} 📅 {{3}} Alquiler cobrado: {{4}} Honorarios ({{5}}%): -{{6}} Total transferido: {{7}} Gutleber & Asoc.',
+        example: { body_text: [['Francisco', 'Mitre 450', '10 jun 2026', '$ 150.000', '8', '$ 12.000', '$ 138.000']] },
+      }],
+    },
+  ]
+
+  const results = []
+  for (const tmpl of templates) {
+    const r = await fetch(`https://graph.facebook.com/v25.0/${wabaId}/message_templates`, {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify(tmpl),
+    })
+    const data = await r.json()
+    results.push({ name: tmpl.name, ok: r.ok, status: r.status, response: data })
+  }
+  res.json(results)
+})
+
 // Lista templates del WABA correcto
 app.get('/api/whatsapp/templates', async (_req, res) => {
   const token = process.env.WHATSAPP_ACCESS_TOKEN
