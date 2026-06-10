@@ -130,7 +130,7 @@ export async function sendTemplate(
     type: 'template',
     template: {
       name,
-      language: { code: 'es_AR' },
+      language: { code: 'es_ES' },
       components: bodyParams.length > 0 ? [
         {
           type: 'body',
