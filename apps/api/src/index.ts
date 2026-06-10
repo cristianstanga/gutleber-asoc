@@ -51,7 +51,6 @@ app.get('/api/whatsapp/meta-test/:phone', async (req, res) => {
   catch (err) { res.status(500).json({ error: String(err) }) }
 })
 // Test template — GET /api/whatsapp/test-template/:phone/:name/:lang
-// Ej: /api/whatsapp/test-template/5493764602157/gutleber_pago_cobrado/es_AR
 app.get('/api/whatsapp/test-template/:phone/:name/:lang', async (req, res) => {
   const phoneNumberId = process.env.WHATSAPP_PHONE_NUMBER_ID
   const token = process.env.WHATSAPP_ACCESS_TOKEN
@@ -76,6 +75,19 @@ app.get('/api/whatsapp/test-template/:phone/:name/:lang', async (req, res) => {
     })
     const data = await r.json()
     res.json({ ok: r.ok, status: r.status, requestBody: body, response: data })
+  } catch (err) { res.status(500).json({ error: String(err) }) }
+})
+
+// Lista templates del WABA correcto
+app.get('/api/whatsapp/templates', async (_req, res) => {
+  const token = process.env.WHATSAPP_ACCESS_TOKEN
+  const wabaId = '1748009346185242'
+  if (!token) return res.status(500).json({ error: 'Token no configurado' })
+  try {
+    const r = await fetch(`https://graph.facebook.com/v25.0/${wabaId}/message_templates?fields=name,language,status&limit=50`, {
+      headers: { Authorization: `Bearer ${token}` },
+    })
+    res.json(await r.json())
   } catch (err) { res.status(500).json({ error: String(err) }) }
 })
 
