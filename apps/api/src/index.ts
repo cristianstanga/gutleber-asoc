@@ -50,25 +50,32 @@ app.get('/api/whatsapp/meta-test/:phone', async (req, res) => {
   try { res.json({ ok: true, result: await sendHelloWorld(req.params.phone) }) }
   catch (err) { res.status(500).json({ error: String(err) }) }
 })
-app.get('/api/whatsapp/templates', async (_req, res) => {
+// Test template — GET /api/whatsapp/test-template/:phone/:name/:lang
+// Ej: /api/whatsapp/test-template/5493764602157/gutleber_pago_cobrado/es_AR
+app.get('/api/whatsapp/test-template/:phone/:name/:lang', async (req, res) => {
   const phoneNumberId = process.env.WHATSAPP_PHONE_NUMBER_ID
   const token = process.env.WHATSAPP_ACCESS_TOKEN
   if (!phoneNumberId || !token) return res.status(500).json({ error: 'Variables WA no configuradas' })
+  const { phone, name, lang } = req.params
+  const body = {
+    messaging_product: 'whatsapp',
+    recipient_type: 'individual',
+    to: phone,
+    type: 'template',
+    template: {
+      name,
+      language: { code: lang },
+      components: [{ type: 'body', parameters: [{ type: 'text', text: 'TEST' }, { type: 'text', text: 'TEST2' }, { type: 'text', text: 'TEST3' }, { type: 'text', text: 'TEST4' }] }],
+    },
+  }
   try {
-    // Primero: obtener el WABA real asociado al Phone Number ID
-    const phoneRes = await fetch(`https://graph.facebook.com/v25.0/${phoneNumberId}?fields=whatsapp_business_account_id`, {
-      headers: { Authorization: `Bearer ${token}` },
+    const r = await fetch(`https://graph.facebook.com/v25.0/${phoneNumberId}/messages`, {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify(body),
     })
-    const phoneData = await phoneRes.json() as Record<string, unknown>
-    const realWabaId = phoneData.whatsapp_business_account_id as string
-    if (!realWabaId) return res.json({ error: 'No se pudo obtener WABA desde phone number', phoneData })
-
-    // Segundo: listar templates de ese WABA
-    const tmplRes = await fetch(`https://graph.facebook.com/v25.0/${realWabaId}/message_templates?fields=name,language,status&limit=50`, {
-      headers: { Authorization: `Bearer ${token}` },
-    })
-    const tmplData = await tmplRes.json()
-    res.json({ envWabaId: process.env.WHATSAPP_BUSINESS_ACCOUNT_ID, realWabaId, templates: tmplData })
+    const data = await r.json()
+    res.json({ ok: r.ok, status: r.status, requestBody: body, response: data })
   } catch (err) { res.status(500).json({ error: String(err) }) }
 })
 
