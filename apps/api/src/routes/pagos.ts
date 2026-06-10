@@ -1,5 +1,5 @@
 import { Router } from 'express'
-import { prisma } from '../index'
+import { prisma, logger } from '../index'
 import { EstadoPago } from '@prisma/client'
 import {
   generarReciboPDF, generarLiquidacionPDF,
@@ -265,21 +265,26 @@ router.patch('/:id/marcar-pagado', async (req, res) => {
       where: { propiedadId: pago.propiedadId, tipo: 'ADMINISTRACION', activo: true },
       include: { persona: true },
     })
-    const tel = vAdmin?.persona?.whatsapp
-    if (tel) {
-      const nombre = vAdmin!.persona!.nombre
+    if (!vAdmin) {
+      logger.warn({ propiedadId: pago.propiedadId }, '⚠️ WA pago_cobrado: sin vínculo ADMINISTRACION activo')
+    } else if (!vAdmin.persona?.whatsapp) {
+      logger.warn({ personaId: vAdmin.personaId }, '⚠️ WA pago_cobrado: propietario sin WhatsApp cargado')
+    } else {
+      const tel = vAdmin.persona.whatsapp
+      const nombre = vAdmin.persona.nombre
       const montoTotal = pago.totalConExtras ?? pago.monto
       const fmt = (n: number) => new Intl.NumberFormat('es-AR', { style: 'currency', currency: 'ARS', maximumFractionDigits: 0 }).format(n)
       const fecha = new Date().toLocaleDateString('es-AR', { day: '2-digit', month: 'long', year: 'numeric' })
       const dir = pago.propiedad?.direccion ?? ''
+      logger.info({ tel, nombre }, '📤 Enviando WA pago_cobrado al propietario')
       sendTemplate(tel, 'gutleber_pago_cobrado', [nombre, dir, fecha, fmt(montoTotal)])
-        .catch(() => {
-          // Template pendiente de aprobación — fallback texto libre (ventana 24hs)
+        .catch((err) => {
+          logger.warn({ err: String(err) }, '⚠️ Template pago_cobrado falló — intentando texto libre')
           const msg =
             `✅ *Hola ${nombre}, se cobró el alquiler*\n\n` +
             `📍 ${dir}\n📅 ${fecha}\n💰 *${fmt(montoTotal)}*\n\n` +
             `En breve procesamos la liquidación.\n_Gutleber & Asoc._`
-          sendMetaText(tel, msg).catch(() => {})
+          sendMetaText(tel, msg).catch((e) => logger.error({ err: String(e) }, '❌ Fallback texto libre también falló'))
         })
     }
   }
@@ -303,8 +308,12 @@ router.patch('/:id/pagar-propietario', async (req, res) => {
       where: { propiedadId: pago.propiedadId, tipo: 'ADMINISTRACION', activo: true },
       include: { persona: true },
     })
-    const tel = vAdmin?.persona?.whatsapp
-    if (tel) {
+    if (!vAdmin) {
+      logger.warn({ propiedadId: pago.propiedadId }, '⚠️ WA transferencia: sin vínculo ADMINISTRACION activo')
+    } else if (!vAdmin.persona?.whatsapp) {
+      logger.warn({ personaId: vAdmin.personaId }, '⚠️ WA transferencia: propietario sin WhatsApp cargado')
+    } else {
+      const tel = vAdmin.persona.whatsapp
       const honorariosPct = pago.vinculo?.honorariosPct ?? 8
       const conceptos = (pago.conceptosExtra as ConceptoExtra[] | null) ?? []
       const extrasParaProp = conceptos.filter(c => !c.esInmobiliaria).reduce((s, c) => s + c.monto, 0)
@@ -312,17 +321,18 @@ router.patch('/:id/pagar-propietario', async (req, res) => {
       const totalTransferir = (pago.monto - honorarios) + extrasParaProp
       const fmt = (n: number) => new Intl.NumberFormat('es-AR', { style: 'currency', currency: 'ARS', maximumFractionDigits: 0 }).format(n)
       const fecha = new Date().toLocaleDateString('es-AR', { day: '2-digit', month: 'long', year: 'numeric' })
-      const nombre = vAdmin!.persona!.nombre
+      const nombre = vAdmin.persona.nombre
       const dir = pago.propiedad?.direccion ?? ''
+      logger.info({ tel, nombre }, '📤 Enviando WA transferencia al propietario')
       sendTemplate(tel, 'gutleber_transferencia', [nombre, dir, fecha, fmt(pago.monto), String(honorariosPct), fmt(honorarios), fmt(totalTransferir)])
-        .catch(() => {
-          // Template pendiente de aprobación — fallback texto libre (ventana 24hs)
+        .catch((err) => {
+          logger.warn({ err: String(err) }, '⚠️ Template transferencia falló — intentando texto libre')
           const msg =
             `💸 *Hola ${nombre}, transferencia procesada*\n\n` +
             `📍 ${dir}\n📅 ${fecha}\n\n` +
             `Alquiler: ${fmt(pago.monto)}\nHonorarios (${honorariosPct}%): -${fmt(honorarios)}\n` +
             `━━━━━━━━━━━\n*Total transferido: ${fmt(totalTransferir)}*\n\n_Gutleber & Asoc._`
-          sendMetaText(tel, msg).catch(() => {})
+          sendMetaText(tel, msg).catch((e) => logger.error({ err: String(e) }, '❌ Fallback texto libre también falló'))
         })
     }
   }
