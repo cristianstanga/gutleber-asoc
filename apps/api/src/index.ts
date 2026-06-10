@@ -51,14 +51,24 @@ app.get('/api/whatsapp/meta-test/:phone', async (req, res) => {
   catch (err) { res.status(500).json({ error: String(err) }) }
 })
 app.get('/api/whatsapp/templates', async (_req, res) => {
-  const wabaId = process.env.WHATSAPP_BUSINESS_ACCOUNT_ID
+  const phoneNumberId = process.env.WHATSAPP_PHONE_NUMBER_ID
   const token = process.env.WHATSAPP_ACCESS_TOKEN
-  if (!wabaId || !token) return res.status(500).json({ error: 'Variables WA no configuradas' })
+  if (!phoneNumberId || !token) return res.status(500).json({ error: 'Variables WA no configuradas' })
   try {
-    const r = await fetch(`https://graph.facebook.com/v25.0/${wabaId}/message_templates?fields=name,language,status&limit=50`, {
+    // Primero: obtener el WABA real asociado al Phone Number ID
+    const phoneRes = await fetch(`https://graph.facebook.com/v25.0/${phoneNumberId}?fields=whatsapp_business_account_id`, {
       headers: { Authorization: `Bearer ${token}` },
     })
-    res.json(await r.json())
+    const phoneData = await phoneRes.json() as Record<string, unknown>
+    const realWabaId = phoneData.whatsapp_business_account_id as string
+    if (!realWabaId) return res.json({ error: 'No se pudo obtener WABA desde phone number', phoneData })
+
+    // Segundo: listar templates de ese WABA
+    const tmplRes = await fetch(`https://graph.facebook.com/v25.0/${realWabaId}/message_templates?fields=name,language,status&limit=50`, {
+      headers: { Authorization: `Bearer ${token}` },
+    })
+    const tmplData = await tmplRes.json()
+    res.json({ envWabaId: process.env.WHATSAPP_BUSINESS_ACCOUNT_ID, realWabaId, templates: tmplData })
   } catch (err) { res.status(500).json({ error: String(err) }) }
 })
 
