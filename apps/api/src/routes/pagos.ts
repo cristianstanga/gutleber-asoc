@@ -261,17 +261,23 @@ router.patch('/:id/marcar-pagado', async (req, res) => {
 
   // Notificar al propietario que se cobró — sin bloquear la respuesta
   if (pago.tipo === 'ALQUILER' && pago.propiedadId) {
+    // Buscar propietario: primero por vínculo ADMINISTRACION, fallback al campo propietario de la propiedad
     const vAdmin = await prisma.vinculo.findFirst({
       where: { propiedadId: pago.propiedadId, tipo: 'ADMINISTRACION', activo: true },
       include: { persona: true },
     })
-    if (!vAdmin) {
-      logger.warn({ propiedadId: pago.propiedadId }, '⚠️ WA pago_cobrado: sin vínculo ADMINISTRACION activo')
-    } else if (!vAdmin.persona?.whatsapp) {
-      logger.warn({ personaId: vAdmin.personaId }, '⚠️ WA pago_cobrado: propietario sin WhatsApp cargado')
+    const propietarioPersona = vAdmin?.persona ?? (await prisma.propiedad.findUnique({
+      where: { id: pago.propiedadId },
+      include: { propietario: true },
+    }))?.propietario ?? null
+
+    if (!propietarioPersona) {
+      logger.warn({ propiedadId: pago.propiedadId }, '⚠️ WA pago_cobrado: sin propietario asociado a la propiedad')
+    } else if (!propietarioPersona.whatsapp) {
+      logger.warn({ personaId: propietarioPersona.id }, '⚠️ WA pago_cobrado: propietario sin WhatsApp cargado')
     } else {
-      const tel = vAdmin.persona.whatsapp
-      const nombre = vAdmin.persona.nombre
+      const tel = propietarioPersona.whatsapp
+      const nombre = propietarioPersona.nombre
       const montoTotal = pago.totalConExtras ?? pago.monto
       const fmt = (n: number) => new Intl.NumberFormat('es-AR', { style: 'currency', currency: 'ARS', maximumFractionDigits: 0 }).format(n)
       const fecha = new Date().toLocaleDateString('es-AR', { day: '2-digit', month: 'long', year: 'numeric' })
@@ -308,12 +314,17 @@ router.patch('/:id/pagar-propietario', async (req, res) => {
       where: { propiedadId: pago.propiedadId, tipo: 'ADMINISTRACION', activo: true },
       include: { persona: true },
     })
-    if (!vAdmin) {
-      logger.warn({ propiedadId: pago.propiedadId }, '⚠️ WA transferencia: sin vínculo ADMINISTRACION activo')
-    } else if (!vAdmin.persona?.whatsapp) {
-      logger.warn({ personaId: vAdmin.personaId }, '⚠️ WA transferencia: propietario sin WhatsApp cargado')
+    const propietarioPersona = vAdmin?.persona ?? (await prisma.propiedad.findUnique({
+      where: { id: pago.propiedadId },
+      include: { propietario: true },
+    }))?.propietario ?? null
+
+    if (!propietarioPersona) {
+      logger.warn({ propiedadId: pago.propiedadId }, '⚠️ WA transferencia: sin propietario asociado a la propiedad')
+    } else if (!propietarioPersona.whatsapp) {
+      logger.warn({ personaId: propietarioPersona.id }, '⚠️ WA transferencia: propietario sin WhatsApp cargado')
     } else {
-      const tel = vAdmin.persona.whatsapp
+      const tel = propietarioPersona.whatsapp
       const honorariosPct = pago.vinculo?.honorariosPct ?? 8
       const conceptos = (pago.conceptosExtra as ConceptoExtra[] | null) ?? []
       const extrasParaProp = conceptos.filter(c => !c.esInmobiliaria).reduce((s, c) => s + c.monto, 0)
@@ -321,7 +332,7 @@ router.patch('/:id/pagar-propietario', async (req, res) => {
       const totalTransferir = (pago.monto - honorarios) + extrasParaProp
       const fmt = (n: number) => new Intl.NumberFormat('es-AR', { style: 'currency', currency: 'ARS', maximumFractionDigits: 0 }).format(n)
       const fecha = new Date().toLocaleDateString('es-AR', { day: '2-digit', month: 'long', year: 'numeric' })
-      const nombre = vAdmin.persona.nombre
+      const nombre = propietarioPersona.nombre
       const dir = pago.propiedad?.direccion ?? ''
       logger.info({ tel, nombre }, '📤 Enviando WA transferencia al propietario')
       sendTemplate(tel, 'gutleber_transferencia', [nombre, dir, fecha, fmt(pago.monto), String(honorariosPct), fmt(honorarios), fmt(totalTransferir)])
