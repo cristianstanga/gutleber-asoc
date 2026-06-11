@@ -34,12 +34,6 @@ export function initCron() {
     await recordatorioInquilinoVencimiento()
   })
 
-  // Día 6 — avisar al propietario que el inquilino aún no pagó
-  cron.schedule('0 9 6 * *', async () => {
-    logger.info('⏰ Cron: aviso mora a propietarios...')
-    await avisarPropietarioMora()
-  })
-
   // Día 11 — marcar mora oficialmente (vencimiento es el 10)
   cron.schedule('0 9 11 * *', async () => {
     logger.info('⏰ Cron: marcando mora...')
