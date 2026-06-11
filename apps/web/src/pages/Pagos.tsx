@@ -1024,10 +1024,18 @@ function PanelPagos({ vinculo }: PanelPagosProps) {
                 <th className="text-right px-4 py-2.5 text-xs text-piedra uppercase tracking-wide">Total</th>
                 <th className="text-left px-4 py-2.5 text-xs text-piedra uppercase tracking-wide">Estado</th>
                 <th className="px-4 py-2.5 text-xs uppercase tracking-wide">
-                  <span className="flex items-center gap-1 text-blue-600"><User size={11} /> Inquilino</span>
+                  <div className="flex items-center gap-1 text-blue-600"><User size={11} /> Inquilino</div>
+                  <div className="font-semibold normal-case text-carbon text-[11px] tracking-normal">
+                    {vinculo.persona.nombre} {vinculo.persona.apellido}
+                  </div>
                 </th>
                 <th className="px-4 py-2.5 text-xs uppercase tracking-wide">
-                  <span className="flex items-center gap-1 text-amber-600"><Building2 size={11} /> Propietario</span>
+                  <div className="flex items-center gap-1 text-amber-600"><Building2 size={11} /> Propietario</div>
+                  {pagosOrdenados[0]?.propiedad?.propietario && (
+                    <div className="font-semibold normal-case text-carbon text-[11px] tracking-normal">
+                      {pagosOrdenados[0].propiedad.propietario.nombre} {pagosOrdenados[0].propiedad.propietario.apellido}
+                    </div>
+                  )}
                 </th>
               </tr>
             </thead>
@@ -1085,11 +1093,6 @@ function PanelPagos({ vinculo }: PanelPagosProps) {
                   {/* Acciones — Inquilino */}
                   <td className="px-4 py-3">
                     <div className="flex flex-col gap-1">
-                      {p.persona && (
-                        <span className="text-xs font-semibold text-carbon">
-                          {p.persona.nombre} {p.persona.apellido}
-                        </span>
-                      )}
                       {p.estado !== 'PAGADO' && p.estado !== 'ANULADO' && (
                         <button
                           onClick={() => setPagoACobrar(p)}
@@ -1153,11 +1156,6 @@ function PanelPagos({ vinculo }: PanelPagosProps) {
                   {/* Acciones — Propietario */}
                   <td className="px-4 py-3">
                     <div className="flex flex-col gap-1">
-                      {p.propiedad?.propietario && (
-                        <span className="text-xs font-semibold text-carbon">
-                          {p.propiedad.propietario.nombre} {p.propiedad.propietario.apellido}
-                        </span>
-                      )}
                       {p.estado !== 'PAGADO' && (
                         <span className="text-xs text-muted">Esperando cobro</span>
                       )}
