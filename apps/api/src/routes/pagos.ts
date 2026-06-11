@@ -326,10 +326,12 @@ router.patch('/:id/pagar-propietario', async (req, res) => {
     } else {
       const tel = propietarioPersona.whatsapp
       const honorariosPct = pago.vinculo?.honorariosPct ?? 8
-      const conceptos = (pago.conceptosExtra as ConceptoExtra[] | null) ?? []
-      const extrasParaProp = conceptos.filter(c => !c.esInmobiliaria).reduce((s, c) => s + c.monto, 0)
-      const honorarios = Math.round(pago.monto * honorariosPct / 100)
-      const totalTransferir = (pago.monto - honorarios) + extrasParaProp
+      const honorarios = pago.honorariosAplicados ?? Math.round(pago.monto * honorariosPct / 100)
+      const totalTransferir = pago.montoPropietario ?? (() => {
+        const conceptos = (pago.conceptosExtra as ConceptoExtra[] | null) ?? []
+        const extrasParaProp = conceptos.filter(c => !c.esInmobiliaria).reduce((s, c) => s + c.monto, 0)
+        return (pago.monto - honorarios) + extrasParaProp
+      })()
       const fmt = (n: number) => new Intl.NumberFormat('es-AR', { style: 'currency', currency: 'ARS', maximumFractionDigits: 0 }).format(n)
       const fecha = new Date().toLocaleDateString('es-AR', { day: '2-digit', month: 'long', year: 'numeric' })
       const nombre = propietarioPersona.nombre
@@ -439,6 +441,20 @@ router.post('/:id/liquidacion', async (req, res) => {
   }
 
   datos.gastos = gastosExtra
+
+  // Calcular y persistir el monto final al propietario
+  const alquilerBase = datos.alquilerBase ?? datos.totalLiquidacion
+  const honorariosPct = datos.honorariosPct ?? 8
+  const honorariosAplicados = Math.round(alquilerBase * honorariosPct / 100)
+  const totalGastosAplicados = gastosExtra.reduce((s, g) => s + g.monto, 0)
+  const conceptosProp = (datos.conceptosInquilino ?? []).filter(c => !c.esInmobiliaria)
+  const extrasParaProp = conceptosProp.reduce((s, c) => s + c.monto, 0)
+  const montoPropietario = (alquilerBase - honorariosAplicados) + extrasParaProp - totalGastosAplicados
+
+  await prisma.pago.update({
+    where: { id: req.params.id },
+    data: { montoPropietario, honorariosAplicados, gastosAplicados: totalGastosAplicados },
+  })
 
   try {
     const buffer = await generarLiquidacionPDF(datos)

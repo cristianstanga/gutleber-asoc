@@ -222,6 +222,9 @@ model Pago {
   pagadoAlPropietario  Boolean    @default(false)
   fechaPagoPropietario DateTime?
   nroRecibo            Int?       // número secuencial del recibo
+  montoPropietario     Float?     // monto final a transferir (se guarda al generar liquidación)
+  honorariosAplicados  Float?     // honorarios descontados en la liquidación
+  gastosAplicados      Float?     // total de gastos descontados
   propiedadId          String?
   personaId            String?
   vinculoId            String?

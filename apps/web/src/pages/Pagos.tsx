@@ -64,6 +64,9 @@ interface Pago {
   comprobanteEnviado: boolean
   pagadoAlPropietario: boolean
   fechaPagoPropietario?: string
+  montoPropietario?: number
+  honorariosAplicados?: number
+  gastosAplicados?: number
   persona?: Persona
   propiedad?: { direccion: string }
 }
@@ -792,21 +795,21 @@ interface ModalConfirmarTransferenciaProps {
 function ModalConfirmarTransferencia({ pago, vinculo, onClose, onConfirmar, isPending }: ModalConfirmarTransferenciaProps) {
   const honorariosPct = vinculo.honorariosPct ?? 8
   const conceptos = pago.conceptosExtra ?? []
+  const liquidacionGenerada = pago.montoPropietario != null
 
-  // Comisión: SOLO sobre el alquiler base (pago.monto), no sobre extras
-  const honorarios = Math.round(pago.monto * honorariosPct / 100)
+  // Usar valores de la liquidación generada si existen; si no, calcular en tiempo real
+  const honorarios = pago.honorariosAplicados ?? Math.round(pago.monto * honorariosPct / 100)
+  const gastosAplicados = pago.gastosAplicados ?? 0
 
-  // Extras que van al propietario (todo lo que no es "para la inmobiliaria")
   const extrasParaPropietario = conceptos
     .filter(c => !c.esInmobiliaria)
     .reduce((s, c) => s + c.monto, 0)
 
-  // Extras que quedan en la inmobiliaria
   const extrasInmobiliaria = conceptos
     .filter(c => c.esInmobiliaria && c.monto > 0)
     .reduce((s, c) => s + c.monto, 0)
 
-  const totalTransferir = (pago.monto - honorarios) + extrasParaPropietario
+  const totalTransferir = pago.montoPropietario ?? ((pago.monto - honorarios) + extrasParaPropietario)
 
   return (
     <div className="fixed inset-0 bg-carbon/40 backdrop-blur-sm flex items-center justify-center z-50 p-4">
@@ -832,6 +835,13 @@ function ModalConfirmarTransferencia({ pago, vinculo, onClose, onConfirmar, isPe
               <span className="text-red-600">Honorarios administración ({honorariosPct}%)</span>
               <span className="font-semibold text-red-600">− {formatARS(honorarios)}</span>
             </div>
+            {/* Gastos de la liquidación */}
+            {gastosAplicados > 0 && (
+              <div className="flex justify-between items-center px-4 py-3 border-b border-crema bg-orange-50/40">
+                <span className="text-orange-700">Gastos descontados (liquidación)</span>
+                <span className="font-semibold text-orange-700">− {formatARS(gastosAplicados)}</span>
+              </div>
+            )}
             {/* Extras al propietario */}
             {extrasParaPropietario !== 0 && (
               <div className="flex justify-between items-center px-4 py-3 border-b border-crema bg-blue-50/30">
@@ -858,6 +868,11 @@ function ModalConfirmarTransferencia({ pago, vinculo, onClose, onConfirmar, isPe
             </div>
           </div>
 
+          {!liquidacionGenerada && (
+            <p className="text-xs text-orange-700 bg-orange-50 border border-orange-200 rounded-lg px-3 py-2">
+              ⚠️ No se generó la liquidación todavía. Los gastos no están incluidos en este cálculo.
+            </p>
+          )}
           <p className="text-xs text-piedra bg-amber-50 border border-amber-200 rounded-lg px-3 py-2">
             Al confirmar se registra como pagado al propietario. Podés revertirlo si cometés un error.
           </p>
