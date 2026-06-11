@@ -93,12 +93,15 @@ function nroFormato(n?: number | null) {
   return `0001-${String(n).padStart(8, '0')}`
 }
 
-async function descargarPDF(id: string, tipo: 'recibo' | 'liquidacion', label: string) {
+async function descargarPDF(id: string, tipo: 'recibo' | 'liquidacion', fallback: string) {
   const response = await api.get(`/pagos/${id}/${tipo}`, { responseType: 'blob' })
+  const cd = response.headers['content-disposition'] as string | undefined
+  const match = cd?.match(/filename="?([^";\n]+)"?/)
+  const filename = match?.[1] ?? `${tipo}-${fallback}.pdf`
   const url = URL.createObjectURL(new Blob([response.data], { type: 'application/pdf' }))
   const a = document.createElement('a')
   a.href = url
-  a.download = `${tipo}-${label}.pdf`
+  a.download = filename
   a.click()
   URL.revokeObjectURL(url)
 }
@@ -503,9 +506,10 @@ interface ModalLiquidacionProps {
   pago: Pago
   vinculo: Vinculo
   onClose: () => void
+  onSuccess: () => void
 }
 
-function ModalLiquidacion({ pago, vinculo, onClose }: ModalLiquidacionProps) {
+function ModalLiquidacion({ pago, vinculo, onClose, onSuccess }: ModalLiquidacionProps) {
   const [honorariosPct, setHonorariosPct] = useState(vinculo.honorariosPct ?? 8)
   const [gastosSeleccionados, setGastosSeleccionados] = useState<string[]>([])
   const [gastosExtra, setGastosExtra] = useState<{ descripcion: string; monto: number }[]>([])
@@ -560,19 +564,20 @@ function ModalLiquidacion({ pago, vinculo, onClose }: ModalLiquidacionProps) {
         {
           honorariosPct,
           gastosIds: gastosSeleccionados,
-          gastosExtra: [
-            ...gastosExtra.filter(g => g.descripcion && g.monto > 0),
-          ],
+          gastosExtra: gastosExtra.filter(g => g.descripcion && g.monto > 0),
         },
         { responseType: 'blob' }
       )
+      const cd = response.headers['content-disposition'] as string | undefined
+      const match = cd?.match(/filename="?([^";\n]+)"?/)
+      const filename = match?.[1] ?? `Liquidacion_${pago.periodo || pago.id}.pdf`
       const url = URL.createObjectURL(new Blob([response.data], { type: 'application/pdf' }))
       const a = document.createElement('a')
       a.href = url
-      a.download = `liquidacion-${pago.periodo || pago.id}.pdf`
+      a.download = filename
       a.click()
       URL.revokeObjectURL(url)
-      onClose()
+      onSuccess()
     } catch {
       setToast('Error al generar la liquidación')
       setTimeout(() => setToast(''), 3000)
@@ -882,7 +887,7 @@ function ModalConfirmarTransferencia({ pago, vinculo, onClose, onConfirmar, isPe
           <button onClick={onClose} className="btn-secondary">Cancelar</button>
           <button onClick={onConfirmar} disabled={isPending} className="btn-primary flex items-center gap-2">
             <Send size={14} />
-            {isPending ? 'Registrando...' : 'Confirmar transferencia'}
+            {isPending ? 'Registrando...' : 'Registrar transferencia'}
           </button>
         </div>
       </div>
@@ -1148,38 +1153,58 @@ function PanelPagos({ vinculo }: PanelPagosProps) {
                       )}
                       {p.estado === 'PAGADO' && !p.pagadoAlPropietario && (
                         <>
-                          <button
-                            onClick={() => setPagoLiquidar(p)}
-                            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-amber-50 hover:bg-amber-100 text-amber-700 text-xs font-semibold transition-colors whitespace-nowrap"
-                          >
-                            <Receipt size={12} /> {p.montoPropietario != null ? 'Re-liquidar' : 'Liquidar'}
-                          </button>
-                          {p.montoPropietario != null && (
+                          {p.montoPropietario != null ? (
+                            // Estado 2: liquidación generada — mostrar tick + acciones
+                            <>
+                              <div className="flex items-center gap-1 text-[11px] text-green-700 font-semibold">
+                                <CheckCircle size={11} /> Liquidación realizada
+                              </div>
+                              <div className="flex items-center gap-2">
+                                <button
+                                  onClick={() => descargarPDF(p.id, 'liquidacion', p.id)}
+                                  className="flex items-center gap-1 text-[10px] text-amber-600 hover:text-amber-800 transition-colors"
+                                >
+                                  <FileDown size={10} /> PDF
+                                </button>
+                                <button
+                                  onClick={() => setPagoLiquidar(p)}
+                                  className="flex items-center gap-1 text-[10px] text-piedra hover:text-carbon transition-colors"
+                                >
+                                  <RotateCcw size={9} /> Re-liquidar
+                                </button>
+                              </div>
+                              <button
+                                onClick={() => setPagoATransferir(p)}
+                                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-piedra hover:bg-carbon text-white text-xs font-semibold transition-colors whitespace-nowrap"
+                              >
+                                <Send size={12} /> Transferir pago {formatARS(p.montoPropietario)}
+                              </button>
+                            </>
+                          ) : (
+                            // Estado 1: sin liquidación
                             <button
-                              onClick={() => descargarPDF(p.id, 'liquidacion', `Liquidacion_${p.id}`)}
-                              className="flex items-center gap-1 text-[10px] text-amber-600 hover:text-amber-800 transition-colors"
+                              onClick={() => setPagoLiquidar(p)}
+                              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-amber-50 hover:bg-amber-100 text-amber-700 text-xs font-semibold transition-colors whitespace-nowrap"
                             >
-                              <FileDown size={10} /> Descargar liquidación
+                              <Receipt size={12} /> Liquidar
                             </button>
                           )}
-                          <button
-                            onClick={() => setPagoATransferir(p)}
-                            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-colors whitespace-nowrap ${
-                              p.montoPropietario != null
-                                ? 'bg-piedra hover:bg-piedra/90 text-white'
-                                : 'bg-piedra/10 hover:bg-piedra/20 text-piedra'
-                            }`}
-                          >
-                            <Send size={12} /> Transferir{p.montoPropietario == null ? '' : ` ${formatARS(p.montoPropietario)}`}
-                          </button>
                         </>
                       )}
                       {p.estado === 'PAGADO' && p.pagadoAlPropietario && (
                         <div className="flex flex-col gap-1">
                           <span className="inline-flex items-center gap-1 text-xs text-green-700 bg-green-50 px-2 py-1 rounded-full font-medium whitespace-nowrap">
                             <CheckCircle size={11} /> Cobró
-                            {p.fechaPagoPropietario && <span className="text-green-500">{formatFecha(p.fechaPagoPropietario)}</span>}
+                            {p.fechaPagoPropietario && <span className="text-green-500 ml-0.5">{formatFecha(p.fechaPagoPropietario)}</span>}
                           </span>
+                          {p.montoPropietario != null && (
+                            <button
+                              onClick={() => descargarPDF(p.id, 'liquidacion', p.id)}
+                              className="flex items-center gap-1 text-[10px] text-amber-600 hover:text-amber-800 transition-colors"
+                            >
+                              <FileDown size={10} /> PDF liquidación
+                            </button>
+                          )}
                           {/* Revertir — con confirmación inline */}
                           {confirmRevertirId === p.id ? (
                             <div className="flex items-center gap-1 mt-0.5">
@@ -1230,6 +1255,10 @@ function PanelPagos({ vinculo }: PanelPagosProps) {
           pago={pagoLiquidar}
           vinculo={vinculo}
           onClose={() => setPagoLiquidar(null)}
+          onSuccess={() => {
+            qc.invalidateQueries({ queryKey: ['pagos', vinculo.id] })
+            setPagoLiquidar(null)
+          }}
         />
       )}
 

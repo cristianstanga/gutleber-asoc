@@ -360,6 +360,13 @@ router.patch('/:id/revertir-cobro', async (req, res) => {
   const current = await prisma.pago.findUnique({ where: { id: req.params.id } })
   if (!current) return res.status(404).json({ error: 'Pago no encontrado' })
   if (current.pagadoAlPropietario) return res.status(400).json({ error: 'Ya transferido al propietario — no se puede revertir' })
+
+  // Gastos aplicados en esta liquidación vuelven a pendiente
+  await prisma.gasto.updateMany({
+    where: { pagoId: req.params.id, estado: 'APLICADO' },
+    data: { estado: 'PENDIENTE', pagoId: null },
+  })
+
   const pago = await prisma.pago.update({
     where: { id: req.params.id },
     data: {
@@ -370,6 +377,9 @@ router.patch('/:id/revertir-cobro', async (req, res) => {
       totalConExtras: null,
       comprobanteEnviado: false,
       nroRecibo: null,
+      montoPropietario: null,
+      honorariosAplicados: null,
+      gastosAplicados: null,
     },
   })
   res.json(pago)
