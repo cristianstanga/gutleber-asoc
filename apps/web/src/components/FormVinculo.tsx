@@ -1,4 +1,4 @@
-import { useState, FormEvent } from 'react'
+import { useState, useEffect, FormEvent } from 'react'
 import { X, AlertCircle, Building2, User, Calendar, TrendingUp, Settings } from 'lucide-react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { api } from '../lib/api'
@@ -10,6 +10,8 @@ interface Propiedad {
   tipo: string
   enAlquiler: boolean
   administrada: boolean
+  alquilerBase?: number | null
+  indiceActual?: string | null
   propietario?: Propietario | null
 }
 interface Persona { id: string; nombre: string; apellido: string; tipo: string }
@@ -48,6 +50,8 @@ export default function FormVinculo({ onClose }: Props) {
   const [administrado, setAdministrado] = useState(false)
   const [honorariosPct, setHonorariosPct] = useState('8')
   const [notas, setNotas] = useState('')
+  const [alquilerDesdeProp, setAlquilerDesdeProp] = useState<number | null>(null)
+  const [indiceDesdeProp, setIndiceDesdeProp] = useState<string | null>(null)
 
   const { data: propiedades = [] } = useQuery<Propiedad[]>({
     queryKey: ['propiedades'],
@@ -70,6 +74,23 @@ export default function FormVinculo({ onClose }: Props) {
   })
 
   const propiedadSeleccionada = propiedades.find((p) => p.id === propiedadId) ?? null
+
+  // Pre-poblar valores de la propiedad al seleccionarla
+  useEffect(() => {
+    if (!propiedadSeleccionada) return
+    if (propiedadSeleccionada.alquilerBase) {
+      setAlquilerInicial(String(propiedadSeleccionada.alquilerBase))
+      setAlquilerDesdeProp(propiedadSeleccionada.alquilerBase)
+    } else {
+      setAlquilerDesdeProp(null)
+    }
+    if (propiedadSeleccionada.indiceActual) {
+      setIndice(propiedadSeleccionada.indiceActual)
+      setIndiceDesdeProp(propiedadSeleccionada.indiceActual)
+    } else {
+      setIndiceDesdeProp(null)
+    }
+  }, [propiedadId]) // eslint-disable-line react-hooks/exhaustive-deps
 
   function handleSubmit(e: FormEvent) {
     e.preventDefault()
@@ -250,18 +271,28 @@ export default function FormVinculo({ onClose }: Props) {
               <div>
                 <label className="form-label">Alquiler inicial (ARS) *</label>
                 <input type="number" min="0" className="form-input bg-white"
-                  value={alquilerInicial} onChange={(e) => setAlquilerInicial(e.target.value)}
+                  value={alquilerInicial} onChange={(e) => { setAlquilerInicial(e.target.value); setAlquilerDesdeProp(null) }}
                   placeholder="180000" required />
+                {alquilerDesdeProp != null && Number(alquilerInicial) === alquilerDesdeProp && (
+                  <p className="text-[11px] text-blue-600 mt-1 flex items-center gap-1">
+                    <TrendingUp size={10} /> Valor de referencia de la propiedad — modificalo si se negoció diferente
+                  </p>
+                )}
               </div>
 
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <label className="form-label">Índice de ajuste</label>
-                  <select className="form-select bg-white" value={indice} onChange={(e) => setIndice(e.target.value)}>
+                  <select className="form-select bg-white" value={indice} onChange={(e) => { setIndice(e.target.value); setIndiceDesdeProp(null) }}>
                     <option value="ICL">ICL — BCRA</option>
                     <option value="IPC">IPC — INDEC</option>
                     <option value="UVA">UVA</option>
                   </select>
+                  {indiceDesdeProp != null && indice === indiceDesdeProp && (
+                    <p className="text-[11px] text-blue-600 mt-1 flex items-center gap-1">
+                      <TrendingUp size={10} /> Índice de la propiedad
+                    </p>
+                  )}
                 </div>
                 <div>
                   <label className="form-label">Periodicidad ajuste</label>
