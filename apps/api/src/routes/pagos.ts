@@ -190,7 +190,7 @@ router.get('/', async (req, res) => {
 
   const pagos = await prisma.pago.findMany({
     where,
-    include: { persona: true, propiedad: true, vinculo: true },
+    include: { persona: true, propiedad: { include: { propietario: true } }, vinculo: true },
     orderBy: { fechaVencimiento: 'desc' },
   })
   res.json(pagos)
@@ -199,7 +199,7 @@ router.get('/', async (req, res) => {
 router.get('/:id', async (req, res) => {
   const pago = await prisma.pago.findUnique({
     where: { id: req.params.id },
-    include: { persona: true, propiedad: true, vinculo: true },
+    include: { persona: true, propiedad: { include: { propietario: true } }, vinculo: true },
   })
   if (!pago) return res.status(404).json({ error: 'Pago no encontrado' })
   res.json(pago)

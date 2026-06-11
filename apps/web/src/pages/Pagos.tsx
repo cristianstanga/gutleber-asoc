@@ -68,7 +68,7 @@ interface Pago {
   honorariosAplicados?: number
   gastosAplicados?: number
   persona?: Persona
-  propiedad?: { direccion: string }
+  propiedad?: { direccion: string; propietario?: { nombre: string; apellido: string } }
 }
 
 // ─── Constantes ───────────────────────────────────────────────────────────────
@@ -1085,6 +1085,11 @@ function PanelPagos({ vinculo }: PanelPagosProps) {
                   {/* Acciones — Inquilino */}
                   <td className="px-4 py-3">
                     <div className="flex flex-col gap-1">
+                      {p.persona && (
+                        <span className="text-xs font-semibold text-carbon">
+                          {p.persona.nombre} {p.persona.apellido}
+                        </span>
+                      )}
                       {p.estado !== 'PAGADO' && p.estado !== 'ANULADO' && (
                         <button
                           onClick={() => setPagoACobrar(p)}
@@ -1148,6 +1153,11 @@ function PanelPagos({ vinculo }: PanelPagosProps) {
                   {/* Acciones — Propietario */}
                   <td className="px-4 py-3">
                     <div className="flex flex-col gap-1">
+                      {p.propiedad?.propietario && (
+                        <span className="text-xs font-semibold text-carbon">
+                          {p.propiedad.propietario.nombre} {p.propiedad.propietario.apellido}
+                        </span>
+                      )}
                       {p.estado !== 'PAGADO' && (
                         <span className="text-xs text-muted">Esperando cobro</span>
                       )}
