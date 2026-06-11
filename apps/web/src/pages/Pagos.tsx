@@ -529,9 +529,9 @@ function ModalLiquidacion({ pago, vinculo, onClose }: ModalLiquidacionProps) {
     .reduce((s, g) => s + g.monto, 0)
   const montoGastosExtra = gastosExtra.reduce((s, g) => s + (Number(g.monto) || 0), 0)
   const totalGastos = montoGastosSeleccionados + montoGastosExtra
-  // Honorarios: solo sobre el alquiler base menos gastos (no sobre extras ni retenciones)
-  const honorarios = Math.round((pago.monto - totalGastos) * honorariosPct / 100)
-  const totalPagado = (pago.monto - totalGastos - honorarios) + extrasAlPropietario
+  // Honorarios: sobre el alquiler base completo, independiente de los gastos
+  const honorarios = Math.round(pago.monto * honorariosPct / 100)
+  const totalPagado = (pago.monto - honorarios) + extrasAlPropietario - totalGastos
 
   function toggleGasto(id: string) {
     setGastosSeleccionados(prev =>
