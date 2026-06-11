@@ -50,6 +50,28 @@ app.get('/api/whatsapp/meta-test/:phone', async (req, res) => {
   try { res.json({ ok: true, result: await sendHelloWorld(req.params.phone) }) }
   catch (err) { res.status(500).json({ error: String(err) }) }
 })
+// Crea gutleber_recibo en WABA correcto (one-time)
+app.post('/api/whatsapp/crear-recibo-template', async (_req, res) => {
+  const token = process.env.WHATSAPP_ACCESS_TOKEN
+  const wabaId = '1748009346185242'
+  if (!token) return res.status(500).json({ error: 'Token no configurado' })
+  const r = await fetch(`https://graph.facebook.com/v25.0/${wabaId}/message_templates`, {
+    method: 'POST',
+    headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      name: 'gutleber_recibo',
+      language: 'es_AR',
+      category: 'UTILITY',
+      components: [{
+        type: 'BODY',
+        text: 'Hola {{1}}, su comprobante de pago del período {{2}} está disponible. Inmueble: {{4}} Monto: {{3}} Gracias por su pago. Gutleber & Asoc.',
+        example: { body_text: [['Juan', 'Junio de 2026', '$ 150.000', 'Mitre 450 Oberá']] },
+      }],
+    }),
+  })
+  res.json({ ok: r.ok, status: r.status, response: await r.json() })
+})
+
 // Lista templates del WABA correcto — diagnóstico
 app.get('/api/whatsapp/templates', async (_req, res) => {
   const token = process.env.WHATSAPP_ACCESS_TOKEN
