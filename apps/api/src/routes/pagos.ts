@@ -116,10 +116,14 @@ async function buildDatosLiquidacion(pagoId: string): Promise<DatosLiquidacion |
       where: { propiedadId: pago.propiedadId, tipo: 'ADMINISTRACION', activo: true },
       include: { persona: true },
     })
-    if (vAdmin?.persona) {
+    const propPersona = vAdmin?.persona ?? (await prisma.propiedad.findUnique({
+      where: { id: pago.propiedadId },
+      include: { propietario: true },
+    }))?.propietario ?? null
+    if (propPersona) {
       propietario = {
-        nombre: vAdmin.persona.nombre,
-        apellido: vAdmin.persona.apellido,
+        nombre: propPersona.nombre,
+        apellido: propPersona.apellido,
         cuit: null,
         iva: 'Responsable Monotributo',
         direccion: null,
@@ -469,11 +473,14 @@ router.post('/:id/liquidacion', async (req, res) => {
   }
 })
 
-// GET legacy (sin gastos ni override)
+// GET liquidación — incluye gastos ya aplicados a este pago
 router.get('/:id/liquidacion', async (req, res) => {
   const datos = await buildDatosLiquidacion(req.params.id)
   if (!datos) return res.status(404).json({ error: 'Pago no encontrado o sin datos suficientes' })
-  datos.gastos = []
+  const gastosAplicados = await prisma.gasto.findMany({
+    where: { pagoId: req.params.id, estado: 'APLICADO' },
+  })
+  datos.gastos = gastosAplicados.map(g => ({ descripcion: g.descripcion, monto: g.monto }))
   try {
     const buffer = await generarLiquidacionPDF(datos)
     const nombreProp = `${datos.propietario.nombre}_${datos.propietario.apellido}`.replace(/\s+/g, '_')

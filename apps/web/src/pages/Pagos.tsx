@@ -4,7 +4,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import {
   CreditCard, Send, CheckCircle, ChevronRight,
   Plus, Minus, Trash2, FileText, X, Building2, User, Calendar,
-  Home, Receipt, Wrench, Percent, RotateCcw
+  Home, Receipt, Wrench, Percent, RotateCcw, FileDown
 } from 'lucide-react'
 import { api, formatARS, formatFecha } from '../lib/api'
 
@@ -1152,13 +1152,25 @@ function PanelPagos({ vinculo }: PanelPagosProps) {
                             onClick={() => setPagoLiquidar(p)}
                             className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-amber-50 hover:bg-amber-100 text-amber-700 text-xs font-semibold transition-colors whitespace-nowrap"
                           >
-                            <Receipt size={12} /> Liquidar
+                            <Receipt size={12} /> {p.montoPropietario != null ? 'Re-liquidar' : 'Liquidar'}
                           </button>
+                          {p.montoPropietario != null && (
+                            <button
+                              onClick={() => descargarPDF(p.id, 'liquidacion', `Liquidacion_${p.id}`)}
+                              className="flex items-center gap-1 text-[10px] text-amber-600 hover:text-amber-800 transition-colors"
+                            >
+                              <FileDown size={10} /> Descargar liquidación
+                            </button>
+                          )}
                           <button
                             onClick={() => setPagoATransferir(p)}
-                            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-piedra/10 hover:bg-piedra/20 text-piedra text-xs font-medium transition-colors whitespace-nowrap"
+                            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-colors whitespace-nowrap ${
+                              p.montoPropietario != null
+                                ? 'bg-piedra hover:bg-piedra/90 text-white'
+                                : 'bg-piedra/10 hover:bg-piedra/20 text-piedra'
+                            }`}
                           >
-                            <Send size={12} /> Transferir
+                            <Send size={12} /> Transferir{p.montoPropietario == null ? '' : ` ${formatARS(p.montoPropietario)}`}
                           </button>
                         </>
                       )}
