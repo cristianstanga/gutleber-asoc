@@ -396,7 +396,8 @@ router.get('/:id/recibo', async (req, res) => {
 
   try {
     const buffer = await generarReciboPDF(datos)
-    const filename = `recibo-${datos.nroRecibo || req.params.id}.pdf`
+    const nombreInquilino = `${datos.inquilino.nombre}_${datos.inquilino.apellido}`.replace(/\s+/g, '_')
+    const filename = `Recibo_${nombreInquilino}_${datos.mes.replace(/\s+/g, '_')}.pdf`
     res.set('Content-Type', 'application/pdf')
     res.set('Content-Disposition', `attachment; filename="${filename}"`)
     res.send(buffer)
@@ -458,7 +459,8 @@ router.post('/:id/liquidacion', async (req, res) => {
 
   try {
     const buffer = await generarLiquidacionPDF(datos)
-    const filename = `liquidacion-${datos.nroLiquidacion || req.params.id}.pdf`
+    const nombreProp = `${datos.propietario.nombre}_${datos.propietario.apellido}`.replace(/\s+/g, '_')
+    const filename = `Liquidacion_${nombreProp}_${datos.mes.replace(/\s+/g, '_')}.pdf`
     res.set('Content-Type', 'application/pdf')
     res.set('Content-Disposition', `attachment; filename="${filename}"`)
     res.send(buffer)
@@ -474,7 +476,8 @@ router.get('/:id/liquidacion', async (req, res) => {
   datos.gastos = []
   try {
     const buffer = await generarLiquidacionPDF(datos)
-    const filename = `liquidacion-${datos.nroLiquidacion || req.params.id}.pdf`
+    const nombreProp = `${datos.propietario.nombre}_${datos.propietario.apellido}`.replace(/\s+/g, '_')
+    const filename = `Liquidacion_${nombreProp}_${datos.mes.replace(/\s+/g, '_')}.pdf`
     res.set('Content-Type', 'application/pdf')
     res.set('Content-Disposition', `attachment; filename="${filename}"`)
     res.send(buffer)
