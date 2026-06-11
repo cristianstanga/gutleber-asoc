@@ -4,7 +4,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import {
   CreditCard, Send, CheckCircle, ChevronRight,
   Plus, Minus, Trash2, FileText, X, Building2, User, Calendar,
-  Home, Receipt, Wrench, Percent, RotateCcw, FileDown
+  Home, Receipt, Wrench, Percent, RotateCcw, FileDown, AlertTriangle
 } from 'lucide-react'
 import { api, formatARS, formatFecha } from '../lib/api'
 import { useAuthStore } from '../store/auth'
@@ -970,6 +970,15 @@ function PanelPagos({ vinculo }: PanelPagosProps) {
     onError: () => toast2('Error al eliminar'),
   })
 
+  const generarRetroactivos = useMutation({
+    mutationFn: () => api.post(`/vinculos/${vinculo.id}/generar-retroactivos`),
+    onSuccess: (res) => {
+      qc.invalidateQueries({ queryKey: ['pagos', vinculo.id] })
+      toast2(`${res.data.generados} pagos generados ✓`)
+    },
+    onError: () => toast2('Error al generar pagos'),
+  })
+
   function toast2(msg: string) {
     setToast(msg)
     setTimeout(() => setToast(''), 3000)
@@ -1034,9 +1043,32 @@ function PanelPagos({ vinculo }: PanelPagosProps) {
         {isLoading && <p className="p-6 text-sm text-piedra animate-pulse">Cargando pagos...</p>}
 
         {!isLoading && pagosOrdenados.length === 0 && (
-          <div className="p-12 text-center text-piedra text-sm">
-            <CreditCard size={32} className="mx-auto mb-3 opacity-30" />
-            No hay pagos registrados para este contrato
+          <div className="p-8">
+            {vinculo.tipo === 'ALQUILER' ? (
+              <div className="border border-amber-200 bg-amber-50 rounded-xl p-5 flex flex-col items-center gap-3 text-center">
+                <AlertTriangle size={28} className="text-amber-500" />
+                <div>
+                  <p className="font-semibold text-carbon">Este contrato no tiene pagos generados</p>
+                  <p className="text-xs text-piedra mt-1">
+                    El contrato inició el {formatFecha(vinculo.fechaInicio)}. Podés generar todos los meses
+                    faltantes automáticamente — los anteriores al mes actual quedarán en <strong>mora</strong>.
+                  </p>
+                </div>
+                <button
+                  onClick={() => generarRetroactivos.mutate()}
+                  disabled={generarRetroactivos.isPending}
+                  className="btn-primary flex items-center gap-2"
+                >
+                  <Receipt size={14} />
+                  {generarRetroactivos.isPending ? 'Generando...' : `Generar pagos desde ${formatFecha(vinculo.fechaInicio)}`}
+                </button>
+              </div>
+            ) : (
+              <div className="text-center text-piedra text-sm py-8">
+                <CreditCard size={32} className="mx-auto mb-3 opacity-30" />
+                No hay pagos registrados para este contrato
+              </div>
+            )}
           </div>
         )}
 

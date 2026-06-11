@@ -134,6 +134,51 @@ router.post('/', async (req, res) => {
   res.status(201).json(vinculo)
 })
 
+// Genera pagos retroactivos para un contrato existente (meses faltantes desde fechaInicio)
+router.post('/:id/generar-retroactivos', async (req, res) => {
+  const vinculo = await prisma.vinculo.findUnique({
+    where: { id: req.params.id },
+    include: { propiedad: true, persona: true },
+  })
+  if (!vinculo) return res.status(404).json({ error: 'Contrato no encontrado' })
+  if (vinculo.tipo !== 'ALQUILER') return res.status(400).json({ error: 'Solo para contratos de alquiler' })
+
+  const hoy = new Date()
+  const cursor = new Date(vinculo.fechaInicio.getFullYear(), vinculo.fechaInicio.getMonth(), 1)
+  const inicioMesActual = new Date(hoy.getFullYear(), hoy.getMonth(), 1)
+
+  let generados = 0
+  while (cursor <= inicioMesActual) {
+    const year = cursor.getFullYear()
+    const month = cursor.getMonth()
+    const periodo = cursor.toLocaleDateString('es-AR', { month: 'short', year: '2-digit' })
+      .replace(' ', '-').toLowerCase()
+
+    const yaExiste = await prisma.pago.findFirst({ where: { vinculoId: vinculo.id, periodo } })
+    if (!yaExiste) {
+      const vencimiento = new Date(year, month, 5)
+      const esMesActual = year === hoy.getFullYear() && month === hoy.getMonth()
+      await prisma.pago.create({
+        data: {
+          tipo: TipoPago.ALQUILER,
+          concepto: `Alquiler ${periodo} — ${vinculo.propiedad?.direccion}`,
+          monto: vinculo.alquilerActual || vinculo.alquilerInicial || 0,
+          moneda: Moneda.ARS,
+          periodo,
+          estado: esMesActual ? EstadoPago.PENDIENTE : EstadoPago.MORA,
+          fechaVencimiento: vencimiento,
+          propiedadId: vinculo.propiedadId,
+          personaId: vinculo.personaId,
+          vinculoId: vinculo.id,
+        },
+      })
+      generados++
+    }
+    cursor.setMonth(cursor.getMonth() + 1)
+  }
+  res.json({ generados })
+})
+
 router.put('/:id', async (req, res) => {
   const vinculo = await prisma.vinculo.update({ where: { id: req.params.id }, data: req.body })
   res.json(vinculo)
