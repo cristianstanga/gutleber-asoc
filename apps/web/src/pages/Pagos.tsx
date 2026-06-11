@@ -7,6 +7,7 @@ import {
   Home, Receipt, Wrench, Percent, RotateCcw, FileDown
 } from 'lucide-react'
 import { api, formatARS, formatFecha } from '../lib/api'
+import { useAuthStore } from '../store/auth'
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -903,6 +904,8 @@ interface PanelPagosProps {
 
 function PanelPagos({ vinculo }: PanelPagosProps) {
   const qc = useQueryClient()
+  const { usuario } = useAuthStore()
+  const esAdmin = usuario?.rol === 'ADMIN'
   const [toast, setToast] = useState('')
   const [modalNuevo, setModalNuevo] = useState(false)
   const [pagoLiquidar, setPagoLiquidar] = useState<Pago | null>(null)
@@ -910,6 +913,7 @@ function PanelPagos({ vinculo }: PanelPagosProps) {
   const [pagoATransferir, setPagoATransferir] = useState<Pago | null>(null)
   const [confirmRevertirId, setConfirmRevertirId] = useState<string | null>(null)
   const [confirmRevertirCobroId, setConfirmRevertirCobroId] = useState<string | null>(null)
+  const [confirmEliminarId, setConfirmEliminarId] = useState<string | null>(null)
 
   const { data: pagos = [], isLoading } = useQuery<Pago[]>({
     queryKey: ['pagos', vinculo.id],
@@ -954,6 +958,16 @@ function PanelPagos({ vinculo }: PanelPagosProps) {
       const msg = (e as { response?: { data?: { error?: string } } })?.response?.data?.error || 'Error al enviar'
       toast2(msg)
     },
+  })
+
+  const eliminarPago = useMutation({
+    mutationFn: (id: string) => api.delete(`/pagos/${id}`),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['pagos', vinculo.id] })
+      setConfirmEliminarId(null)
+      toast2('Pago eliminado')
+    },
+    onError: () => toast2('Error al eliminar'),
   })
 
   function toast2(msg: string) {
@@ -1092,6 +1106,29 @@ function PanelPagos({ vinculo }: PanelPagosProps) {
                     </span>
                     {p.comprobanteEnviado && (
                       <p className="text-[10px] text-green-600 mt-0.5">✓ WA enviado</p>
+                    )}
+                    {esAdmin && (
+                      confirmEliminarId === p.id ? (
+                        <div className="flex items-center gap-1 mt-1">
+                          <span className="text-[10px] text-red-700">¿Eliminar?</span>
+                          <button
+                            onClick={() => eliminarPago.mutate(p.id)}
+                            disabled={eliminarPago.isPending}
+                            className="text-[10px] font-semibold text-red-600 hover:text-red-700 px-1.5 py-0.5 rounded bg-red-50 hover:bg-red-100 transition-colors"
+                          >Sí</button>
+                          <button
+                            onClick={() => setConfirmEliminarId(null)}
+                            className="text-[10px] text-piedra px-1.5 py-0.5 rounded bg-crema hover:bg-arena/30 transition-colors"
+                          >No</button>
+                        </div>
+                      ) : (
+                        <button
+                          onClick={() => setConfirmEliminarId(p.id)}
+                          className="flex items-center gap-1 text-[10px] text-red-400 hover:text-red-600 mt-1 transition-colors"
+                        >
+                          <Trash2 size={9} /> Eliminar
+                        </button>
+                      )
                     )}
                   </td>
 

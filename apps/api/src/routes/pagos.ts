@@ -1,6 +1,7 @@
 import { Router } from 'express'
 import { prisma, logger } from '../index'
 import { EstadoPago } from '@prisma/client'
+import { AuthRequest, requireAdmin } from '../middleware/auth'
 import {
   generarReciboPDF, generarLiquidacionPDF,
   DatosRecibo, DatosLiquidacion, ConceptoExtra,
@@ -400,6 +401,20 @@ router.patch('/:id/anular', async (req, res) => {
     data: { estado: EstadoPago.ANULADO },
   })
   res.json(pago)
+})
+
+// Solo ADMIN puede eliminar un pago
+router.delete('/:id', requireAdmin, async (req: AuthRequest, res) => {
+  const pago = await prisma.pago.findUnique({ where: { id: req.params.id } })
+  if (!pago) return res.status(404).json({ error: 'Pago no encontrado' })
+  // Revertir gastos aplicados si los hubiera
+  await prisma.gasto.updateMany({
+    where: { pagoId: req.params.id, estado: 'APLICADO' },
+    data: { estado: 'PENDIENTE', pagoId: null },
+  })
+  await prisma.pago.delete({ where: { id: req.params.id } })
+  logger.warn({ pagoId: req.params.id, userId: req.userId }, '🗑️ Pago eliminado por admin')
+  res.json({ ok: true })
 })
 
 // ─── PDF Recibo al inquilino ──────────────────────────────────────────────────

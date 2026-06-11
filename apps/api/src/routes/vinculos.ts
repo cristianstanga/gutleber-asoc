@@ -2,6 +2,7 @@ import { Router } from 'express'
 import { prisma } from '../index'
 import { generarContratoPDF } from '../services/contrato'
 import { AuthRequest } from '../middleware/auth'
+import { EstadoPago, TipoPago, Moneda } from '@prisma/client'
 
 const router = Router()
 
@@ -95,6 +96,39 @@ router.post('/', async (req, res) => {
       where: { id: propiedadId },
       data: { enAlquiler: true, administrada: administrado === true || administrado === 'true' },
     })
+
+    // Generar pagos retroactivos si fechaInicio es anterior al mes actual
+    const hoy = new Date()
+    const cursor = new Date(inicio.getFullYear(), inicio.getMonth(), 1)
+    const inicioMesActual = new Date(hoy.getFullYear(), hoy.getMonth(), 1)
+
+    while (cursor <= inicioMesActual) {
+      const year = cursor.getFullYear()
+      const month = cursor.getMonth()
+      const periodo = cursor.toLocaleDateString('es-AR', { month: 'short', year: '2-digit' })
+        .replace(' ', '-').toLowerCase()
+
+      const yaExiste = await prisma.pago.findFirst({ where: { vinculoId: vinculo.id, periodo } })
+      if (!yaExiste) {
+        const vencimiento = new Date(year, month, 5)
+        const esMesActual = year === hoy.getFullYear() && month === hoy.getMonth()
+        await prisma.pago.create({
+          data: {
+            tipo: TipoPago.ALQUILER,
+            concepto: `Alquiler ${periodo} — ${vinculo.propiedad?.direccion}`,
+            monto: alquilerInicial || 0,
+            moneda: Moneda.ARS,
+            periodo,
+            estado: esMesActual ? EstadoPago.PENDIENTE : EstadoPago.MORA,
+            fechaVencimiento: vencimiento,
+            propiedadId,
+            personaId,
+            vinculoId: vinculo.id,
+          },
+        })
+      }
+      cursor.setMonth(cursor.getMonth() + 1)
+    }
   }
 
   res.status(201).json(vinculo)
