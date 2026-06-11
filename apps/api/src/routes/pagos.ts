@@ -5,7 +5,7 @@ import {
   generarReciboPDF, generarLiquidacionPDF,
   DatosRecibo, DatosLiquidacion, ConceptoExtra,
 } from '../services/pdf'
-import { sendText as sendMetaText, sendTemplate, sendPDF as sendMetaPDF } from '../services/whatsapp-meta'
+import { sendText as sendMetaText, sendTemplate } from '../services/whatsapp-meta'
 
 const router = Router()
 
@@ -278,7 +278,7 @@ router.patch('/:id/marcar-pagado', async (req, res) => {
     } else {
       const tel = propietarioPersona.whatsapp
       const nombre = propietarioPersona.nombre
-      const montoTotal = pago.totalConExtras ?? pago.monto
+      const montoTotal = pago.monto  // alquiler base — sin extras que quedan en la inmobiliaria
       const fmt = (n: number) => new Intl.NumberFormat('es-AR', { style: 'currency', currency: 'ARS', maximumFractionDigits: 0 }).format(n)
       const fecha = new Date().toLocaleDateString('es-AR', { day: '2-digit', month: 'long', year: 'numeric' })
       const dir = pago.propiedad?.direccion ?? ''
