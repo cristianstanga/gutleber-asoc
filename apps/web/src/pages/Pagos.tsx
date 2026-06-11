@@ -988,11 +988,24 @@ function PanelPagos({ vinculo }: PanelPagosProps) {
           <h3 className="font-display text-base text-carbon">
             {vinculo.propiedad.direccion}
           </h3>
-          <p className="text-xs text-piedra mt-0.5">
-            {vinculo.persona.nombre} {vinculo.persona.apellido} ·{' '}
-            {formatFecha(vinculo.fechaInicio)} — {vinculo.fechaFin ? formatFecha(vinculo.fechaFin) : 'Sin fin'} ·{' '}
-            {formatARS(vinculo.alquilerActual ?? vinculo.alquilerInicial ?? 0)}/mes
-          </p>
+          <div className="flex items-center gap-3 mt-1">
+            <span className="flex items-center gap-1 text-xs text-blue-700">
+              <User size={11} />
+              <span className="font-semibold">{vinculo.persona.nombre} {vinculo.persona.apellido}</span>
+            </span>
+            {pagosOrdenados[0]?.propiedad?.propietario && (
+              <span className="flex items-center gap-1 text-xs text-amber-700">
+                <Building2 size={11} />
+                <span className="font-semibold">
+                  {pagosOrdenados[0].propiedad.propietario.nombre} {pagosOrdenados[0].propiedad.propietario.apellido}
+                </span>
+              </span>
+            )}
+            <span className="text-xs text-piedra">
+              {formatFecha(vinculo.fechaInicio)} — {vinculo.fechaFin ? formatFecha(vinculo.fechaFin) : 'Sin fin'} ·{' '}
+              {formatARS(vinculo.alquilerActual ?? vinculo.alquilerInicial ?? 0)}/mes
+            </span>
+          </div>
         </div>
         <button
           onClick={() => setModalNuevo(true)}
@@ -1024,18 +1037,10 @@ function PanelPagos({ vinculo }: PanelPagosProps) {
                 <th className="text-right px-4 py-2.5 text-xs text-piedra uppercase tracking-wide">Total</th>
                 <th className="text-left px-4 py-2.5 text-xs text-piedra uppercase tracking-wide">Estado</th>
                 <th className="px-4 py-2.5 text-xs uppercase tracking-wide">
-                  <div className="flex items-center gap-1 text-blue-600"><User size={11} /> Inquilino</div>
-                  <div className="font-semibold normal-case text-carbon text-[11px] tracking-normal">
-                    {vinculo.persona.nombre} {vinculo.persona.apellido}
-                  </div>
+                  <span className="flex items-center gap-1 text-blue-600"><User size={11} /> Inquilino</span>
                 </th>
                 <th className="px-4 py-2.5 text-xs uppercase tracking-wide">
-                  <div className="flex items-center gap-1 text-amber-600"><Building2 size={11} /> Propietario</div>
-                  {pagosOrdenados[0]?.propiedad?.propietario && (
-                    <div className="font-semibold normal-case text-carbon text-[11px] tracking-normal">
-                      {pagosOrdenados[0].propiedad.propietario.nombre} {pagosOrdenados[0].propiedad.propietario.apellido}
-                    </div>
-                  )}
+                  <span className="flex items-center gap-1 text-amber-600"><Building2 size={11} /> Propietario</span>
                 </th>
               </tr>
             </thead>
