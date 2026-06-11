@@ -8,7 +8,7 @@ const gitHash = (() => {
 
 export default defineConfig({
   define: {
-    __APP_VERSION__: JSON.stringify(`v1.1 · ${gitHash}`),
+    __APP_VERSION__: JSON.stringify(`v1.2 · ${gitHash}`),
   },
   plugins: [react()],
   server: {
