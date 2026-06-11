@@ -3,7 +3,7 @@
  *
  * Schedules:
  *   Día 1 08:00  → generar pagos del mes
- *   Día 2 09:00  → recordatorio vencimiento al inquilino (vence día 5)
+ *   Día 2 09:00  → recordatorio vencimiento al inquilino (vence día 10)
  *   Día 6 09:00  → notificar mora al propietario
  *   Día 10 09:00 → marcar pagos pendientes como MORA
  *   Lunes 09:00  → alertar contratos por vencer (30 y 7 días)
@@ -28,7 +28,7 @@ export function initCron() {
     await generarPagosMensuales()
   })
 
-  // Día 2 — recordatorio al inquilino (vence el 5)
+  // Día 2 — recordatorio al inquilino (vence el 10)
   cron.schedule('0 9 2 * *', async () => {
     logger.info('⏰ Cron: recordatorio de vencimiento a inquilinos...')
     await recordatorioInquilinoVencimiento()
@@ -40,8 +40,8 @@ export function initCron() {
     await avisarPropietarioMora()
   })
 
-  // Día 10 — marcar mora oficialmente
-  cron.schedule('0 9 10 * *', async () => {
+  // Día 11 — marcar mora oficialmente (vencimiento es el 10)
+  cron.schedule('0 9 11 * *', async () => {
     logger.info('⏰ Cron: marcando mora...')
     await marcarMora()
   })
@@ -107,7 +107,7 @@ async function generarPagosMensuales() {
     const yaExiste = await prisma.pago.findFirst({ where: { vinculoId: v.id, periodo } })
     if (yaExiste) continue
 
-    const venc = new Date(hoy.getFullYear(), hoy.getMonth(), 5)
+    const venc = new Date(hoy.getFullYear(), hoy.getMonth(), 10)
     await prisma.pago.create({
       data: {
         tipo: TipoPago.ALQUILER,
@@ -147,7 +147,7 @@ async function recordatorioInquilinoVencimiento() {
     const monto = formatARS(p.monto)
     const msg =
       `Hola ${p.persona?.nombre}! 👋\n\n` +
-      `Le recordamos que el *5 de ${mesStr()}* vence el alquiler de:\n` +
+      `Le recordamos que el *10 de ${mesStr()}* vence el alquiler de:\n` +
       `📍 *${p.propiedad?.direccion}*\n` +
       `💰 *${monto}*\n\n` +
       `Ante cualquier consulta, estamos a disposición.\n` +
@@ -162,14 +162,14 @@ async function recordatorioInquilinoVencimiento() {
 async function avisarPropietarioMora() {
   const hoy = new Date()
   const inicioMes = new Date(hoy.getFullYear(), hoy.getMonth(), 1)
-  const hoy5 = new Date(hoy.getFullYear(), hoy.getMonth(), 5)
+  const hoy10 = new Date(hoy.getFullYear(), hoy.getMonth(), 10)
 
-  // Pagos de este mes que vencieron el 5 y siguen PENDIENTE
+  // Pagos de este mes que vencieron el 10 y siguen PENDIENTE
   const pagosImpagos = await prisma.pago.findMany({
     where: {
       estado: EstadoPago.PENDIENTE,
       tipo: TipoPago.ALQUILER,
-      fechaVencimiento: { gte: inicioMes, lte: hoy5 },
+      fechaVencimiento: { gte: inicioMes, lte: hoy10 },
     },
     include: {
       persona: true,       // inquilino
@@ -211,7 +211,7 @@ async function avisarPropietarioMora() {
   }
 }
 
-// ─── Marcar mora (día 10 — venció el 5 y no pagaron) ─────────────────────────
+// ─── Marcar mora (día 11 — venció el 10 y no pagaron) ────────────────────────
 
 async function marcarMora() {
   const hoy = new Date()

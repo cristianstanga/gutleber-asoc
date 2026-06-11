@@ -110,7 +110,7 @@ router.post('/', async (req, res) => {
 
       const yaExiste = await prisma.pago.findFirst({ where: { vinculoId: vinculo.id, periodo } })
       if (!yaExiste) {
-        const vencimiento = new Date(year, month, 5)
+        const vencimiento = new Date(year, month, 10)
         const esMesActual = year === hoy.getFullYear() && month === hoy.getMonth()
         await prisma.pago.create({
           data: {
@@ -156,7 +156,7 @@ router.post('/:id/generar-retroactivos', async (req, res) => {
 
     const yaExiste = await prisma.pago.findFirst({ where: { vinculoId: vinculo.id, periodo } })
     if (!yaExiste) {
-      const vencimiento = new Date(year, month, 5)
+      const vencimiento = new Date(year, month, 10)
       const esMesActual = year === hoy.getFullYear() && month === hoy.getMonth()
       await prisma.pago.create({
         data: {
