@@ -48,6 +48,8 @@ router.get('/', async (_req, res) => {
   const hoy = new Date()
   const inicioMes = new Date(hoy.getFullYear(), hoy.getMonth(), 1)
   const finMes = new Date(hoy.getFullYear(), hoy.getMonth() + 1, 0)
+  const inicioHoy = new Date(hoy.getFullYear(), hoy.getMonth(), hoy.getDate())
+  const finHoy = new Date(hoy.getFullYear(), hoy.getMonth(), hoy.getDate() + 1)
   const en90dias = new Date(hoy.getTime() + 90 * 24 * 60 * 60 * 1000)
 
   const [
@@ -59,6 +61,7 @@ router.get('/', async (_req, res) => {
     pagosEnMora,
     pagosVencidos,
     recaudadoMes,
+    recaudadoHoy,
     esperadoMes,
     pagadosMesCuenta,
     contratosVencer,
@@ -73,6 +76,10 @@ router.get('/', async (_req, res) => {
     prisma.pago.count({ where: { estado: EstadoPago.VENCIDO } }),
     prisma.pago.aggregate({
       where: { estado: EstadoPago.PAGADO, fechaPago: { gte: inicioMes, lte: finMes } },
+      _sum: { monto: true },
+    }),
+    prisma.pago.aggregate({
+      where: { estado: EstadoPago.PAGADO, fechaPago: { gte: inicioHoy, lt: finHoy } },
       _sum: { monto: true },
     }),
     // Total esperado este mes (todos los pagos con vencimiento en el mes)
@@ -93,6 +100,45 @@ router.get('/', async (_req, res) => {
     }),
     prisma.inboxItem.count({ where: { leido: false } }),
   ])
+
+  // Deudores: pagos en MORA agrupados por persona con mora acumulada
+  const pagosEnMoraDetalle = await prisma.pago.findMany({
+    where: { estado: EstadoPago.MORA },
+    orderBy: { fechaVencimiento: 'asc' },
+    include: { persona: true, propiedad: true, vinculo: { select: { id: true } } },
+  })
+
+  const deudoresMap = new Map<string, {
+    personaId: string
+    nombre: string
+    vinculoId?: string
+    pagos: Array<{ id: string; periodo?: string | null; monto: number; diasMora: number; montoMora: number }>
+    totalDeuda: number
+    totalMora: number
+  }>()
+
+  for (const p of pagosEnMoraDetalle) {
+    if (!p.personaId) continue
+    const firstDay = new Date(p.fechaVencimiento.getFullYear(), p.fechaVencimiento.getMonth(), 1)
+    const diasMora = Math.floor((hoy.getTime() - firstDay.getTime()) / 86400000) + 1
+    const montoMora = Math.round(p.monto * diasMora / 100)
+
+    if (!deudoresMap.has(p.personaId)) {
+      deudoresMap.set(p.personaId, {
+        personaId: p.personaId,
+        nombre: p.persona ? `${p.persona.nombre} ${p.persona.apellido}` : '—',
+        vinculoId: p.vinculo?.id,
+        pagos: [],
+        totalDeuda: 0,
+        totalMora: 0,
+      })
+    }
+    const d = deudoresMap.get(p.personaId)!
+    d.pagos.push({ id: p.id, periodo: p.periodo, monto: p.monto, diasMora, montoMora })
+    d.totalDeuda += p.monto
+    d.totalMora += montoMora
+  }
+  const deudores = Array.from(deudoresMap.values())
 
   const [ultimosPagos, alertas, proximosVencimientos, sinLiquidar] = await Promise.all([
     prisma.pago.findMany({
@@ -135,6 +181,7 @@ router.get('/', async (_req, res) => {
       totalPropiedades, propEnAlquiler, propEnVenta, totalInquilinos,
       pagosPendientes, pagosEnMora, pagosVencidos,
       recaudadoMes: recaudadoMes._sum.monto || 0,
+      recaudadoHoy: recaudadoHoy._sum.monto || 0,
       contratosVencer, inboxNoLeidos,
     },
     cobrosDelMes: {
@@ -158,6 +205,7 @@ router.get('/', async (_req, res) => {
       fechaFin: v.fechaFin,
       diasRestantes: Math.ceil((new Date(v.fechaFin!).getTime() - hoy.getTime()) / (24 * 60 * 60 * 1000)),
     })),
+    deudores,
     sinLiquidar: sinLiquidar.map(p => ({
       pagoId: p.id,
       vinculoId: p.vinculo?.id,

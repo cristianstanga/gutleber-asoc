@@ -20,8 +20,26 @@ interface Kpis {
   pagosEnMora: number
   pagosVencidos: number
   recaudadoMes: number
+  recaudadoHoy: number
   contratosVencer: number
   inboxNoLeidos: number
+}
+
+interface PagoMora {
+  id: string
+  periodo?: string
+  monto: number
+  diasMora: number
+  montoMora: number
+}
+
+interface Deudor {
+  personaId: string
+  nombre: string
+  vinculoId?: string
+  pagos: PagoMora[]
+  totalDeuda: number
+  totalMora: number
 }
 
 interface CobrosDelMes {
@@ -229,12 +247,13 @@ export default function Dashboard() {
   const estadosPagos: EstadosPagos = data.estadosPagos ?? { pendiente: 0, vencido: 0, mora: 0 }
   const proximosVencimientos: ProximoVencimiento[] = data.proximosVencimientos ?? []
   const sinLiquidar: SinLiquidar[] = data.sinLiquidar ?? []
+  const deudores: Deudor[] = data.deudores ?? []
 
   const kpiCards = [
     { label: 'Propiedades', value: kpis.totalPropiedades, sub: `${kpis.propEnAlquiler} alquiladas · ${kpis.propEnVenta} en venta`, Icon: Building2, color: 'text-piedra' },
     { label: 'Inquilinos activos', value: kpis.totalInquilinos, sub: `${kpis.contratosVencer} contratos vencen pronto`, Icon: Users, color: 'text-piedra' },
     { label: 'Pagos pendientes', value: kpis.pagosPendientes + kpis.pagosVencidos + kpis.pagosEnMora, sub: `${kpis.pagosEnMora} en mora · ${kpis.pagosVencidos} vencidos`, Icon: CreditCard, color: (kpis.pagosEnMora + kpis.pagosVencidos) > 0 ? 'text-red-600' : 'text-piedra' },
-    { label: 'Recaudado este mes', value: formatARS(kpis.recaudadoMes), sub: '', Icon: TrendingUp, color: 'text-green-700' },
+    { label: 'Recaudado hoy', value: kpis.recaudadoHoy > 0 ? formatARS(kpis.recaudadoHoy) : '—', sub: `${formatARS(kpis.recaudadoMes)} este mes`, Icon: TrendingUp, color: kpis.recaudadoHoy > 0 ? 'text-green-700' : 'text-piedra' },
     { label: 'Inbox no leídos', value: kpis.inboxNoLeidos, sub: 'mensajes nuevos', Icon: MessageSquare, color: kpis.inboxNoLeidos > 0 ? 'text-blue-600' : 'text-piedra' },
   ]
 
@@ -425,6 +444,44 @@ export default function Dashboard() {
         )}
       </div>
 
+      {/* Deudores en mora */}
+      {deudores.length > 0 && (
+        <div>
+          <h2 className="font-display text-base text-carbon mb-3 flex items-center gap-2">
+            <AlertTriangle size={16} className="text-red-500" />
+            Deudores en mora
+            <span className="ml-auto text-xs font-normal bg-red-100 text-red-700 px-2 py-0.5 rounded-full">{deudores.length}</span>
+          </h2>
+          <div className="card overflow-hidden">
+            {deudores.map(d => {
+              const totalConMora = d.totalDeuda + d.totalMora
+              return (
+                <button
+                  key={d.personaId}
+                  onClick={() => d.vinculoId && navigate('/pagos', { state: { vinculoId: d.vinculoId } })}
+                  className="w-full flex items-center justify-between px-4 py-3 border-b border-crema last:border-0 hover:bg-red-50/40 transition-colors text-left group"
+                >
+                  <div className="min-w-0">
+                    <p className="text-sm font-semibold text-carbon">{d.nombre}</p>
+                    <p className="text-xs text-piedra">
+                      {d.pagos.length} {d.pagos.length === 1 ? 'mes' : 'meses'} en mora
+                      {d.pagos[0] && ` · ${d.pagos[0].diasMora} días el más antiguo`}
+                    </p>
+                  </div>
+                  <div className="flex items-center gap-2 ml-3 flex-shrink-0">
+                    <div className="text-right">
+                      <p className="text-sm font-bold text-red-600">{formatARS(totalConMora)}</p>
+                      <p className="text-[10px] text-piedra">{formatARS(d.totalDeuda)} + {formatARS(d.totalMora)} mora</p>
+                    </div>
+                    <ArrowRight size={13} className="text-piedra opacity-0 group-hover:opacity-100 transition-opacity" />
+                  </div>
+                </button>
+              )
+            })}
+          </div>
+        </div>
+      )}
+
       {/* Alertas de pagos */}
       {data.alertas.length > 0 && (
         <div>
@@ -494,7 +551,7 @@ export default function Dashboard() {
         </div>
       )}
 
-      {data.alertas.length === 0 && data.ultimosPagos.length === 0 && sinLiquidar.length === 0 && proximosVencimientos.length === 0 && (
+      {data.alertas.length === 0 && data.ultimosPagos.length === 0 && sinLiquidar.length === 0 && proximosVencimientos.length === 0 && deudores.length === 0 && (
         <div className="card p-12 text-center">
           <Home size={32} className="text-muted mx-auto mb-3" />
           <p className="text-piedra">No hay datos aún. Cargá propiedades y contratos para empezar.</p>

@@ -116,9 +116,22 @@ interface ModalCobroProps {
   onCobrado: () => void
 }
 
+function calcularMora(pago: Pago): { dias: number; monto: number } | null {
+  if (pago.estado !== 'MORA') return null
+  const venc = new Date(pago.fechaVencimiento)
+  const firstDay = new Date(Date.UTC(venc.getUTCFullYear(), venc.getUTCMonth(), 1))
+  const dias = Math.floor((Date.now() - firstDay.getTime()) / 86400000) + 1
+  return { dias, monto: Math.round(pago.monto * dias / 100) }
+}
+
 function ModalCobro({ pago, vinculo, onClose, onCobrado }: ModalCobroProps) {
   const [formaPago, setFormaPago] = useState(pago.formaPago || 'Efectivo')
-  const [conceptos, setConceptos] = useState<ConceptoExtra[]>(pago.conceptosExtra || [])
+  const [conceptos, setConceptos] = useState<ConceptoExtra[]>(() => {
+    if (pago.conceptosExtra && pago.conceptosExtra.length > 0) return pago.conceptosExtra
+    const mora = calcularMora(pago)
+    if (mora) return [{ descripcion: `Mora por retraso (${mora.dias} días — ${mora.dias}%)`, monto: mora.monto }]
+    return []
+  })
   const [toast, setToast] = useState('')
 
   const total = pago.monto + conceptos.reduce((s, c) => s + (Number(c.monto) || 0), 0)
@@ -178,6 +191,20 @@ function ModalCobro({ pago, vinculo, onClose, onCobrado }: ModalCobroProps) {
 
         <div className="px-6 py-5 space-y-5">
           {toast && <div className="text-red-600 text-sm bg-red-50 px-3 py-2 rounded-lg">{toast}</div>}
+
+          {/* Banner mora */}
+          {pago.estado === 'MORA' && (() => {
+            const mora = calcularMora(pago)!
+            return (
+              <div className="bg-red-50 border border-red-200 rounded-xl px-4 py-3 flex items-start gap-3">
+                <AlertTriangle size={16} className="text-red-500 flex-shrink-0 mt-0.5" />
+                <div className="text-xs text-red-700">
+                  <p className="font-semibold">Pago en mora — {mora.dias} días desde el 1° del mes ({mora.dias}%)</p>
+                  <p className="text-red-500 mt-0.5">La mora sugerida es {formatARS(mora.monto)}. Podés ajustarla en "Conceptos adicionales".</p>
+                </div>
+              </div>
+            )
+          })()}
 
           {/* Datos base readonly */}
           <div className="bg-crema rounded-xl px-4 py-3 space-y-1.5">
