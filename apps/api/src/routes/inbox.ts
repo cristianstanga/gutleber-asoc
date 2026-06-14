@@ -1,6 +1,7 @@
 import { Router } from 'express'
 import { prisma } from '../index'
 import { sendText } from '../services/whatsapp-meta'
+import { EtapaConversacion } from '@prisma/client'
 
 const router = Router()
 
@@ -37,8 +38,42 @@ router.post('/enviar', async (req, res) => {
 
   await sendText(persona.whatsapp, mensaje)
 
+  // Buscar o crear conversación para que aparezca en el CRM
+  const numeroLimpio = persona.whatsapp.replace(/\D/g, '')
+  let conv = await prisma.conversacion.findFirst({ where: { personaId } })
+
+  if (!conv) {
+    try {
+      conv = await prisma.conversacion.create({
+        data: {
+          numero: numeroLimpio,
+          personaId,
+          etapa: EtapaConversacion.CLIENTE,
+          ultimoMensaje: new Date(),
+        },
+      })
+    } catch {
+      // El número ya existe en otra conversación — buscarla y vincularla
+      conv = await prisma.conversacion.findFirst({ where: { numero: { contains: numeroLimpio.slice(-10) } } })
+      if (conv) {
+        await prisma.conversacion.update({ where: { id: conv.id }, data: { personaId, ultimoMensaje: new Date() } })
+      }
+    }
+  } else {
+    await prisma.conversacion.update({ where: { id: conv.id }, data: { ultimoMensaje: new Date() } })
+  }
+
   const item = await prisma.inboxItem.create({
-    data: { canal: 'WHATSAPP', mensaje, tipo: 'SALIENTE', personaId, propiedadId: propiedadId || null },
+    data: {
+      canal: 'WHATSAPP',
+      mensaje,
+      tipo: 'SALIENTE',
+      personaId,
+      propiedadId: propiedadId || null,
+      conversacionId: conv?.id ?? null,
+      numero: numeroLimpio,
+      leido: true,
+    },
     include: { persona: true },
   })
   res.status(201).json(item)

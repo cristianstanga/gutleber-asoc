@@ -115,6 +115,7 @@ export default function Personas() {
     try {
       await api.post('/inbox/enviar', { personaId: persona.id, mensaje: mensajeWA })
       qc.invalidateQueries({ queryKey: ['persona', detalle] })
+      qc.invalidateQueries({ queryKey: ['conversaciones'] })
       setMensajeWA('')
       mostrarToast('Mensaje enviado')
     } catch {
@@ -276,6 +277,9 @@ export default function Personas() {
                   <Send size={14} />
                   {enviandoWA ? 'Enviando...' : 'Enviar por WhatsApp'}
                 </button>
+                <p className="text-[10px] text-piedra/70 mt-2 leading-snug">
+                  ⚠️ WhatsApp solo entrega mensajes de texto si el destinatario te escribió en las últimas 24hs. Para contactos sin actividad reciente, el mensaje se envía pero puede no llegar.
+                </p>
               </div>
             )}
 
