@@ -249,6 +249,7 @@ model Conversacion {
   telefonoReal        String?             // número real si el JID es @lid
   presupuesto         Float?
   notas               String?
+  agenteActivo        Boolean             @default(true)
   ultimoMensaje       DateTime            @default(now())
   persona             Persona?            @relation(fields: [personaId], references: [id])
   propiedadInteres    Propiedad?          @relation(fields: [propiedadInteresId], references: [id])

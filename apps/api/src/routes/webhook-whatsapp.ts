@@ -1,5 +1,6 @@
 import { Router } from 'express'
 import { prisma, logger } from '../index'
+import { responderAgente } from '../services/agente-ia'
 
 const router = Router()
 
@@ -98,6 +99,13 @@ async function handleIncoming(msg: Record<string, unknown>, contact?: Record<str
       personaId: persona?.id || null,
     },
   })
+
+  // Agente IA responde automáticamente (solo si hay texto, async para no bloquear)
+  if (texto && texto !== '[media]') {
+    responderAgente(conv.id, from).catch(err =>
+      logger.error({ err }, '❌ Agente IA (async)')
+    )
+  }
 }
 
 export default router

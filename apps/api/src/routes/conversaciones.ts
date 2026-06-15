@@ -74,10 +74,20 @@ router.post('/:id/mensaje', async (req, res) => {
 
   await prisma.conversacion.update({
     where: { id: conv.id },
-    data: { ultimoMensaje: new Date() },
+    data: { ultimoMensaje: new Date(), agenteActivo: false },
   })
 
   res.status(201).json(item)
+})
+
+// Toggle agente IA
+router.patch('/:id/agente', async (req, res) => {
+  const { activo } = req.body
+  const conv = await prisma.conversacion.update({
+    where: { id: req.params.id },
+    data: { agenteActivo: !!activo },
+  })
+  res.json(conv)
 })
 
 // Actualizar datos de la conversación (etapa, notas, vincular persona)

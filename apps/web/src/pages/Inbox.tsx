@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import {
   MessageSquare, Send, Search, User, Building2,
-  CheckCheck, TrendingUp, Trash2, AlertTriangle, ExternalLink
+  CheckCheck, TrendingUp, Trash2, AlertTriangle, ExternalLink, Bot, UserCheck
 } from 'lucide-react'
 import { api, formatARS } from '../lib/api'
 
@@ -22,11 +22,12 @@ interface Conversacion {
   etapa: string
   tipoInteres?: string
   nombreCapturado?: string
-  pushName?: string          // nombre del perfil de WhatsApp
-  fotoPerfilUrl?: string     // foto de perfil de WhatsApp
-  telefonoReal?: string      // teléfono real (si era @lid)
+  pushName?: string
+  fotoPerfilUrl?: string
+  telefonoReal?: string
   presupuesto?: number
   notas?: string
+  agenteActivo: boolean
   ultimoMensaje: string
   persona?: { id: string; nombre: string; apellido: string; whatsapp?: string; email?: string }
   propiedadInteres?: { id: string; direccion: string }
@@ -114,6 +115,14 @@ export default function Inbox() {
 
   const actualizarConv = useMutation({
     mutationFn: (data: object) => api.patch(`/conversaciones/${convSeleccionada}`, data),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['conversacion', convSeleccionada] })
+      qc.invalidateQueries({ queryKey: ['conversaciones'] })
+    },
+  })
+
+  const toggleAgente = useMutation({
+    mutationFn: (activo: boolean) => api.patch(`/conversaciones/${convSeleccionada}/agente`, { activo }),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['conversacion', convSeleccionada] })
       qc.invalidateQueries({ queryKey: ['conversaciones'] })
@@ -229,9 +238,14 @@ export default function Inbox() {
                         </span>
                       )}
                     </div>
-                    <span className={`inline-flex mt-1 px-1.5 py-0.5 rounded text-[10px] font-semibold ${ETAPA_COLOR[c.etapa] || 'bg-gray-100 text-gray-500'}`}>
-                      {ETAPA_LABEL[c.etapa] || c.etapa}
-                    </span>
+                    <div className="flex items-center gap-1 mt-1">
+                      <span className={`inline-flex px-1.5 py-0.5 rounded text-[10px] font-semibold ${ETAPA_COLOR[c.etapa] || 'bg-gray-100 text-gray-500'}`}>
+                        {ETAPA_LABEL[c.etapa] || c.etapa}
+                      </span>
+                      {c.agenteActivo && (
+                        <span title="Agente IA activo"><Bot size={10} className="text-green-600" /></span>
+                      )}
+                    </div>
                   </div>
                 </div>
               </button>
@@ -269,9 +283,23 @@ export default function Inbox() {
                 </p>
               </div>
             </div>
-            <span className={`px-2 py-1 rounded text-xs font-semibold ${ETAPA_COLOR[conv.etapa] || ''}`}>
-              {ETAPA_LABEL[conv.etapa] || conv.etapa}
-            </span>
+            <div className="flex items-center gap-2">
+              <span className={`px-2 py-1 rounded text-xs font-semibold ${ETAPA_COLOR[conv.etapa] || ''}`}>
+                {ETAPA_LABEL[conv.etapa] || conv.etapa}
+              </span>
+              <button
+                onClick={() => toggleAgente.mutate(!conv.agenteActivo)}
+                title={conv.agenteActivo ? 'Agente activo — click para tomar control' : 'Atención humana — click para reactivar agente'}
+                className={`flex items-center gap-1 px-2 py-1 rounded text-xs font-semibold transition-colors ${
+                  conv.agenteActivo
+                    ? 'bg-green-100 text-green-700 hover:bg-green-200'
+                    : 'bg-amber-100 text-amber-700 hover:bg-amber-200'
+                }`}
+              >
+                {conv.agenteActivo ? <Bot size={12} /> : <UserCheck size={12} />}
+                {conv.agenteActivo ? 'Agente IA' : 'Humano'}
+              </button>
+            </div>
           </div>
 
           {/* Mensajes */}
