@@ -268,7 +268,9 @@ export default function Inbox() {
                     </div>
                     <div className="flex items-center justify-between mt-0.5">
                       <p className="text-xs text-arena truncate max-w-[140px]">
-                        {ultimoMsg?.mensaje?.replace(/^\[.*?\]\s*—?\s*/, '') || 'Sin mensajes'}
+                        {ultimoMsg?.mensaje?.startsWith('[IMG]')
+                          ? '📷 Foto'
+                          : ultimoMsg?.mensaje?.replace(/^\[.*?\]\s*—?\s*/, '') || 'Sin mensajes'}
                       </p>
                       {noLeidos > 0 && (
                         <span className="bg-piedra text-white text-[10px] rounded-full w-4 h-4 flex items-center justify-center font-bold shrink-0">
@@ -352,15 +354,26 @@ export default function Inbox() {
                   </div>
                 )
               }
+              const esImagen = m.mensaje.startsWith('[IMG]')
+              const imagenUrl = esImagen ? m.mensaje.slice(5) : null
+
               return (
                 <div key={m.id} className={`flex ${esEntrante ? 'justify-start' : 'justify-end'}`}>
-                  <div className={`max-w-[70%] rounded-2xl px-4 py-2.5 shadow-sm ${
+                  <div className={`max-w-[70%] rounded-2xl shadow-sm overflow-hidden ${
+                    esImagen ? 'p-1.5' : 'px-4 py-2.5'
+                  } ${
                     esEntrante
                       ? 'bg-white text-carbon rounded-tl-sm'
                       : 'bg-carbon text-white rounded-tr-sm'
                   }`}>
-                    <p className="text-sm whitespace-pre-wrap leading-relaxed">{m.mensaje}</p>
-                    <div className={`flex items-center gap-1 mt-1 ${esEntrante ? 'justify-start' : 'justify-end'}`}>
+                    {esImagen ? (
+                      <a href={imagenUrl!} target="_blank" rel="noreferrer">
+                        <img src={imagenUrl!} alt="Foto enviada" className="rounded-xl max-w-full max-h-64 object-cover" />
+                      </a>
+                    ) : (
+                      <p className="text-sm whitespace-pre-wrap leading-relaxed">{m.mensaje}</p>
+                    )}
+                    <div className={`flex items-center gap-1 mt-1 ${esImagen ? 'px-1.5 pb-0.5' : ''} ${esEntrante ? 'justify-start' : 'justify-end'}`}>
                       <span className={`text-[10px] ${esEntrante ? 'text-arena' : 'text-white/50'}`}>
                         {formatHora(m.createdAt)}
                       </span>

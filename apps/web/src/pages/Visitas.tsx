@@ -43,6 +43,19 @@ export default function Visitas() {
     refetchInterval: 15000,
   })
 
+  // Turnos ya confirmados — para que el operador no pise horarios (hasta sincronizar con Google Calendar)
+  const { data: confirmadas = [] } = useQuery<Visita[]>({
+    queryKey: ['visitas', 'CONFIRMADA'],
+    queryFn: () => api.get('/visitas', { params: { estado: 'CONFIRMADA' } }).then(r => r.data),
+  })
+
+  const fechaSeleccionada = fechaInput ? fechaInput.slice(0, 10) : null
+  const turnosDelDia = fechaSeleccionada
+    ? confirmadas
+        .filter(v => v.fechaConfirmada?.slice(0, 10) === fechaSeleccionada)
+        .sort((a, b) => (a.fechaConfirmada! < b.fechaConfirmada! ? -1 : 1))
+    : []
+
   const confirmar = useMutation({
     mutationFn: ({ id, fecha }: { id: string; fecha: string }) =>
       api.patch(`/visitas/${id}/confirmar`, { fechaConfirmada: fecha }),
@@ -128,20 +141,32 @@ export default function Visitas() {
               {v.estado === 'PENDIENTE_CONFIRMACION' && (
                 <div className="flex flex-col gap-2 shrink-0">
                   {confirmando === v.id ? (
-                    <div className="flex items-center gap-2">
-                      <input
-                        type="datetime-local"
-                        className="form-input text-xs py-1.5"
-                        value={fechaInput}
-                        onChange={e => setFechaInput(e.target.value)}
-                      />
-                      <button
-                        onClick={() => fechaInput && confirmar.mutate({ id: v.id, fecha: fechaInput })}
-                        disabled={!fechaInput || confirmar.isPending}
-                        className="btn-primary text-xs py-1.5 px-3"
-                      >
-                        Confirmar
-                      </button>
+                    <div className="flex flex-col items-end gap-2">
+                      <div className="flex items-center gap-2">
+                        <input
+                          type="datetime-local"
+                          className="form-input text-xs py-1.5"
+                          value={fechaInput}
+                          onChange={e => setFechaInput(e.target.value)}
+                        />
+                        <button
+                          onClick={() => fechaInput && confirmar.mutate({ id: v.id, fecha: fechaInput })}
+                          disabled={!fechaInput || confirmar.isPending}
+                          className="btn-primary text-xs py-1.5 px-3"
+                        >
+                          Confirmar
+                        </button>
+                      </div>
+                      {turnosDelDia.length > 0 && (
+                        <div className="text-[11px] text-amber-700 bg-amber-50 border border-amber-200 rounded-lg px-2.5 py-1.5 max-w-xs">
+                          <p className="font-semibold mb-0.5">Ya hay {turnosDelDia.length} turno(s) ese día:</p>
+                          {turnosDelDia.map(t => (
+                            <p key={t.id}>
+                              {new Date(t.fechaConfirmada!).toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit' })} — {t.nombreContacto}
+                            </p>
+                          ))}
+                        </div>
+                      )}
                     </div>
                   ) : (
                     <button

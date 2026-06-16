@@ -116,6 +116,16 @@ async function ejecutarHerramienta(
     for (const img of prop.imagenes.slice(0, 6)) {
       try {
         await sendImageUrl(numeroDestino, img.url)
+        await prisma.inboxItem.create({
+          data: {
+            canal: 'WHATSAPP',
+            mensaje: `[IMG]${img.url}`,
+            tipo: 'SALIENTE',
+            numero: numeroDestino,
+            conversacionId,
+            leido: true,
+          },
+        })
         await new Promise(r => setTimeout(r, 700))
       } catch (err) {
         logger.error({ err }, '❌ Error enviando foto del agente IA')
@@ -213,7 +223,13 @@ export async function responderAgente(conversacionId: string, numeroDestino: str
 REQUISITOS PARA ALQUILAR:
 ${requisitos}` : ''
 
+    const hoyStr = new Date().toLocaleDateString('es-AR', {
+      weekday: 'long', day: '2-digit', month: 'long', year: 'numeric', timeZone: 'America/Argentina/Buenos_Aires',
+    })
+
     const system = `Sos el agente de ventas virtual de Gutleber & Asoc., inmobiliaria boutique en Posadas, Misiones, Argentina. Atendés consultas 24/7 sobre propiedades en ${operacion}, hablando por WhatsApp.
+
+Hoy es ${hoyStr}. Usá esta fecha para interpretar referencias como "el sábado" o "mañana".
 
 PROPIEDADES DISPONIBLES:
 ${catalogo}
@@ -229,7 +245,7 @@ CÓMO CALIFICAR AL INTERESADO (en orden, sin bombardear con preguntas):
 4. Su nombre, para que el asesor pueda contactarlo
 
 CÓMO MANEJAR VISITAS:
-Cuando alguien quiere ver una propiedad, pedí su nombre y el día/horario que le queda mejor dentro de los horarios de atención. Usá la herramienta registrar_visita con esos datos. Confirmá que "en breve un asesor te va a confirmar la visita". No des fechas ni horarios exactos vos, eso lo confirma el asesor.
+Las visitas se coordinan en turnos de 45 minutos, de 9:00 a 17:00. Cuando alguien quiere ver una propiedad, pedí su nombre y el día/horario que le queda mejor dentro de ese rango. Si pide un horario fuera de rango (por ejemplo después de las 17:00), avisale que el horario de visitas es de 9 a 17 y pedile una alternativa dentro de ese rango. Usá la herramienta registrar_visita con esos datos. Confirmá que "en breve un asesor te va a confirmar la visita". No des fechas ni horarios exactos vos, eso lo confirma el asesor.
 
 FOTOS:
 Si el interesado pide ver fotos o imágenes de una propiedad, usá la herramienta enviar_fotos con la dirección correspondiente. No digas que vas a mandar las fotos hasta haber usado la herramienta.
@@ -243,8 +259,10 @@ REGLAS:
 - No preguntes cosas irrelevantes para la búsqueda de una propiedad
 - No confirmes precios finales ni hagas descuentos
 - No hables de temas ajenos a la inmobiliaria
+- Después de registrar una visita o marcar un interés, SIEMPRE mandá un mensaje de texto confirmando lo que acabás de hacer. Nunca dejes la conversación sin una respuesta de texto al interesado.
+- No termines cada mensaje con una pregunta forzada o genérica (ej: "¿necesitás algo más de la propiedad o de Gutleber?" no tiene sentido como cierre). Si ya quedó todo claro y no hay nada pendiente, cerrá de forma natural y cálida sin forzar una pregunta. Solo preguntá algo si hay un dato concreto que todavía falta.
 
-ESTILO: Amigable, directo, profesional. Español argentino informal (vos, te). Máximo 3-4 líneas por respuesta. Texto plano, sin asteriscos ni markdown. Hacé una sola pregunta por vez para no abrumar.`
+ESTILO: Amigable, directo, profesional. Español argentino informal (vos, te). Máximo 3-4 líneas por respuesta. Texto plano, sin asteriscos ni markdown.`
 
     const messages: Anthropic.MessageParam[] = conv.mensajes.map(m => ({
       role: (m.tipo === 'ENTRANTE' ? 'user' : 'assistant') as 'user' | 'assistant',
@@ -289,7 +307,26 @@ ESTILO: Amigable, directo, profesional. Español argentino informal (vos, te). M
       })
     }
 
-    const textBlock = response.content.find((c): c is Anthropic.TextBlock => c.type === 'text')
+    let textBlock = response.content.find((c): c is Anthropic.TextBlock => c.type === 'text')
+
+    // Si se agotaron las vueltas de herramientas sin una respuesta de texto final,
+    // forzamos una última llamada sin tools para no dejar la conversación sin respuesta
+    if (!textBlock) {
+      if (response.content.some(c => c.type === 'tool_use')) {
+        messages.push({ role: 'assistant', content: response.content })
+        messages.push({ role: 'user', content: 'Continuá la conversación con un mensaje de texto para el interesado.' })
+      }
+      const fallback = await client.messages.create({
+        model: 'claude-haiku-4-5-20251001',
+        max_tokens: 400,
+        system,
+        messages,
+        tools: TOOLS,
+        tool_choice: { type: 'none' },
+      })
+      textBlock = fallback.content.find((c): c is Anthropic.TextBlock => c.type === 'text')
+    }
+
     const respuesta = textBlock?.text.trim()
     if (!respuesta) return
 
