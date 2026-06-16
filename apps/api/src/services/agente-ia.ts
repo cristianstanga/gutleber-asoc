@@ -71,6 +71,19 @@ const TOOLS: Anthropic.Tool[] = [
     },
   },
   {
+    name: 'marcar_interes',
+    description: 'Marca en el CRM qué propiedad y tipo de operación le interesa al contacto. Usala apenas quede claro de qué propiedad puntual está hablando o si busca alquilar o comprar, aunque todavía no haya pedido fotos ni visita.',
+    input_schema: {
+      type: 'object',
+      properties: {
+        direccion: { type: 'string', description: 'Dirección de la propiedad de interés, tal como aparece en el catálogo' },
+        tipoInteres: { type: 'string', enum: ['ALQUILER', 'VENTA'], description: 'Si busca alquilar o comprar' },
+        presupuesto: { type: 'number', description: 'Presupuesto aproximado mencionado, si lo dio' },
+      },
+      required: ['direccion'],
+    },
+  },
+  {
     name: 'registrar_visita',
     description: 'Registra un pedido de visita a una propiedad para que un asesor lo confirme. Usala cuando el interesado ya dio su nombre y un día/horario tentativo para visitar.',
     input_schema: {
@@ -109,6 +122,22 @@ async function ejecutarHerramienta(
       }
     }
     return `Se enviaron ${Math.min(prop.imagenes.length, 6)} foto(s) de ${prop.direccion}.`
+  }
+
+  if (nombre === 'marcar_interes') {
+    const direccionBuscada = String(input.direccion || '').toLowerCase()
+    const prop = propiedades.find(p => p.direccion.toLowerCase().includes(direccionBuscada))
+    if (!prop) return 'No encontré esa propiedad en el catálogo disponible.'
+
+    await prisma.conversacion.update({
+      where: { id: conversacionId },
+      data: {
+        propiedadInteresId: prop.id,
+        ...(input.tipoInteres ? { tipoInteres: String(input.tipoInteres) } : {}),
+        ...(input.presupuesto ? { presupuesto: Number(input.presupuesto) } : {}),
+      },
+    })
+    return `Interés registrado: ${prop.direccion}.`
   }
 
   if (nombre === 'registrar_visita') {
@@ -205,6 +234,9 @@ Cuando alguien quiere ver una propiedad, pedí su nombre y el día/horario que l
 FOTOS:
 Si el interesado pide ver fotos o imágenes de una propiedad, usá la herramienta enviar_fotos con la dirección correspondiente. No digas que vas a mandar las fotos hasta haber usado la herramienta.
 
+REGISTRAR INTERÉS (importante, hacelo apenas tengas el dato):
+En cuanto identifiques de qué propiedad puntual está hablando el interesado (aunque todavía no haya pedido fotos ni visita), usá la herramienta marcar_interes con la dirección y, si lo sabés, si busca alquilar o comprar y su presupuesto. Esto queda registrado en el CRM para que el equipo lo vea. Hacelo en segundo plano, sin avisarle al interesado que lo estás haciendo.
+
 REGLAS:
 - Ya estás hablando con la persona por WhatsApp — NUNCA pidas teléfono ni email, ya los tenés
 - No ofrezcas opciones que no existen en el catálogo (si solo hay alquiler, no preguntes si quiere comprar)
@@ -231,7 +263,7 @@ ESTILO: Amigable, directo, profesional. Español argentino informal (vos, te). M
 
     // Loop de tool-use: ejecutar herramientas hasta que el modelo dé una respuesta de texto final
     let vueltas = 0
-    while (response.stop_reason === 'tool_use' && vueltas < 3) {
+    while (response.stop_reason === 'tool_use' && vueltas < 4) {
       vueltas++
       const toolUseBlocks = response.content.filter(
         (c): c is Anthropic.ToolUseBlock => c.type === 'tool_use'

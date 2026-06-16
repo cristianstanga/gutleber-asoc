@@ -42,6 +42,7 @@ interface PropiedadOpcion {
   direccion: string
   imagenes: { id: string }[]
   videos: { id: string }[]
+  vinculos?: { tipo: string; activo: boolean }[]
 }
 
 const ETAPA_LABEL: Record<string, string> = {
@@ -87,10 +88,10 @@ export default function Inbox() {
     refetchInterval: 8000,
   })
 
-  // Propiedades disponibles para asociar a la conversación y enviar fotos/videos
+  // Todas las propiedades (no solo disponibles) para asociar a la conversación y enviar fotos/videos
   const { data: propiedades = [] } = useQuery<PropiedadOpcion[]>({
-    queryKey: ['catalogo-disponibles'],
-    queryFn: () => api.get('/catalogo/disponibles').then((r) => r.data),
+    queryKey: ['propiedades-todas'],
+    queryFn: () => api.get('/propiedades').then((r) => r.data),
   })
 
   // Detalle de conversación seleccionada
@@ -499,9 +500,12 @@ export default function Inbox() {
                 onChange={(e) => actualizarConv.mutate({ propiedadInteresId: e.target.value || null })}
               >
                 <option value="">Sin propiedad asociada</option>
-                {propiedades.map((p) => (
-                  <option key={p.id} value={p.id}>{p.direccion}</option>
-                ))}
+                {propiedades.map((p) => {
+                  const ocupada = p.vinculos?.some(v => v.activo)
+                  return (
+                    <option key={p.id} value={p.id}>{p.direccion}{ocupada ? ' (con contrato activo)' : ''}</option>
+                  )
+                })}
               </select>
 
               {conv.propiedadInteres && (() => {
