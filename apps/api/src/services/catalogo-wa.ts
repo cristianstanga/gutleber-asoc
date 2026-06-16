@@ -1,6 +1,6 @@
 import { prisma, logger } from '../index'
 import { generarTarjeta } from './tarjeta'
-import { sendImage, sendText } from './whatsapp-meta'
+import { sendImage, sendImageUrl, sendVideoUrl, sendText } from './whatsapp-meta'
 import { TipoVinculo } from '@prisma/client'
 
 const DESTINO_DEFAULT = process.env.CATALOGO_WA_NUMERO || ''
@@ -82,6 +82,38 @@ export async function enviarPropiedadWA(propiedadId: string, destino: string) {
   }
 
   logger.info(`📤 Catálogo WA: ${prop.direccion} → ${destino}`)
+}
+
+export async function enviarFotosPropiedad(propiedadId: string, destino: string): Promise<number> {
+  const prop = await prisma.propiedad.findUnique({
+    where: { id: propiedadId },
+    include: { imagenes: { orderBy: { orden: 'asc' } } },
+  })
+  if (!prop) throw new Error('Propiedad no encontrada')
+  if (prop.imagenes.length === 0) return 0
+
+  for (const img of prop.imagenes) {
+    await sendImageUrl(destino, img.url)
+    await pausa(700)
+  }
+  logger.info(`📸 ${prop.imagenes.length} fotos de ${prop.direccion} → ${destino}`)
+  return prop.imagenes.length
+}
+
+export async function enviarVideosPropiedad(propiedadId: string, destino: string): Promise<number> {
+  const prop = await prisma.propiedad.findUnique({
+    where: { id: propiedadId },
+    include: { videos: { orderBy: { orden: 'asc' } } },
+  })
+  if (!prop) throw new Error('Propiedad no encontrada')
+  if (prop.videos.length === 0) return 0
+
+  for (const vid of prop.videos) {
+    await sendVideoUrl(destino, vid.url)
+    await pausa(700)
+  }
+  logger.info(`🎬 ${prop.videos.length} videos de ${prop.direccion} → ${destino}`)
+  return prop.videos.length
 }
 
 export async function enviarCatalogoWA(destino?: string): Promise<number> {

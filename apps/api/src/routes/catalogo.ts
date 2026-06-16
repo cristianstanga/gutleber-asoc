@@ -1,5 +1,8 @@
 import { Router } from 'express'
-import { propiedadesDisponibles, enviarCatalogoWA, enviarPropiedadWA } from '../services/catalogo-wa'
+import {
+  propiedadesDisponibles, enviarCatalogoWA, enviarPropiedadWA,
+  enviarFotosPropiedad, enviarVideosPropiedad,
+} from '../services/catalogo-wa'
 
 const router = Router()
 
@@ -28,6 +31,32 @@ router.post('/wa/propiedad/:id', async (req, res) => {
   try {
     await enviarPropiedadWA(req.params.id, destino)
     res.json({ ok: true })
+  } catch (err: unknown) {
+    const msg = err instanceof Error ? err.message : 'Error'
+    res.status(500).json({ error: msg })
+  }
+})
+
+// POST /api/catalogo/wa/propiedad/:id/fotos  body: { destino }
+router.post('/wa/propiedad/:id/fotos', async (req, res) => {
+  const { destino } = req.body
+  if (!destino) return res.status(400).json({ error: 'Falta el número destino' })
+  try {
+    const enviadas = await enviarFotosPropiedad(req.params.id, destino)
+    res.json({ ok: true, enviadas })
+  } catch (err: unknown) {
+    const msg = err instanceof Error ? err.message : 'Error'
+    res.status(500).json({ error: msg })
+  }
+})
+
+// POST /api/catalogo/wa/propiedad/:id/videos  body: { destino }
+router.post('/wa/propiedad/:id/videos', async (req, res) => {
+  const { destino } = req.body
+  if (!destino) return res.status(400).json({ error: 'Falta el número destino' })
+  try {
+    const enviados = await enviarVideosPropiedad(req.params.id, destino)
+    res.json({ ok: true, enviados })
   } catch (err: unknown) {
     const msg = err instanceof Error ? err.message : 'Error'
     res.status(500).json({ error: msg })

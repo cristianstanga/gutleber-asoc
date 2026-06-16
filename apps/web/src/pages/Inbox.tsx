@@ -1,8 +1,9 @@
 import { useState, useEffect, useRef } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import {
-  MessageSquare, Send, Search, User, Building2,
-  CheckCheck, TrendingUp, Trash2, AlertTriangle, ExternalLink, Bot, UserCheck
+  MessageSquare, Send, Search, User,
+  CheckCheck, TrendingUp, Trash2, AlertTriangle, ExternalLink, Bot, UserCheck,
+  Image as ImageIcon, Video
 } from 'lucide-react'
 import { api, formatARS } from '../lib/api'
 
@@ -30,9 +31,17 @@ interface Conversacion {
   agenteActivo: boolean
   ultimoMensaje: string
   persona?: { id: string; nombre: string; apellido: string; whatsapp?: string; email?: string }
+  propiedadInteresId?: string
   propiedadInteres?: { id: string; direccion: string }
   mensajes: Mensaje[]
   _count?: { mensajes: number }
+}
+
+interface PropiedadOpcion {
+  id: string
+  direccion: string
+  imagenes: { id: string }[]
+  videos: { id: string }[]
 }
 
 const ETAPA_LABEL: Record<string, string> = {
@@ -68,6 +77,7 @@ export default function Inbox() {
   const [enviando, setEnviando] = useState(false)
   const [errorEnvio, setErrorEnvio] = useState<string | null>(null)
   const [confirmDelete, setConfirmDelete] = useState(false)
+  const [enviandoMedia, setEnviandoMedia] = useState<'fotos' | 'videos' | null>(null)
   const chatRef = useRef<HTMLDivElement>(null)
 
   // Lista de conversaciones
@@ -75,6 +85,12 @@ export default function Inbox() {
     queryKey: ['conversaciones'],
     queryFn: () => api.get('/conversaciones').then((r) => r.data),
     refetchInterval: 8000,
+  })
+
+  // Propiedades disponibles para asociar a la conversación y enviar fotos/videos
+  const { data: propiedades = [] } = useQuery<PropiedadOpcion[]>({
+    queryKey: ['catalogo-disponibles'],
+    queryFn: () => api.get('/catalogo/disponibles').then((r) => r.data),
   })
 
   // Detalle de conversación seleccionada
@@ -128,6 +144,27 @@ export default function Inbox() {
       qc.invalidateQueries({ queryKey: ['conversaciones'] })
     },
   })
+
+  async function enviarMedia(tipo: 'fotos' | 'videos') {
+    if (!convDetalle?.propiedadInteres) return
+    const destino = convDetalle.telefonoReal || convDetalle.numero
+    setEnviandoMedia(tipo)
+    setErrorEnvio(null)
+    try {
+      const { data } = await api.post(`/catalogo/wa/propiedad/${convDetalle.propiedadInteres.id}/${tipo}`, { destino })
+      const cantidad = tipo === 'fotos' ? data.enviadas : data.enviados
+      if (cantidad === 0) {
+        setErrorEnvio(`Esa propiedad no tiene ${tipo} cargadas`)
+      } else {
+        qc.invalidateQueries({ queryKey: ['conversacion', convSeleccionada] })
+      }
+    } catch (err: unknown) {
+      const msg = (err as { response?: { data?: { error?: string } } })?.response?.data?.error
+      setErrorEnvio(msg || `Error al enviar ${tipo}`)
+    } finally {
+      setEnviandoMedia(null)
+    }
+  }
 
   const eliminarConv = useMutation({
     mutationFn: (id: string) => api.delete(`/conversaciones/${id}`),
@@ -455,12 +492,41 @@ export default function Inbox() {
                   Presupuesto: {formatARS(conv.presupuesto)}
                 </div>
               )}
-              {conv.propiedadInteres && (
-                <div className="flex items-start gap-1 text-xs text-carbon">
-                  <Building2 size={12} className="text-arena mt-0.5 shrink-0" />
-                  <span>{conv.propiedadInteres.direccion}</span>
-                </div>
-              )}
+
+              <select
+                className="form-select text-xs w-full"
+                value={conv.propiedadInteres?.id || ''}
+                onChange={(e) => actualizarConv.mutate({ propiedadInteresId: e.target.value || null })}
+              >
+                <option value="">Sin propiedad asociada</option>
+                {propiedades.map((p) => (
+                  <option key={p.id} value={p.id}>{p.direccion}</option>
+                ))}
+              </select>
+
+              {conv.propiedadInteres && (() => {
+                const prop = propiedades.find(p => p.id === conv.propiedadInteres?.id)
+                return (
+                  <div className="flex gap-2 mt-1">
+                    <button
+                      onClick={() => enviarMedia('fotos')}
+                      disabled={enviandoMedia !== null}
+                      className="flex-1 flex items-center justify-center gap-1.5 text-xs font-semibold text-piedra bg-crema hover:bg-arena/30 px-2 py-1.5 rounded-lg transition-colors disabled:opacity-50"
+                    >
+                      <ImageIcon size={12} />
+                      {enviandoMedia === 'fotos' ? 'Enviando...' : `Fotos${prop ? ` (${prop.imagenes.length})` : ''}`}
+                    </button>
+                    <button
+                      onClick={() => enviarMedia('videos')}
+                      disabled={enviandoMedia !== null}
+                      className="flex-1 flex items-center justify-center gap-1.5 text-xs font-semibold text-piedra bg-crema hover:bg-arena/30 px-2 py-1.5 rounded-lg transition-colors disabled:opacity-50"
+                    >
+                      <Video size={12} />
+                      {enviandoMedia === 'videos' ? 'Enviando...' : `Videos${prop ? ` (${prop.videos.length})` : ''}`}
+                    </button>
+                  </div>
+                )
+              })()}
             </div>
 
             {/* Etapa */}
