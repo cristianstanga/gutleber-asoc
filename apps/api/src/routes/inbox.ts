@@ -1,6 +1,6 @@
 import { Router } from 'express'
 import { prisma } from '../index'
-import { sendText } from '../services/whatsapp-meta'
+import { sendText, sendTemplate } from '../services/whatsapp-meta'
 import { EtapaConversacion } from '@prisma/client'
 
 const router = Router()
@@ -31,12 +31,20 @@ router.patch('/leer-todo', async (_req, res) => {
 })
 
 router.post('/enviar', async (req, res) => {
-  const { personaId, mensaje, propiedadId } = req.body
+  const { personaId, mensaje, propiedadId, usarTemplate, motivo } = req.body
 
   const persona = await prisma.persona.findUnique({ where: { id: personaId } })
   if (!persona?.whatsapp) return res.status(400).json({ error: 'Sin WhatsApp' })
 
-  await sendText(persona.whatsapp, mensaje)
+  const mensajeFinal = usarTemplate
+    ? `Hola ${persona.nombre}, le escribimos desde Gutleber & Asoc. para conversar sobre ${motivo || 'una consulta'}. Quedamos a disposición.`
+    : mensaje
+
+  if (usarTemplate) {
+    await sendTemplate(persona.whatsapp, 'gutleber_contacto', [persona.nombre, motivo || 'una consulta'])
+  } else {
+    await sendText(persona.whatsapp, mensaje)
+  }
 
   // Buscar o crear conversación para que aparezca en el CRM
   const numeroLimpio = persona.whatsapp.replace(/\D/g, '')
@@ -66,7 +74,7 @@ router.post('/enviar', async (req, res) => {
   const item = await prisma.inboxItem.create({
     data: {
       canal: 'WHATSAPP',
-      mensaje,
+      mensaje: mensajeFinal,
       tipo: 'SALIENTE',
       personaId,
       propiedadId: propiedadId || null,

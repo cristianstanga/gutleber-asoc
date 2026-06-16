@@ -73,6 +73,8 @@ export default function Personas() {
   const [busqueda, setBusqueda] = useState('')
   const [mensajeWA, setMensajeWA] = useState('')
   const [enviandoWA, setEnviandoWA] = useState(false)
+  const [usarTemplate, setUsarTemplate] = useState(false)
+  const [motivoTemplate, setMotivoTemplate] = useState('')
 
   const { data: personas = [], isLoading } = useQuery<Persona[]>({
     queryKey: ['personas', filtroTipo, busqueda],
@@ -110,13 +112,19 @@ export default function Personas() {
   function cerrarForm() { setModalForm(false); setEditando(null) }
 
   async function enviarWhatsApp(persona: Persona) {
-    if (!mensajeWA.trim()) return
+    if (usarTemplate ? !motivoTemplate.trim() : !mensajeWA.trim()) return
     setEnviandoWA(true)
     try {
-      await api.post('/inbox/enviar', { personaId: persona.id, mensaje: mensajeWA })
+      await api.post('/inbox/enviar', {
+        personaId: persona.id,
+        mensaje: mensajeWA,
+        usarTemplate,
+        motivo: motivoTemplate,
+      })
       qc.invalidateQueries({ queryKey: ['persona', detalle] })
       qc.invalidateQueries({ queryKey: ['conversaciones'] })
       setMensajeWA('')
+      setMotivoTemplate('')
       mostrarToast('Mensaje enviado')
     } catch {
       mostrarToast('Error al enviar')
@@ -262,23 +270,51 @@ export default function Personas() {
                 <h3 className="font-semibold text-carbon mb-3 flex items-center gap-2">
                   <MessageSquare size={15} className="text-green-600" /> Enviar mensaje
                 </h3>
-                <textarea
-                  className="form-input resize-none text-sm mb-2"
-                  rows={3}
-                  value={mensajeWA}
-                  onChange={(e) => setMensajeWA(e.target.value)}
-                  placeholder={`Hola ${p.nombre},...`}
-                />
+
+                <label className="flex items-center gap-2 mb-3 text-xs text-piedra cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={usarTemplate}
+                    onChange={(e) => setUsarTemplate(e.target.checked)}
+                    className="rounded"
+                  />
+                  Sin actividad reciente — usar plantilla de contacto
+                </label>
+
+                {usarTemplate ? (
+                  <>
+                    <input
+                      className="form-input text-sm mb-2"
+                      value={motivoTemplate}
+                      onChange={(e) => setMotivoTemplate(e.target.value)}
+                      placeholder="Motivo: su contrato de alquiler, la propiedad consultada..."
+                    />
+                    <p className="text-[10px] text-piedra/70 mb-2">
+                      Vista previa: "Hola {p.nombre}, le escribimos desde Gutleber & Asoc. para conversar sobre {motivoTemplate || '...'}. Quedamos a disposición."
+                    </p>
+                  </>
+                ) : (
+                  <textarea
+                    className="form-input resize-none text-sm mb-2"
+                    rows={3}
+                    value={mensajeWA}
+                    onChange={(e) => setMensajeWA(e.target.value)}
+                    placeholder={`Hola ${p.nombre},...`}
+                  />
+                )}
+
                 <button
                   onClick={() => enviarWhatsApp(p)}
-                  disabled={enviandoWA || !mensajeWA.trim()}
+                  disabled={enviandoWA || (usarTemplate ? !motivoTemplate.trim() : !mensajeWA.trim())}
                   className="btn-primary w-full flex items-center justify-center gap-2"
                 >
                   <Send size={14} />
                   {enviandoWA ? 'Enviando...' : 'Enviar por WhatsApp'}
                 </button>
                 <p className="text-[10px] text-piedra/70 mt-2 leading-snug">
-                  ⚠️ WhatsApp solo entrega mensajes de texto si el destinatario te escribió en las últimas 24hs. Para contactos sin actividad reciente, el mensaje se envía pero puede no llegar.
+                  {usarTemplate
+                    ? '✅ La plantilla siempre se entrega, sin importar cuándo escribió por última vez.'
+                    : '⚠️ El texto libre solo entrega si el destinatario te escribió en las últimas 24hs. Si no, tildá la opción de arriba.'}
                 </p>
               </div>
             )}

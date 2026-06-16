@@ -74,6 +74,28 @@ app.post('/api/whatsapp/crear-recibo-template', async (_req, res) => {
   res.json({ ok: r.ok, status: r.status, response: await r.json() })
 })
 
+// Crea gutleber_contacto en WABA correcto (one-time) — contacto proactivo fuera de ventana 24hs
+app.post('/api/whatsapp/crear-contacto-template', async (_req, res) => {
+  const token = process.env.WHATSAPP_ACCESS_TOKEN
+  const wabaId = '1748009346185242'
+  if (!token) return res.status(500).json({ error: 'Token no configurado' })
+  const r = await fetch(`https://graph.facebook.com/v25.0/${wabaId}/message_templates`, {
+    method: 'POST',
+    headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      name: 'gutleber_contacto',
+      language: 'es_AR',
+      category: 'UTILITY',
+      components: [{
+        type: 'BODY',
+        text: 'Hola {{1}}, le escribimos desde Gutleber & Asoc. para conversar sobre {{2}}. Quedamos a disposición.',
+        example: { body_text: [['Juan', 'su contrato de alquiler']] },
+      }],
+    }),
+  })
+  res.json({ ok: r.ok, status: r.status, response: await r.json() })
+})
+
 // Lista templates del WABA correcto — diagnóstico
 app.get('/api/whatsapp/templates', async (_req, res) => {
   const token = process.env.WHATSAPP_ACCESS_TOKEN
