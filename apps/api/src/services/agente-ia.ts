@@ -2,6 +2,17 @@ import Anthropic from '@anthropic-ai/sdk'
 import { prisma, logger } from '../index'
 import { sendText, sendImageUrl } from './whatsapp-meta'
 import { EtapaConversacion } from '@prisma/client'
+import { CLAVES_CONFIG } from '../routes/config'
+
+const DEFAULT_REQUISITOS =
+  'DNI vigente. Últimos 3 recibos de sueldo (o constancia de ingresos si es monotributista/autónomo). Garantía propietaria (escritura de inmueble libre de deuda en Misiones) o seguro de caución. Referencias personales y laborales.'
+const DEFAULT_HORARIOS =
+  'Lunes a viernes de 9 a 18hs, sábados de 9 a 13hs. No se coordinan visitas domingos ni feriados.'
+
+async function getConfig(clave: string, fallback: string): Promise<string> {
+  const item = await prisma.configSistema.findUnique({ where: { clave } })
+  return item?.valor || fallback
+}
 
 const ETAPAS_ACTIVAS: EtapaConversacion[] = [
   EtapaConversacion.NUEVO,
@@ -59,6 +70,19 @@ const TOOLS: Anthropic.Tool[] = [
       required: ['direccion'],
     },
   },
+  {
+    name: 'registrar_visita',
+    description: 'Registra un pedido de visita a una propiedad para que un asesor lo confirme. Usala cuando el interesado ya dio su nombre y un día/horario tentativo para visitar.',
+    input_schema: {
+      type: 'object',
+      properties: {
+        direccion: { type: 'string', description: 'Dirección de la propiedad a visitar' },
+        nombre: { type: 'string', description: 'Nombre del interesado' },
+        diaHorario: { type: 'string', description: 'Día y horario tentativo tal como lo dijo el interesado, ej: "sábado por la tarde"' },
+      },
+      required: ['direccion', 'nombre', 'diaHorario'],
+    },
+  },
 ]
 
 async function ejecutarHerramienta(
@@ -66,24 +90,51 @@ async function ejecutarHerramienta(
   input: Record<string, unknown>,
   propiedades: PropiedadCtx[],
   numeroDestino: string,
+  conversacionId: string,
+  personaId: string | null,
 ): Promise<string> {
-  if (nombre !== 'enviar_fotos') return 'Herramienta desconocida.'
+  if (nombre === 'enviar_fotos') {
+    const direccionBuscada = String(input.direccion || '').toLowerCase()
+    const prop = propiedades.find(p => p.direccion.toLowerCase().includes(direccionBuscada))
 
-  const direccionBuscada = String(input.direccion || '').toLowerCase()
-  const prop = propiedades.find(p => p.direccion.toLowerCase().includes(direccionBuscada))
+    if (!prop) return 'No encontré esa propiedad en el catálogo disponible.'
+    if (prop.imagenes.length === 0) return `${prop.direccion} no tiene fotos cargadas todavía.`
 
-  if (!prop) return 'No encontré esa propiedad en el catálogo disponible.'
-  if (prop.imagenes.length === 0) return `${prop.direccion} no tiene fotos cargadas todavía.`
-
-  for (const img of prop.imagenes.slice(0, 6)) {
-    try {
-      await sendImageUrl(numeroDestino, img.url)
-      await new Promise(r => setTimeout(r, 700))
-    } catch (err) {
-      logger.error({ err }, '❌ Error enviando foto del agente IA')
+    for (const img of prop.imagenes.slice(0, 6)) {
+      try {
+        await sendImageUrl(numeroDestino, img.url)
+        await new Promise(r => setTimeout(r, 700))
+      } catch (err) {
+        logger.error({ err }, '❌ Error enviando foto del agente IA')
+      }
     }
+    return `Se enviaron ${Math.min(prop.imagenes.length, 6)} foto(s) de ${prop.direccion}.`
   }
-  return `Se enviaron ${Math.min(prop.imagenes.length, 6)} foto(s) de ${prop.direccion}.`
+
+  if (nombre === 'registrar_visita') {
+    const direccionBuscada = String(input.direccion || '').toLowerCase()
+    const prop = propiedades.find(p => p.direccion.toLowerCase().includes(direccionBuscada))
+
+    await prisma.visita.create({
+      data: {
+        propiedadId: prop?.id,
+        conversacionId,
+        personaId,
+        nombreContacto: String(input.nombre || ''),
+        numeroContacto: numeroDestino,
+        fechaPropuesta: String(input.diaHorario || ''),
+      },
+    })
+
+    await prisma.conversacion.update({
+      where: { id: conversacionId },
+      data: { etapa: EtapaConversacion.VISITA_PENDIENTE },
+    })
+
+    return 'Visita registrada. Un asesor la va a confirmar a la brevedad.'
+  }
+
+  return 'Herramienta desconocida.'
 }
 
 export async function responderAgente(conversacionId: string, numeroDestino: string): Promise<void> {
@@ -97,6 +148,7 @@ export async function responderAgente(conversacionId: string, numeroDestino: str
         mensajes: { orderBy: { createdAt: 'asc' }, take: 20 },
       },
     })
+    const personaId = conv?.personaId ?? null
     if (!conv) return
     if (!conv.agenteActivo) return
     if (!ETAPAS_ACTIVAS.includes(conv.etapa)) return
@@ -123,18 +175,23 @@ export async function responderAgente(conversacionId: string, numeroDestino: str
       ? 'alquiler y venta'
       : hayAlquiler ? 'alquiler' : 'venta'
 
+    const [requisitos, horarios] = await Promise.all([
+      getConfig(CLAVES_CONFIG.REQUISITOS_ALQUILER, DEFAULT_REQUISITOS),
+      getConfig(CLAVES_CONFIG.HORARIOS_ATENCION, DEFAULT_HORARIOS),
+    ])
+
     const requisitosAlquiler = hayAlquiler ? `
 REQUISITOS PARA ALQUILAR:
-- DNI vigente
-- Últimos 3 recibos de sueldo (o constancia de ingresos si es monotributista/autónomo)
-- Garantía propietaria (escritura de inmueble libre de deuda en Misiones) O seguro de caución
-- Referencias personales y laborales` : ''
+${requisitos}` : ''
 
     const system = `Sos el agente de ventas virtual de Gutleber & Asoc., inmobiliaria boutique en Posadas, Misiones, Argentina. Atendés consultas 24/7 sobre propiedades en ${operacion}, hablando por WhatsApp.
 
 PROPIEDADES DISPONIBLES:
 ${catalogo}
 ${requisitosAlquiler}
+
+HORARIOS DE ATENCIÓN DE LA INMOBILIARIA:
+${horarios}
 
 CÓMO CALIFICAR AL INTERESADO (en orden, sin bombardear con preguntas):
 1. Qué zona o barrio prefiere
@@ -143,7 +200,7 @@ CÓMO CALIFICAR AL INTERESADO (en orden, sin bombardear con preguntas):
 4. Su nombre, para que el asesor pueda contactarlo
 
 CÓMO MANEJAR VISITAS:
-Cuando alguien quiere ver una propiedad, pedí su nombre y el día/horario que le queda mejor. Confirmá que "en breve un asesor te va a confirmar la visita". No des fechas ni horarios exactos vos.
+Cuando alguien quiere ver una propiedad, pedí su nombre y el día/horario que le queda mejor dentro de los horarios de atención. Usá la herramienta registrar_visita con esos datos. Confirmá que "en breve un asesor te va a confirmar la visita". No des fechas ni horarios exactos vos, eso lo confirma el asesor.
 
 FOTOS:
 Si el interesado pide ver fotos o imágenes de una propiedad, usá la herramienta enviar_fotos con la dirección correspondiente. No digas que vas a mandar las fotos hasta haber usado la herramienta.
@@ -185,7 +242,7 @@ ESTILO: Amigable, directo, profesional. Español argentino informal (vos, te). M
       const toolResults: Anthropic.ToolResultBlockParam[] = []
       for (const tu of toolUseBlocks) {
         const resultado = await ejecutarHerramienta(
-          tu.name, tu.input as Record<string, unknown>, propiedades, numeroDestino
+          tu.name, tu.input as Record<string, unknown>, propiedades, numeroDestino, conversacionId, personaId
         )
         toolResults.push({ type: 'tool_result', tool_use_id: tu.id, content: resultado })
       }

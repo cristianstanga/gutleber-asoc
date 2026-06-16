@@ -20,6 +20,8 @@ import gastosRouter from './routes/gastos'
 import iaRouter from './routes/ia'
 import catalogoRouter from './routes/catalogo'
 import usuariosRouter from './routes/usuarios'
+import configRouter from './routes/config'
+import visitasRouter from './routes/visitas'
 import webhookWhatsappRouter from './routes/webhook-whatsapp'
 import { initCron } from './services/cron'
 import { sendHelloWorld, getStatus as getWAStatus } from './services/whatsapp-meta'
@@ -102,6 +104,8 @@ app.use('/api/gastos', authMiddleware, gastosRouter)
 app.use('/api/ia', authMiddleware, iaRouter)
 app.use('/api/catalogo', authMiddleware, catalogoRouter)
 app.use('/api/usuarios', authMiddleware, requireAdminOrOperador, usuariosRouter)
+app.use('/api/config', authMiddleware, requireAdminOrOperador, configRouter)
+app.use('/api/visitas', authMiddleware, requireAdminOrOperador, visitasRouter)
 
 async function fixImageUrls() {
   // Reemplaza URLs viejas (https://automatizapp.pro/uploads/) por la URL correcta (https://app.automatizapp.pro/uploads/)

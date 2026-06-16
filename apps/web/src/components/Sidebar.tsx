@@ -1,10 +1,10 @@
 import { NavLink } from 'react-router-dom'
-import { LayoutDashboard, Building2, Users, FileText, CreditCard, TrendingUp, MessageSquare, Smartphone, LogOut, Sparkles, FilePlus2, ShieldCheck, LucideIcon } from 'lucide-react'
+import { LayoutDashboard, Building2, Users, FileText, CreditCard, TrendingUp, MessageSquare, Smartphone, LogOut, Sparkles, FilePlus2, ShieldCheck, Bot, CalendarCheck, LucideIcon } from 'lucide-react'
 import { useAuthStore } from '../store/auth'
 import { useQuery } from '@tanstack/react-query'
 import { api } from '../lib/api'
 
-interface NavItem { to: string; label: string; Icon: LucideIcon; badge?: boolean }
+interface NavItem { to: string; label: string; Icon: LucideIcon; badge?: 'inbox' | 'visitas' }
 
 const navAdmin: NavItem[] = [
   { to: '/dashboard',    label: 'Panel de gestión', Icon: LayoutDashboard },
@@ -13,7 +13,9 @@ const navAdmin: NavItem[] = [
   { to: '/contratos',    label: 'Contratos',    Icon: FileText },
   { to: '/pagos',        label: 'Pagos',        Icon: CreditCard },
   { to: '/indices',      label: 'Índices',      Icon: TrendingUp },
-  { to: '/inbox',        label: 'WhatsApp CRM', Icon: MessageSquare, badge: true },
+  { to: '/inbox',        label: 'WhatsApp CRM', Icon: MessageSquare, badge: 'inbox' },
+  { to: '/visitas',      label: 'Visitas',      Icon: CalendarCheck, badge: 'visitas' },
+  { to: '/config-agente', label: 'Agente IA',   Icon: Bot },
   { to: '/whatsapp',     label: 'WhatsApp',     Icon: Smartphone },
   { to: '/tarjetas',     label: 'Tarjetas',     Icon: Sparkles },
   { to: '/contrato-gen', label: 'Contratos IA', Icon: FilePlus2 },
@@ -45,6 +47,18 @@ export default function Sidebar() {
     enabled: rol === 'ADMIN' || rol === 'OPERADOR',
   })
 
+  const { data: visitasPendientes = 0 } = useQuery<number>({
+    queryKey: ['visitas-pendientes-count'],
+    queryFn: async () => {
+      const r = await api.get('/visitas', { params: { estado: 'PENDIENTE_CONFIRMACION' } })
+      return (r.data as unknown[]).length
+    },
+    refetchInterval: 15_000,
+    enabled: rol === 'ADMIN' || rol === 'OPERADOR',
+  })
+
+  const badgeCount: Record<string, number> = { inbox: noLeidos, visitas: visitasPendientes }
+
   const items = rol === 'PROPIETARIO' ? navPropietario
     : rol === 'INQUILINO' ? navInquilino
     : navAdmin
@@ -71,9 +85,9 @@ export default function Sidebar() {
           >
             <Icon size={16} />
             <span className="flex-1">{label}</span>
-            {badge && noLeidos > 0 && (
+            {badge && badgeCount[badge] > 0 && (
               <span className="bg-red-500 text-white text-[10px] rounded-full min-w-[16px] h-4 flex items-center justify-center font-bold px-1">
-                {noLeidos > 99 ? '99+' : noLeidos}
+                {badgeCount[badge] > 99 ? '99+' : badgeCount[badge]}
               </span>
             )}
           </NavLink>

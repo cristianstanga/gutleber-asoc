@@ -15,6 +15,8 @@ import WhatsAppStatus from './pages/WhatsAppStatus'
 import TarjetaBuilder from './pages/TarjetaBuilder'
 import ContratoGenerador from './pages/ContratoGenerador'
 import Usuarios from './pages/Usuarios'
+import ConfigAgente from './pages/ConfigAgente'
+import Visitas from './pages/Visitas'
 import MisPropiedades from './pages/MisPropiedades'
 import MiContrato from './pages/MiContrato'
 
@@ -60,6 +62,8 @@ export default function App() {
           <Route path="whatsapp"     element={<ProtectedRoute roles={['ADMIN','OPERADOR']}><WhatsAppStatus /></ProtectedRoute>} />
           <Route path="tarjetas"     element={<ProtectedRoute roles={['ADMIN','OPERADOR']}><TarjetaBuilder /></ProtectedRoute>} />
           <Route path="contrato-gen" element={<ProtectedRoute roles={['ADMIN','OPERADOR']}><ContratoGenerador /></ProtectedRoute>} />
+          <Route path="config-agente" element={<ProtectedRoute roles={['ADMIN','OPERADOR']}><ConfigAgente /></ProtectedRoute>} />
+          <Route path="visitas" element={<ProtectedRoute roles={['ADMIN','OPERADOR']}><Visitas /></ProtectedRoute>} />
 
           {/* Solo Admin */}
           <Route path="usuarios" element={<ProtectedRoute roles={['ADMIN']}><Usuarios /></ProtectedRoute>} />
