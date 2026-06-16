@@ -86,12 +86,28 @@ export async function sendVideoUrl(to: string, url: string, caption?: string): P
   logger.info(`✅ Meta WA video enviado a ${phone}`)
 }
 
+export async function sendDocumentUrl(to: string, url: string, filename: string, caption?: string): Promise<void> {
+  const phone = toMetaPhone(to)
+  await metaPost('messages', {
+    messaging_product: 'whatsapp',
+    recipient_type: 'individual',
+    to: phone,
+    type: 'document',
+    document: { link: url, filename, caption: caption || '' },
+  })
+  logger.info(`✅ Meta WA documento enviado a ${phone}`)
+}
+
 export async function sendPDF(to: string, buffer: Buffer, filename: string): Promise<void> {
-  logger.warn({ to, filename }, '⚠️ Meta WA: sendPDF requiere URL pública — pendiente migración a cloud storage')
+  const { guardarBuffer } = await import('./upload')
+  const url = guardarBuffer(buffer, 'pdf')
+  await sendDocumentUrl(to, url, filename)
 }
 
 export async function sendImage(to: string, buffer: Buffer, caption?: string): Promise<void> {
-  logger.warn({ to, caption }, '⚠️ Meta WA: sendImage por buffer requiere URL pública — pendiente migración a cloud storage')
+  const { guardarBuffer } = await import('./upload')
+  const url = guardarBuffer(buffer, 'png')
+  await sendImageUrl(to, url, caption)
 }
 
 export function getStatus() {

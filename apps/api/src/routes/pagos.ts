@@ -6,7 +6,7 @@ import {
   generarReciboPDF, generarLiquidacionPDF,
   DatosRecibo, DatosLiquidacion, ConceptoExtra,
 } from '../services/pdf'
-import { sendText as sendMetaText, sendTemplate } from '../services/whatsapp-meta'
+import { sendText as sendMetaText, sendTemplate, sendPDF } from '../services/whatsapp-meta'
 
 const router = Router()
 
@@ -532,14 +532,20 @@ router.post('/:id/enviar-whatsapp', async (req, res) => {
   if (!datos) return res.status(400).json({ error: 'No se pudieron obtener los datos del recibo' })
 
   try {
-    await generarReciboPDF(datos)
+    const buffer = await generarReciboPDF(datos)
     const fmt = (n: number) => new Intl.NumberFormat('es-AR', { style: 'currency', currency: 'ARS', maximumFractionDigits: 0 }).format(n)
     const nombre = pago.persona.nombre
     const periodo = pago.periodo || datos.mes || ''
     const monto = fmt(datos.totalRecibo)
     const dir = pago.propiedad?.direccion || ''
+    const filename = `Recibo_${nombre}_${periodo}.pdf`.replace(/\s+/g, '_')
 
     await sendTemplate(pago.persona.whatsapp, 'gutleber_recibo', [nombre, periodo, monto, dir])
+    try {
+      await sendPDF(pago.persona.whatsapp, buffer, filename)
+    } catch (err) {
+      logger.warn({ err }, '⚠️ No se pudo adjuntar el PDF del recibo (puede ser ventana de 24hs)')
+    }
 
     await prisma.pago.update({ where: { id: pago.id }, data: { comprobanteEnviado: true } })
     await prisma.inboxItem.create({
@@ -551,7 +557,7 @@ router.post('/:id/enviar-whatsapp', async (req, res) => {
         propiedadId: pago.propiedadId || undefined,
       },
     })
-    res.json({ ok: true, nota: 'PDF por WhatsApp pendiente de implementación (requiere cloud storage)' })
+    res.json({ ok: true })
   } catch (err) {
     res.status(500).json({ error: err instanceof Error ? err.message : 'Error enviando' })
   }

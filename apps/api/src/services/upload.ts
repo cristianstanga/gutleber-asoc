@@ -51,3 +51,11 @@ export function getPublicUrl(filename: string): string {
   const base = process.env.PUBLIC_URL || `http://localhost:${process.env.PORT || 3001}`
   return `${base}/uploads/${filename}`
 }
+
+// ── Guardar buffer generado en servidor (PDFs, tarjetas, etc.) ────────────────
+
+export function guardarBuffer(buffer: Buffer, extension: string): string {
+  const nombre = `${Date.now()}-${Math.random().toString(36).slice(2)}.${extension}`
+  fs.writeFileSync(path.join(UPLOADS_DIR, nombre), buffer)
+  return getPublicUrl(nombre)
+}
