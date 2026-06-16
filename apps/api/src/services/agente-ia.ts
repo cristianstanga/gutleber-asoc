@@ -1,6 +1,6 @@
 import Anthropic from '@anthropic-ai/sdk'
 import { prisma, logger } from '../index'
-import { sendText } from './whatsapp-meta'
+import { sendText, sendImageUrl } from './whatsapp-meta'
 import { EtapaConversacion } from '@prisma/client'
 
 const ETAPAS_ACTIVAS: EtapaConversacion[] = [
@@ -11,20 +11,24 @@ const ETAPAS_ACTIVAS: EtapaConversacion[] = [
   EtapaConversacion.VISITA_PENDIENTE,
 ]
 
-function buildCatalogo(propiedades: Array<{
-  tipo: string; direccion: string; barrio?: string | null
-  superficie?: number | null; dormitorios?: number | null; banos?: number | null
-  cochera?: boolean | null; enAlquiler: boolean; enVenta: boolean
-  alquilerBase?: number | null; valorVenta?: number | null; descripcion?: string | null
-}>): string {
+type PropiedadCtx = {
+  id: string; tipo: string; direccion: string; barrio: string | null
+  superficie: number | null; dormitorios: number | null; banos: number | null
+  cochera: boolean | null; enAlquiler: boolean; enVenta: boolean
+  alquilerBase: number | null; valorVenta: number | null; descripcion: string | null
+  imagenes: { url: string }[]
+}
+
+const TIPO_LABEL: Record<string, string> = {
+  DEPARTAMENTO: 'Departamento', CASA: 'Casa', LOCAL: 'Local',
+  TERRENO: 'Terreno', OFICINA: 'Oficina',
+}
+
+function buildCatalogo(propiedades: PropiedadCtx[]): string {
   if (propiedades.length === 0) return 'Sin propiedades disponibles en este momento.'
   return propiedades.map(p => {
     const lineas: string[] = []
-    const tipoLabel: Record<string, string> = {
-      DEPARTAMENTO: 'Departamento', CASA: 'Casa', LOCAL: 'Local',
-      TERRENO: 'Terreno', OFICINA: 'Oficina',
-    }
-    lineas.push(`• ${tipoLabel[p.tipo] ?? p.tipo} — ${p.direccion}${p.barrio ? `, ${p.barrio}` : ''}`)
+    lineas.push(`• ${TIPO_LABEL[p.tipo] ?? p.tipo} — ${p.direccion}${p.barrio ? `, ${p.barrio}` : ''}`)
     const detalles: string[] = []
     if (p.superficie) detalles.push(`${p.superficie} m²`)
     if (p.dormitorios) detalles.push(`${p.dormitorios} dorm.`)
@@ -35,8 +39,51 @@ function buildCatalogo(propiedades: Array<{
       lineas.push(`  Alquiler: $${p.alquilerBase.toLocaleString('es-AR')}/mes`)
     if (p.enVenta && p.valorVenta)
       lineas.push(`  Venta: USD ${p.valorVenta.toLocaleString('es-AR')}`)
+    lineas.push(`  Fotos disponibles: ${p.imagenes.length}`)
     return lineas.join('\n')
   }).join('\n\n')
+}
+
+const TOOLS: Anthropic.Tool[] = [
+  {
+    name: 'enviar_fotos',
+    description: 'Envía por WhatsApp las fotos disponibles de una propiedad puntual del catálogo. Usala cuando el interesado pida ver fotos, imágenes o cómo es la propiedad.',
+    input_schema: {
+      type: 'object',
+      properties: {
+        direccion: {
+          type: 'string',
+          description: 'La dirección de la propiedad tal como aparece en el catálogo (o parte de ella, ej: "Las Heras")',
+        },
+      },
+      required: ['direccion'],
+    },
+  },
+]
+
+async function ejecutarHerramienta(
+  nombre: string,
+  input: Record<string, unknown>,
+  propiedades: PropiedadCtx[],
+  numeroDestino: string,
+): Promise<string> {
+  if (nombre !== 'enviar_fotos') return 'Herramienta desconocida.'
+
+  const direccionBuscada = String(input.direccion || '').toLowerCase()
+  const prop = propiedades.find(p => p.direccion.toLowerCase().includes(direccionBuscada))
+
+  if (!prop) return 'No encontré esa propiedad en el catálogo disponible.'
+  if (prop.imagenes.length === 0) return `${prop.direccion} no tiene fotos cargadas todavía.`
+
+  for (const img of prop.imagenes.slice(0, 6)) {
+    try {
+      await sendImageUrl(numeroDestino, img.url)
+      await new Promise(r => setTimeout(r, 700))
+    } catch (err) {
+      logger.error({ err }, '❌ Error enviando foto del agente IA')
+    }
+  }
+  return `Se enviaron ${Math.min(prop.imagenes.length, 6)} foto(s) de ${prop.direccion}.`
 }
 
 export async function responderAgente(conversacionId: string, numeroDestino: string): Promise<void> {
@@ -61,9 +108,10 @@ export async function responderAgente(conversacionId: string, numeroDestino: str
     const propiedades = await prisma.propiedad.findMany({
       where: { OR: [{ enAlquiler: true }, { enVenta: true }] },
       select: {
-        tipo: true, direccion: true, barrio: true, superficie: true,
+        id: true, tipo: true, direccion: true, barrio: true, superficie: true,
         dormitorios: true, banos: true, cochera: true,
         enAlquiler: true, enVenta: true, alquilerBase: true, valorVenta: true, descripcion: true,
+        imagenes: { select: { url: true }, orderBy: { orden: 'asc' } },
       },
     })
 
@@ -82,7 +130,7 @@ REQUISITOS PARA ALQUILAR:
 - Garantía propietaria (escritura de inmueble libre de deuda en Misiones) O seguro de caución
 - Referencias personales y laborales` : ''
 
-    const system = `Sos el agente de ventas virtual de Gutleber & Asoc., inmobiliaria boutique en Posadas, Misiones, Argentina. Atendés consultas 24/7 sobre propiedades en ${operacion}.
+    const system = `Sos el agente de ventas virtual de Gutleber & Asoc., inmobiliaria boutique en Posadas, Misiones, Argentina. Atendés consultas 24/7 sobre propiedades en ${operacion}, hablando por WhatsApp.
 
 PROPIEDADES DISPONIBLES:
 ${catalogo}
@@ -97,7 +145,11 @@ CÓMO CALIFICAR AL INTERESADO (en orden, sin bombardear con preguntas):
 CÓMO MANEJAR VISITAS:
 Cuando alguien quiere ver una propiedad, pedí su nombre y el día/horario que le queda mejor. Confirmá que "en breve un asesor te va a confirmar la visita". No des fechas ni horarios exactos vos.
 
+FOTOS:
+Si el interesado pide ver fotos o imágenes de una propiedad, usá la herramienta enviar_fotos con la dirección correspondiente. No digas que vas a mandar las fotos hasta haber usado la herramienta.
+
 REGLAS:
+- Ya estás hablando con la persona por WhatsApp — NUNCA pidas teléfono ni email, ya los tenés
 - No ofrezcas opciones que no existen en el catálogo (si solo hay alquiler, no preguntes si quiere comprar)
 - No preguntes cosas irrelevantes para la búsqueda de una propiedad
 - No confirmes precios finales ni hagas descuentos
@@ -105,20 +157,51 @@ REGLAS:
 
 ESTILO: Amigable, directo, profesional. Español argentino informal (vos, te). Máximo 3-4 líneas por respuesta. Texto plano, sin asteriscos ni markdown. Hacé una sola pregunta por vez para no abrumar.`
 
-    const historial = conv.mensajes.map(m => ({
+    const messages: Anthropic.MessageParam[] = conv.mensajes.map(m => ({
       role: (m.tipo === 'ENTRANTE' ? 'user' : 'assistant') as 'user' | 'assistant',
       content: m.mensaje,
     }))
 
     const client = new Anthropic({ apiKey: key })
-    const response = await client.messages.create({
+
+    let response = await client.messages.create({
       model: 'claude-haiku-4-5-20251001',
-      max_tokens: 300,
+      max_tokens: 400,
       system,
-      messages: historial,
+      messages,
+      tools: TOOLS,
     })
 
-    const respuesta = (response.content[0] as { type: string; text: string }).text.trim()
+    // Loop de tool-use: ejecutar herramientas hasta que el modelo dé una respuesta de texto final
+    let vueltas = 0
+    while (response.stop_reason === 'tool_use' && vueltas < 3) {
+      vueltas++
+      const toolUseBlocks = response.content.filter(
+        (c): c is Anthropic.ToolUseBlock => c.type === 'tool_use'
+      )
+
+      messages.push({ role: 'assistant', content: response.content })
+
+      const toolResults: Anthropic.ToolResultBlockParam[] = []
+      for (const tu of toolUseBlocks) {
+        const resultado = await ejecutarHerramienta(
+          tu.name, tu.input as Record<string, unknown>, propiedades, numeroDestino
+        )
+        toolResults.push({ type: 'tool_result', tool_use_id: tu.id, content: resultado })
+      }
+      messages.push({ role: 'user', content: toolResults })
+
+      response = await client.messages.create({
+        model: 'claude-haiku-4-5-20251001',
+        max_tokens: 400,
+        system,
+        messages,
+        tools: TOOLS,
+      })
+    }
+
+    const textBlock = response.content.find((c): c is Anthropic.TextBlock => c.type === 'text')
+    const respuesta = textBlock?.text.trim()
     if (!respuesta) return
 
     await sendText(numeroDestino, respuesta)
