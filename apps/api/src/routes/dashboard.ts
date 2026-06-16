@@ -140,7 +140,9 @@ router.get('/', async (_req, res) => {
   }
   const deudores = Array.from(deudoresMap.values())
 
-  const [ultimosPagos, alertas, proximosVencimientos, sinLiquidar] = await Promise.all([
+  const en30dias = new Date(hoy.getTime() + 30 * 24 * 60 * 60 * 1000)
+
+  const [ultimosPagos, alertas, proximosVencimientos, sinLiquidar, proximosAjustes] = await Promise.all([
     prisma.pago.findMany({
       take: 5,
       orderBy: { createdAt: 'desc' },
@@ -169,6 +171,13 @@ router.get('/', async (_req, res) => {
         propiedad: true,
         vinculo: { select: { id: true, honorariosPct: true } },
       },
+      take: 10,
+    }),
+
+    prisma.vinculo.findMany({
+      where: { activo: true, tipo: 'ALQUILER', proximaActualizacion: { lte: en30dias } },
+      orderBy: { proximaActualizacion: 'asc' },
+      include: { persona: true, propiedad: true },
       take: 10,
     }),
   ])
@@ -206,6 +215,17 @@ router.get('/', async (_req, res) => {
       diasRestantes: Math.ceil((new Date(v.fechaFin!).getTime() - hoy.getTime()) / (24 * 60 * 60 * 1000)),
     })),
     deudores,
+    proximosAjustes: proximosAjustes.map(v => ({
+      vinculoId: v.id,
+      nombre: `${v.persona.nombre} ${v.persona.apellido}`,
+      propiedad: v.propiedad.direccion,
+      indice: v.indice,
+      alquilerActual: v.alquilerActual,
+      proximaActualizacion: v.proximaActualizacion,
+      diasParaAjuste: v.proximaActualizacion
+        ? Math.ceil((new Date(v.proximaActualizacion).getTime() - hoy.getTime()) / 86400000)
+        : null,
+    })),
     sinLiquidar: sinLiquidar.map(p => ({
       pagoId: p.id,
       vinculoId: p.vinculo?.id,

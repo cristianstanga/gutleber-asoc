@@ -1,7 +1,11 @@
 import { Router } from 'express'
-import { prisma } from '../index'
+import { prisma, logger } from '../index'
 import { Indice } from '@prisma/client'
 import { calcularVariacion } from '../services/indices-api'
+import { sendText } from '../services/whatsapp-meta'
+
+const formatARS = (n: number) =>
+  new Intl.NumberFormat('es-AR', { style: 'currency', currency: 'ARS', maximumFractionDigits: 0 }).format(n)
 
 const router = Router()
 
@@ -108,6 +112,22 @@ router.post('/:indice/ajustar', async (req, res) => {
         where: { vinculoId: v.id, estado: 'PENDIENTE', fechaVencimiento: { gt: new Date() } },
         data: { monto: nuevoMonto },
       })
+
+      if (vinculo.persona.whatsapp) {
+        const msg =
+          `Hola ${vinculo.persona.nombre}! 📈\n\n` +
+          `Tu alquiler en *${vinculo.propiedad.direccion}* se actualiza por índice ${indice}:\n` +
+          `Monto anterior: ${formatARS(v.alquilerActual || 0)}\n` +
+          `Nuevo monto: *${formatARS(nuevoMonto)}*\n` +
+          `Variación: +${porcentaje}%\n\n` +
+          `Este valor aplica a partir del próximo vencimiento.\n` +
+          `— *Gutleber & Asoc.*`
+        try {
+          await sendText(vinculo.persona.whatsapp, msg)
+        } catch (err) {
+          logger.warn({ err, vinculoId: v.id }, '⚠️ No se pudo notificar ajuste de índice por WA')
+        }
+      }
 
       return {
         vinculoId: v.id,

@@ -42,6 +42,16 @@ interface Deudor {
   totalMora: number
 }
 
+interface ProximoAjuste {
+  vinculoId: string
+  nombre: string
+  propiedad: string
+  indice: string
+  alquilerActual: number
+  proximaActualizacion: string
+  diasParaAjuste: number | null
+}
+
 interface CobrosDelMes {
   esperado: number
   cobrado: number
@@ -248,6 +258,7 @@ export default function Dashboard() {
   const proximosVencimientos: ProximoVencimiento[] = data.proximosVencimientos ?? []
   const sinLiquidar: SinLiquidar[] = data.sinLiquidar ?? []
   const deudores: Deudor[] = data.deudores ?? []
+  const proximosAjustes: ProximoAjuste[] = data.proximosAjustes ?? []
 
   const kpiCards = [
     { label: 'Propiedades', value: kpis.totalPropiedades, sub: `${kpis.propEnAlquiler} alquiladas · ${kpis.propEnVenta} en venta`, Icon: Building2, color: 'text-piedra' },
@@ -442,6 +453,40 @@ export default function Dashboard() {
             </div>
           </div>
         )}
+
+        {/* Contratos que ajustan por índice — CLICKABLE */}
+        {proximosAjustes.length > 0 && (
+          <div>
+            <h2 className="font-display text-base text-carbon mb-3 flex items-center gap-2">
+              <TrendingUp size={16} className="text-piedra" />
+              Ajustes de índice próximos
+              <span className="ml-auto text-xs font-normal bg-piedra/10 text-piedra px-2 py-0.5 rounded-full">{proximosAjustes.length}</span>
+            </h2>
+            <div className="card overflow-hidden">
+              {proximosAjustes.map(a => (
+                <button
+                  key={a.vinculoId}
+                  onClick={() => navigate('/indices')}
+                  className="w-full flex items-center justify-between px-4 py-3 border-b border-crema last:border-0 hover:bg-crema/60 transition-colors text-left group"
+                >
+                  <div className="min-w-0">
+                    <p className="text-sm font-semibold text-carbon truncate">{a.nombre}</p>
+                    <p className="text-xs text-piedra truncate">{a.propiedad} · {a.indice}</p>
+                  </div>
+                  <div className="flex items-center gap-2 ml-3 flex-shrink-0">
+                    <div className="text-right">
+                      <p className={`text-sm font-bold ${(a.diasParaAjuste ?? 0) < 0 ? 'text-red-600' : (a.diasParaAjuste ?? 0) <= 7 ? 'text-amber-600' : 'text-carbon'}`}>
+                        {a.diasParaAjuste !== null && a.diasParaAjuste < 0 ? `Vencido ${Math.abs(a.diasParaAjuste)}d` : `${a.diasParaAjuste}d`}
+                      </p>
+                      <p className="text-[10px] text-piedra">{formatFecha(a.proximaActualizacion)}</p>
+                    </div>
+                    <ArrowRight size={13} className="text-piedra opacity-0 group-hover:opacity-100 transition-opacity" />
+                  </div>
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Deudores en mora */}
@@ -551,7 +596,7 @@ export default function Dashboard() {
         </div>
       )}
 
-      {data.alertas.length === 0 && data.ultimosPagos.length === 0 && sinLiquidar.length === 0 && proximosVencimientos.length === 0 && deudores.length === 0 && (
+      {data.alertas.length === 0 && data.ultimosPagos.length === 0 && sinLiquidar.length === 0 && proximosVencimientos.length === 0 && deudores.length === 0 && proximosAjustes.length === 0 && (
         <div className="card p-12 text-center">
           <Home size={32} className="text-muted mx-auto mb-3" />
           <p className="text-piedra">No hay datos aún. Cargá propiedades y contratos para empezar.</p>
