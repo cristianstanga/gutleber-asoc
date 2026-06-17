@@ -189,13 +189,13 @@ export async function responderAgente(conversacionId: string, numeroDestino: str
       },
     })
     const personaId = conv?.personaId ?? null
-    if (!conv) return
-    if (!conv.agenteActivo) return
-    if (!ETAPAS_ACTIVAS.includes(conv.etapa)) return
+    if (!conv) { logger.warn(`🤖 agente: conv ${conversacionId} no encontrada`); return }
+    if (!conv.agenteActivo) { logger.warn(`🤖 agente: agenteActivo=false en conv ${conversacionId}`); return }
+    if (!ETAPAS_ACTIVAS.includes(conv.etapa)) { logger.warn(`🤖 agente: etapa ${conv.etapa} inactiva en conv ${conversacionId}`); return }
 
     // conv.mensajes[0] es el más reciente (desc). No responder si ya es saliente (evitar bucle)
     const ultimo = conv.mensajes[0]
-    if (ultimo?.tipo === 'SALIENTE') return
+    if (ultimo?.tipo === 'SALIENTE') { logger.warn(`🤖 agente: último mensaje SALIENTE, no respondo (conv ${conversacionId})`); return }
 
     // Revertir para tener orden cronológico al armar el historial
     conv.mensajes.reverse()
