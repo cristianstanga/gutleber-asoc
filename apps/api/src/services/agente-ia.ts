@@ -264,10 +264,22 @@ REGLAS:
 
 ESTILO: Amigable, directo, profesional. Español argentino informal (vos, te). Máximo 3-4 líneas por respuesta. Texto plano, sin asteriscos ni markdown.`
 
-    const messages: Anthropic.MessageParam[] = conv.mensajes.map(m => ({
+    // Excluimos los [IMG] del historial (son registros de fotos enviadas, no texto conversacional)
+    // y colapsamos mensajes consecutivos del mismo rol para cumplir con la API de Anthropic
+    const mensajesTexto = conv.mensajes.filter(m => !m.mensaje.startsWith('[IMG]'))
+    const rawMessages: Anthropic.MessageParam[] = mensajesTexto.map(m => ({
       role: (m.tipo === 'ENTRANTE' ? 'user' : 'assistant') as 'user' | 'assistant',
       content: m.mensaje,
     }))
+    const messages: Anthropic.MessageParam[] = rawMessages.reduce<Anthropic.MessageParam[]>((acc, msg) => {
+      const prev = acc[acc.length - 1]
+      if (prev && prev.role === msg.role) {
+        prev.content = `${prev.content}\n${msg.content}`
+      } else {
+        acc.push({ ...msg })
+      }
+      return acc
+    }, [])
 
     const client = new Anthropic({ apiKey: key })
 
