@@ -184,7 +184,8 @@ export async function responderAgente(conversacionId: string, numeroDestino: str
     const conv = await prisma.conversacion.findUnique({
       where: { id: conversacionId },
       include: {
-        mensajes: { orderBy: { createdAt: 'asc' }, take: 20 },
+        // desc + take 20 = los 20 más recientes; se revierten más abajo para enviarlos en orden cronológico
+        mensajes: { orderBy: { createdAt: 'desc' }, take: 20 },
       },
     })
     const personaId = conv?.personaId ?? null
@@ -192,9 +193,12 @@ export async function responderAgente(conversacionId: string, numeroDestino: str
     if (!conv.agenteActivo) return
     if (!ETAPAS_ACTIVAS.includes(conv.etapa)) return
 
-    // No responder si el último mensaje ya es saliente (evitar bucle)
-    const ultimo = conv.mensajes[conv.mensajes.length - 1]
+    // conv.mensajes[0] es el más reciente (desc). No responder si ya es saliente (evitar bucle)
+    const ultimo = conv.mensajes[0]
     if (ultimo?.tipo === 'SALIENTE') return
+
+    // Revertir para tener orden cronológico al armar el historial
+    conv.mensajes.reverse()
 
     const propiedades = await prisma.propiedad.findMany({
       where: { OR: [{ enAlquiler: true }, { enVenta: true }] },
