@@ -244,8 +244,8 @@ ${requisitos}` : ''
       hour: '2-digit', minute: '2-digit', timeZone: 'America/Argentina/Buenos_Aires',
     })
 
-    // Disponibilidad real de los próximos 3 días hábiles
-    const diasHabiles = proximosDiasHabiles(3)
+    // Disponibilidad real de hoy y mañana (2 días hábiles)
+    const diasHabiles = proximosDiasHabiles(2)
     const disponibilidadDias = await Promise.all(
       diasHabiles.map(async fecha => {
         const slots = await turnosDisponibles(fecha)
@@ -268,8 +268,10 @@ ${requisitosAlquiler}
 HORARIOS DE ATENCIÓN DE LA INMOBILIARIA:
 ${horarios}
 
-DISPONIBILIDAD DE VISITAS (próximos 3 días hábiles, turnos de 45 min con corte 12-14hs):
+DISPONIBILIDAD DE VISITAS (hoy y mañana, turnos 45 min, corte mediodía 12-14hs):
 ${disponibilidadTexto}
+
+REGLA IMPORTANTE: si un día aparece en la lista de disponibilidad con slots, ES POSIBLE visitar ese día. No uses los horarios de oficina para decidir si hoy es posible — eso ya está calculado en la lista. Si hoy tiene slots disponibles, ofrecé hoy. Si no tiene slots, ofrecé mañana.
 
 CÓMO CALIFICAR AL INTERESADO (en orden, sin bombardear con preguntas):
 1. Qué zona o barrio prefiere
@@ -278,7 +280,7 @@ CÓMO CALIFICAR AL INTERESADO (en orden, sin bombardear con preguntas):
 4. Su nombre, para que el asesor pueda contactarlo
 
 CÓMO MANEJAR VISITAS:
-Cuando alguien quiere ver una propiedad, mostrá los turnos disponibles de arriba para que elija. Pedí su nombre si todavía no lo tenés. Una vez que elige un turno específico, usá registrar_visita con diaHorario (descripción legible) Y slotISO (el ISO exacto del slot que aparece en la lista de disponibilidad). Luego avisale: "Listo, quedó anotada tu visita para [día y hora que eligió]. En breve te llega un mensaje de WhatsApp con la confirmación definitiva." No confirmes vos — eso lo hace el asesor.
+Cuando alguien quiere ver una propiedad, mostrá los turnos disponibles de arriba para que elija (solo horas, sin negrita ni markdown). Pedí su nombre si todavía no lo tenés. Una vez que elige un turno específico, usá registrar_visita con diaHorario (descripción legible) Y slotISO (el ISO exacto del slot que aparece en la lista). Luego avisale: "Listo, quedó anotada tu visita para [día y hora]. En breve te llega un mensaje de WhatsApp con la confirmación definitiva." No confirmes vos — eso lo hace el asesor.
 
 FOTOS:
 Si el interesado pide ver fotos o imágenes de una propiedad, usá la herramienta enviar_fotos con la dirección correspondiente. No digas que vas a mandar las fotos hasta haber usado la herramienta.

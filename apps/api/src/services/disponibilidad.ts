@@ -49,17 +49,15 @@ export function formatearHoras(slots: Date[]): string {
   ).join(', ')
 }
 
-// Retorna fechas AR de los próximos N días hábiles (lun-sáb) a partir de mañana
+// Retorna fechas AR de los próximos N días hábiles (lun-sáb) incluyendo hoy si aún hay slots
 export function proximosDiasHabiles(n: number): string[] {
   const dias: string[] = []
-  const base = new Date()
-  // Avanzar al día siguiente en AR
-  base.setUTCHours(base.getUTCHours() + -3) // aproximar a AR
-  let cursor = new Date(base)
-  cursor.setDate(cursor.getDate() + 1)
+  // Fecha actual en Argentina (UTC-3)
+  const ahoraAR = new Date(Date.now() - 3 * 60 * 60 * 1000)
+  const cursor = new Date(ahoraAR)
 
   while (dias.length < n) {
-    const dow = cursor.getDay() // 0=domingo, 6=sábado
+    const dow = cursor.getDay()
     if (dow !== 0) { // no domingos
       const y = cursor.getFullYear()
       const m = String(cursor.getMonth() + 1).padStart(2, '0')
