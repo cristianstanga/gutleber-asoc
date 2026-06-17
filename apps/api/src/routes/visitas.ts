@@ -1,6 +1,7 @@
 import { Router } from 'express'
 import { prisma } from '../index'
 import { sendText } from '../services/whatsapp-meta'
+import { crearEventoVisita, cancelarEventoVisita } from '../services/google-calendar'
 import { EstadoVisita } from '@prisma/client'
 
 const router = Router()
@@ -25,13 +26,15 @@ router.patch('/:id/confirmar', async (req, res) => {
   const { fechaConfirmada } = req.body
   if (!fechaConfirmada) return res.status(400).json({ error: 'fechaConfirmada requerida' })
 
+  const fechaDate = new Date(fechaConfirmada)
+
   const visita = await prisma.visita.update({
     where: { id: req.params.id },
-    data: { estado: EstadoVisita.CONFIRMADA, fechaConfirmada: new Date(fechaConfirmada) },
+    data: { estado: EstadoVisita.CONFIRMADA, fechaConfirmada: fechaDate },
     include: { propiedad: { select: { direccion: true } } },
   })
 
-  const fechaStr = new Date(fechaConfirmada).toLocaleString('es-AR', {
+  const fechaStr = fechaDate.toLocaleString('es-AR', {
     weekday: 'long', day: '2-digit', month: 'long', hour: '2-digit', minute: '2-digit',
   })
 
@@ -48,7 +51,24 @@ router.patch('/:id/confirmar', async (req, res) => {
     // El envío puede fallar por ventana de 24hs — la visita queda confirmada igual
   }
 
-  res.json(visita)
+  // Crear evento en Google Calendar (best-effort: si falla, la visita ya está confirmada)
+  const googleEventId = await crearEventoVisita({
+    id: visita.id,
+    nombreContacto: visita.nombreContacto,
+    numeroContacto: visita.numeroContacto,
+    fechaConfirmada: fechaDate,
+    propiedadDireccion: visita.propiedad?.direccion,
+    notas: visita.notas,
+  })
+
+  if (googleEventId) {
+    await prisma.visita.update({
+      where: { id: visita.id },
+      data: { googleEventId },
+    })
+  }
+
+  res.json({ ...visita, googleEventId })
 })
 
 router.patch('/:id/cancelar', async (req, res) => {
@@ -56,6 +76,16 @@ router.patch('/:id/cancelar', async (req, res) => {
     where: { id: req.params.id },
     data: { estado: EstadoVisita.CANCELADA },
   })
+
+  // Eliminar evento de Google Calendar si existe
+  if (visita.googleEventId) {
+    await cancelarEventoVisita(visita.googleEventId)
+    await prisma.visita.update({
+      where: { id: visita.id },
+      data: { googleEventId: null },
+    })
+  }
+
   res.json(visita)
 })
 

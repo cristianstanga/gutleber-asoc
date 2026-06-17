@@ -333,6 +333,7 @@ model Visita {
   fechaConfirmada DateTime?
   estado          EstadoVisita @default(PENDIENTE_CONFIRMACION)
   notas           String?
+  googleEventId   String?      // ID del evento creado en Google Calendar
   propiedad       Propiedad?   @relation(fields: [propiedadId], references: [id])
   conversacion    Conversacion? @relation(fields: [conversacionId], references: [id])
   persona         Persona?     @relation(fields: [personaId], references: [id])
