@@ -1,7 +1,7 @@
 import Anthropic from '@anthropic-ai/sdk'
 import { prisma, logger } from '../index'
 import { sendText, sendImageUrl } from './whatsapp-meta'
-import { EtapaConversacion } from '@prisma/client'
+import { EtapaConversacion, EstadoVisita } from '@prisma/client'
 import { CLAVES_CONFIG } from '../routes/config'
 
 const DEFAULT_REQUISITOS =
@@ -227,13 +227,40 @@ export async function responderAgente(conversacionId: string, numeroDestino: str
 REQUISITOS PARA ALQUILAR:
 ${requisitos}` : ''
 
-    const hoyStr = new Date().toLocaleDateString('es-AR', {
+    const ahora = new Date()
+    const ahoraAR = new Date(ahora.toLocaleString('en-US', { timeZone: 'America/Argentina/Buenos_Aires' }))
+    const horaActual = ahoraAR.getHours() + ahoraAR.getMinutes() / 60
+
+    const hoyStr = ahora.toLocaleDateString('es-AR', {
       weekday: 'long', day: '2-digit', month: 'long', year: 'numeric', timeZone: 'America/Argentina/Buenos_Aires',
     })
+    const horaStr = ahora.toLocaleTimeString('es-AR', {
+      hour: '2-digit', minute: '2-digit', timeZone: 'America/Argentina/Buenos_Aires',
+    })
+
+    // Visitas ya confirmadas en los próximos 7 días
+    const enSieteDias = new Date(ahora.getTime() + 7 * 24 * 60 * 60 * 1000)
+    const visitasConfirmadas = await prisma.visita.findMany({
+      where: {
+        estado: EstadoVisita.CONFIRMADA,
+        fechaConfirmada: { gte: ahora, lte: enSieteDias },
+      },
+      include: { propiedad: { select: { direccion: true } } },
+      orderBy: { fechaConfirmada: 'asc' },
+    })
+
+    const turnosOcupados = visitasConfirmadas.length > 0
+      ? visitasConfirmadas.map(v => {
+          const f = new Date(v.fechaConfirmada!)
+          const dia = f.toLocaleDateString('es-AR', { weekday: 'long', day: '2-digit', month: 'long', timeZone: 'America/Argentina/Buenos_Aires' })
+          const hora = f.toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit', timeZone: 'America/Argentina/Buenos_Aires' })
+          return `• ${dia} a las ${hora} (${v.propiedad?.direccion ?? 'propiedad'})`
+        }).join('\n')
+      : 'Sin turnos ocupados en los próximos 7 días.'
 
     const system = `Sos el agente de ventas virtual de Gutleber & Asoc., inmobiliaria boutique en Posadas, Misiones, Argentina. Atendés consultas 24/7 sobre propiedades en ${operacion}, hablando por WhatsApp.
 
-Hoy es ${hoyStr}. Usá esta fecha para interpretar referencias como "el sábado" o "mañana".
+Hoy es ${hoyStr}. Son las ${horaStr} (hora de Argentina). Usá esta fecha y hora para interpretar referencias como "hoy", "el sábado" o "mañana".
 
 PROPIEDADES DISPONIBLES:
 ${catalogo}
@@ -242,6 +269,10 @@ ${requisitosAlquiler}
 HORARIOS DE ATENCIÓN DE LA INMOBILIARIA:
 ${horarios}
 
+AGENDA DE VISITAS — TURNOS OCUPADOS (próximos 7 días):
+${turnosOcupados}
+Las visitas son de 9:00 a 17:00, turnos de 45 minutos. Si el interesado quiere visitar hoy y son antes de las 16:15, todavía es posible visitar hoy (alcanza un turno de 45 min antes de las 17:00). Si son las ${horaStr} y ya son las 16:15 o más, decile que hoy ya no hay más turnos y ofrecé mañana.
+
 CÓMO CALIFICAR AL INTERESADO (en orden, sin bombardear con preguntas):
 1. Qué zona o barrio prefiere
 2. Su presupuesto aproximado
@@ -249,7 +280,7 @@ CÓMO CALIFICAR AL INTERESADO (en orden, sin bombardear con preguntas):
 4. Su nombre, para que el asesor pueda contactarlo
 
 CÓMO MANEJAR VISITAS:
-Las visitas se coordinan en turnos de 45 minutos, de 9:00 a 17:00. Cuando alguien quiere ver una propiedad, pedí su nombre y el día/horario que le queda mejor dentro de ese rango. Si pide un horario fuera de rango (por ejemplo después de las 17:00), avisale que el horario de visitas es de 9 a 17 y pedile una alternativa dentro de ese rango. Usá la herramienta registrar_visita con esos datos. Confirmá que "en breve un asesor te va a confirmar la visita". No des fechas ni horarios exactos vos, eso lo confirma el asesor.
+Cuando alguien quiere visitar una propiedad, pedí su nombre y el día/horario que le queda mejor (dentro del rango 9:00-17:00 y evitando los turnos ya ocupados que te listamos arriba). Usá la herramienta registrar_visita con esos datos. Después de registrarla, avisale: "Listo, quedó anotada tu visita. En breve te llega un mensaje de WhatsApp con la confirmación definitiva del horario." No confirmes el horario exacto vos — eso lo hace el asesor.
 
 FOTOS:
 Si el interesado pide ver fotos o imágenes de una propiedad, usá la herramienta enviar_fotos con la dirección correspondiente. No digas que vas a mandar las fotos hasta haber usado la herramienta.
@@ -264,7 +295,7 @@ REGLAS:
 - No confirmes precios finales ni hagas descuentos
 - No hables de temas ajenos a la inmobiliaria
 - Después de registrar una visita o marcar un interés, SIEMPRE mandá un mensaje de texto confirmando lo que acabás de hacer. Nunca dejes la conversación sin una respuesta de texto al interesado.
-- No termines cada mensaje con una pregunta forzada o genérica (ej: "¿necesitás algo más de la propiedad o de Gutleber?" no tiene sentido como cierre). Si ya quedó todo claro y no hay nada pendiente, cerrá de forma natural y cálida sin forzar una pregunta. Solo preguntá algo si hay un dato concreto que todavía falta.
+- No termines cada mensaje con una pregunta forzada o genérica. Si ya quedó todo claro, cerrá de forma natural y cálida sin forzar una pregunta. Solo preguntá algo si hay un dato concreto que todavía falta.
 
 ESTILO: Amigable, directo, profesional. Español argentino informal (vos, te). Máximo 3-4 líneas por respuesta. Texto plano, sin asteriscos ni markdown.`
 
