@@ -330,6 +330,7 @@ model Visita {
   nombreContacto  String
   numeroContacto  String
   fechaPropuesta  String       // texto libre: lo que dijo el lead ("sábado a la tarde")
+  fechaSolicitada DateTime?    // slot exacto que eligió el lead (cuando el agente ofreció opciones)
   fechaConfirmada DateTime?
   estado          EstadoVisita @default(PENDIENTE_CONFIRMACION)
   notas           String?
@@ -339,4 +340,11 @@ model Visita {
   persona         Persona?     @relation(fields: [personaId], references: [id])
   createdAt       DateTime     @default(now())
   updatedAt       DateTime     @updatedAt
+}
+
+model TurnoBloqueado {
+  id        String   @id @default(cuid())
+  fecha     DateTime // UTC — corresponde a un slot exacto del día en AR
+  motivo    String?
+  createdAt DateTime @default(now())
 }

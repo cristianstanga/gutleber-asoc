@@ -2,6 +2,7 @@ import Anthropic from '@anthropic-ai/sdk'
 import { prisma, logger } from '../index'
 import { sendText, sendImageUrl } from './whatsapp-meta'
 import { EtapaConversacion, EstadoVisita } from '@prisma/client'
+import { turnosDisponibles, proximosDiasHabiles, labelDia, formatearHoras } from './disponibilidad'
 import { CLAVES_CONFIG } from '../routes/config'
 
 const DEFAULT_REQUISITOS =
@@ -85,13 +86,14 @@ const TOOLS: Anthropic.Tool[] = [
   },
   {
     name: 'registrar_visita',
-    description: 'Registra un pedido de visita a una propiedad para que un asesor lo confirme. Usala cuando el interesado ya dio su nombre y un día/horario tentativo para visitar.',
+    description: 'Registra un pedido de visita a una propiedad. Usala cuando el interesado eligió un slot del listado de disponibilidad y dio su nombre.',
     input_schema: {
       type: 'object',
       properties: {
         direccion: { type: 'string', description: 'Dirección de la propiedad a visitar' },
         nombre: { type: 'string', description: 'Nombre del interesado' },
-        diaHorario: { type: 'string', description: 'Día y horario tentativo tal como lo dijo el interesado, ej: "sábado por la tarde"' },
+        diaHorario: { type: 'string', description: 'Descripción del turno elegido, ej: "jueves 19/6 a las 14:00"' },
+        slotISO: { type: 'string', description: 'ISO 8601 del slot exacto elegido por el interesado, ej: "2026-06-19T14:00:00.000Z". Siempre completar cuando se eligió un slot del listado.' },
       },
       required: ['direccion', 'nombre', 'diaHorario'],
     },
@@ -154,6 +156,9 @@ async function ejecutarHerramienta(
     const direccionBuscada = String(input.direccion || '').toLowerCase()
     const prop = propiedades.find(p => p.direccion.toLowerCase().includes(direccionBuscada))
 
+    const slotISO = input.slotISO ? String(input.slotISO) : null
+    const fechaSolicitada = slotISO ? new Date(slotISO) : null
+
     await prisma.visita.create({
       data: {
         propiedadId: prop?.id,
@@ -162,6 +167,7 @@ async function ejecutarHerramienta(
         nombreContacto: String(input.nombre || ''),
         numeroContacto: numeroDestino,
         fechaPropuesta: String(input.diaHorario || ''),
+        ...(fechaSolicitada ? { fechaSolicitada } : {}),
       },
     })
 
@@ -238,25 +244,18 @@ ${requisitos}` : ''
       hour: '2-digit', minute: '2-digit', timeZone: 'America/Argentina/Buenos_Aires',
     })
 
-    // Visitas ya confirmadas en los próximos 7 días
-    const enSieteDias = new Date(ahora.getTime() + 7 * 24 * 60 * 60 * 1000)
-    const visitasConfirmadas = await prisma.visita.findMany({
-      where: {
-        estado: EstadoVisita.CONFIRMADA,
-        fechaConfirmada: { gte: ahora, lte: enSieteDias },
-      },
-      include: { propiedad: { select: { direccion: true } } },
-      orderBy: { fechaConfirmada: 'asc' },
-    })
-
-    const turnosOcupados = visitasConfirmadas.length > 0
-      ? visitasConfirmadas.map(v => {
-          const f = new Date(v.fechaConfirmada!)
-          const dia = f.toLocaleDateString('es-AR', { weekday: 'long', day: '2-digit', month: 'long', timeZone: 'America/Argentina/Buenos_Aires' })
-          const hora = f.toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit', timeZone: 'America/Argentina/Buenos_Aires' })
-          return `• ${dia} a las ${hora} (${v.propiedad?.direccion ?? 'propiedad'})`
-        }).join('\n')
-      : 'Sin turnos ocupados en los próximos 7 días.'
+    // Disponibilidad real de los próximos 3 días hábiles
+    const diasHabiles = proximosDiasHabiles(3)
+    const disponibilidadDias = await Promise.all(
+      diasHabiles.map(async fecha => {
+        const slots = await turnosDisponibles(fecha)
+        return { fecha, label: labelDia(fecha), slots }
+      })
+    )
+    const disponibilidadTexto = disponibilidadDias.map(({ label, slots }) => {
+      if (slots.length === 0) return `• ${label}: sin disponibilidad`
+      return `• ${label}: ${formatearHoras(slots)} (slots ISO: ${slots.map(s => s.toISOString()).join(', ')})`
+    }).join('\n')
 
     const system = `Sos el agente de ventas virtual de Gutleber & Asoc., inmobiliaria boutique en Posadas, Misiones, Argentina. Atendés consultas 24/7 sobre propiedades en ${operacion}, hablando por WhatsApp.
 
@@ -269,9 +268,8 @@ ${requisitosAlquiler}
 HORARIOS DE ATENCIÓN DE LA INMOBILIARIA:
 ${horarios}
 
-AGENDA DE VISITAS — TURNOS OCUPADOS (próximos 7 días):
-${turnosOcupados}
-Las visitas son de 9:00 a 17:00, turnos de 45 minutos. Si el interesado quiere visitar hoy y son antes de las 16:15, todavía es posible visitar hoy (alcanza un turno de 45 min antes de las 17:00). Si son las ${horaStr} y ya son las 16:15 o más, decile que hoy ya no hay más turnos y ofrecé mañana.
+DISPONIBILIDAD DE VISITAS (próximos 3 días hábiles, turnos de 45 min con corte 12-14hs):
+${disponibilidadTexto}
 
 CÓMO CALIFICAR AL INTERESADO (en orden, sin bombardear con preguntas):
 1. Qué zona o barrio prefiere
@@ -280,7 +278,7 @@ CÓMO CALIFICAR AL INTERESADO (en orden, sin bombardear con preguntas):
 4. Su nombre, para que el asesor pueda contactarlo
 
 CÓMO MANEJAR VISITAS:
-Cuando alguien quiere visitar una propiedad, pedí su nombre y el día/horario que le queda mejor (dentro del rango 9:00-17:00 y evitando los turnos ya ocupados que te listamos arriba). Usá la herramienta registrar_visita con esos datos. Después de registrarla, avisale: "Listo, quedó anotada tu visita. En breve te llega un mensaje de WhatsApp con la confirmación definitiva del horario." No confirmes el horario exacto vos — eso lo hace el asesor.
+Cuando alguien quiere ver una propiedad, mostrá los turnos disponibles de arriba para que elija. Pedí su nombre si todavía no lo tenés. Una vez que elige un turno específico, usá registrar_visita con diaHorario (descripción legible) Y slotISO (el ISO exacto del slot que aparece en la lista de disponibilidad). Luego avisale: "Listo, quedó anotada tu visita para [día y hora que eligió]. En breve te llega un mensaje de WhatsApp con la confirmación definitiva." No confirmes vos — eso lo hace el asesor.
 
 FOTOS:
 Si el interesado pide ver fotos o imágenes de una propiedad, usá la herramienta enviar_fotos con la dirección correspondiente. No digas que vas a mandar las fotos hasta haber usado la herramienta.

@@ -2,6 +2,7 @@ import { Router } from 'express'
 import { prisma } from '../index'
 import { sendText } from '../services/whatsapp-meta'
 import { crearEventoVisita, cancelarEventoVisita } from '../services/google-calendar'
+import { turnosDisponibles, todosLosTurnos, formatearHoras } from '../services/disponibilidad'
 import { EstadoVisita } from '@prisma/client'
 
 const router = Router()
@@ -22,6 +23,49 @@ router.get('/', async (req, res) => {
   res.json(visitas)
 })
 
+// GET /visitas/disponibilidad?fecha=YYYY-MM-DD
+router.get('/disponibilidad', async (req, res) => {
+  const { fecha } = req.query
+  if (!fecha || typeof fecha !== 'string') return res.status(400).json({ error: 'fecha requerida (YYYY-MM-DD)' })
+  const disponibles = await turnosDisponibles(fecha)
+  const todos = todosLosTurnos(fecha)
+  res.json({
+    fecha,
+    todos: todos.map(s => s.toISOString()),
+    disponibles: disponibles.map(s => s.toISOString()),
+  })
+})
+
+// GET /visitas/bloqueados?fecha=YYYY-MM-DD
+router.get('/bloqueados', async (req, res) => {
+  const { fecha } = req.query
+  if (!fecha || typeof fecha !== 'string') return res.status(400).json({ error: 'fecha requerida' })
+  const [y, m, d] = fecha.split('-').map(Number)
+  const inicio = new Date(Date.UTC(y, m - 1, d, 3, 0, 0, 0))
+  const fin    = new Date(Date.UTC(y, m - 1, d, 26, 59, 59, 999))
+  const bloqueados = await prisma.turnoBloqueado.findMany({
+    where: { fecha: { gte: inicio, lte: fin } },
+    orderBy: { fecha: 'asc' },
+  })
+  res.json(bloqueados)
+})
+
+// POST /visitas/bloquear  body: { fecha: ISO, motivo? }
+router.post('/bloquear', async (req, res) => {
+  const { fecha, motivo } = req.body
+  if (!fecha) return res.status(400).json({ error: 'fecha requerida' })
+  const turno = await prisma.turnoBloqueado.create({
+    data: { fecha: new Date(fecha), motivo: motivo || null },
+  })
+  res.json(turno)
+})
+
+// DELETE /visitas/bloquear/:id
+router.delete('/bloquear/:id', async (req, res) => {
+  await prisma.turnoBloqueado.delete({ where: { id: req.params.id } })
+  res.json({ ok: true })
+})
+
 router.patch('/:id/confirmar', async (req, res) => {
   const { fechaConfirmada } = req.body
   if (!fechaConfirmada) return res.status(400).json({ error: 'fechaConfirmada requerida' })
@@ -36,6 +80,7 @@ router.patch('/:id/confirmar', async (req, res) => {
 
   const fechaStr = fechaDate.toLocaleString('es-AR', {
     weekday: 'long', day: '2-digit', month: 'long', hour: '2-digit', minute: '2-digit',
+    timeZone: 'America/Argentina/Buenos_Aires',
   })
 
   const msg =
@@ -51,7 +96,6 @@ router.patch('/:id/confirmar', async (req, res) => {
     // El envío puede fallar por ventana de 24hs — la visita queda confirmada igual
   }
 
-  // Crear evento en Google Calendar (best-effort: si falla, la visita ya está confirmada)
   const googleEventId = await crearEventoVisita({
     id: visita.id,
     nombreContacto: visita.nombreContacto,
@@ -62,10 +106,7 @@ router.patch('/:id/confirmar', async (req, res) => {
   })
 
   if (googleEventId) {
-    await prisma.visita.update({
-      where: { id: visita.id },
-      data: { googleEventId },
-    })
+    await prisma.visita.update({ where: { id: visita.id }, data: { googleEventId } })
   }
 
   res.json({ ...visita, googleEventId })
@@ -77,13 +118,9 @@ router.patch('/:id/cancelar', async (req, res) => {
     data: { estado: EstadoVisita.CANCELADA },
   })
 
-  // Eliminar evento de Google Calendar si existe
   if (visita.googleEventId) {
     await cancelarEventoVisita(visita.googleEventId)
-    await prisma.visita.update({
-      where: { id: visita.id },
-      data: { googleEventId: null },
-    })
+    await prisma.visita.update({ where: { id: visita.id }, data: { googleEventId: null } })
   }
 
   res.json(visita)
