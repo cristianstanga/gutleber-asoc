@@ -229,15 +229,16 @@ export default function FormVinculo({ onClose }: Props) {
                     onChange={(e) => setFechaInicio(e.target.value)} required />
                 </div>
                 <div>
-                  <p className="text-[11px] text-muted mb-1">Duración</p>
-                  <select className="form-select" value={duracionMeses}
-                    onChange={(e) => setDuracionMeses(e.target.value)}>
-                    <option value="6">6 meses</option>
-                    <option value="12">12 meses</option>
-                    <option value="24">24 meses (2 años)</option>
-                    <option value="36">36 meses (3 años)</option>
-                    <option value="48">48 meses (4 años)</option>
-                  </select>
+                  <p className="text-[11px] text-muted mb-1">Duración (meses)</p>
+                  <input
+                    type="text"
+                    inputMode="numeric"
+                    pattern="[0-9]*"
+                    className="form-input"
+                    value={duracionMeses}
+                    onChange={e => setDuracionMeses(e.target.value.replace(/[^0-9]/g, ''))}
+                    placeholder="36"
+                  />
                 </div>
               </div>
               {fechaFinCalculada && (
