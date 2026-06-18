@@ -40,7 +40,7 @@ interface ContratoState {
   fechaInicio: string
   precioMensual: string
   indice: 'IPC' | 'ICL'
-  periodoAjuste: string  // número de meses, ej: "3", "4", "6", "12"
+  periodoAjuste: string
   incluirSellado: boolean
   incluirSeguro: boolean
   fechaFirma: string
@@ -108,20 +108,21 @@ function formatPeso(v: string) {
 }
 
 const NUMS_ES: Record<number, string> = {
-  1: 'UNO', 2: 'DOS', 3: 'TRES', 4: 'CUATRO', 5: 'CINCO', 6: 'SEIS',
-  7: 'SIETE', 8: 'OCHO', 9: 'NUEVE', 10: 'DIEZ', 11: 'ONCE', 12: 'DOCE',
+  1:'UNO', 2:'DOS', 3:'TRES', 4:'CUATRO', 5:'CINCO', 6:'SEIS',
+  7:'SIETE', 8:'OCHO', 9:'NUEVE', 10:'DIEZ', 11:'ONCE', 12:'DOCE',
+  13:'TRECE', 14:'CATORCE', 15:'QUINCE', 16:'DIECISÉIS', 17:'DIECISIETE',
+  18:'DIECIOCHO', 19:'DIECINUEVE', 20:'VEINTE', 24:'VEINTICUATRO',
 }
-function periodoMesesTexto(meses: number): string {
-  const palabras = NUMS_ES[meses]
-  return palabras ? `${palabras} (${meses})` : String(meses)
+function periodoMesesTexto(n: number): string {
+  return NUMS_ES[n] ? `${NUMS_ES[n]} (${n})` : String(n)
 }
-function periodoLabel(meses: number): string {
-  const m: Record<number, string> = { 3: 'trimestral', 4: 'cuatrimestral', 6: 'semestral', 12: 'anual' }
-  return m[meses] ?? `de ${meses} meses`
+function periodoLabel(n: number): string {
+  const m: Record<number,string> = {3:'trimestral',4:'cuatrimestral',6:'semestral',12:'anual'}
+  return m[n] ?? `de ${n} meses`
 }
-function periodoAdv(meses: number): string {
-  const m: Record<number, string> = { 3: 'trimestralmente', 4: 'cuatrimestralmente', 6: 'semestralmente', 12: 'anualmente' }
-  return m[meses] ?? `cada ${meses} meses`
+function periodoAdv(n: number): string {
+  const m: Record<number,string> = {3:'trimestralmente',4:'cuatrimestralmente',6:'semestralmente',12:'anualmente'}
+  return m[n] ?? `cada ${n} meses`
 }
 
 const ARTICULOS = ['El Sr.', 'La Sra.', 'La empresa']
@@ -215,7 +216,7 @@ function buildHTML(s: ContratoState): string {
 
 <p><b>SEGUNDA. PLAZO:</b> El plazo de duración del presente contrato se establece por el término de ${B(s.duracion, '__')} meses, contados a partir del día ${fechaLarga(s.fechaInicio)}. El plazo contractual fenecerá el día ${fechaFin}, obligándose la parte LOCATARIA a restituir el inmueble locado en el mismo estado en que se lo recibe, libre de terceros ocupantes y de cosas.</p>
 
-<p><b>TERCERA. PRECIO:</b> Las partes convienen un canon locativo de <b>${formatPeso(s.precioMensual)}</b> mensuales para los primeros ${periodoMesesTexto(parseInt(s.periodoAjuste) || 4)} meses de locación. <b>Ajuste ${periodoLabel(parseInt(s.periodoAjuste) || 4)}:</b> El canon locativo mensual se ajustará ${periodoAdv(parseInt(s.periodoAjuste) || 4)} conforme al Art. 1199 del Código Civil y Comercial de la Nación, modificado por el Art. 257 del DNU N° 70/2023, utilizando el índice <b>${s.indice}</b> (${s.indice === 'IPC' ? 'Índice de Precios al Consumidor' : 'Índice para Contratos de Locación'}). Para ello la parte LOCADORA realizará el cálculo indexatorio con una anticipación no menor a DIEZ (10) días al vencimiento de cada período ${periodoLabel(parseInt(s.periodoAjuste) || 4)} del contrato. El nuevo valor se le informará a la parte LOCATARIA por los medios electrónicos que el mismo constituye en este acto, al menos diez (10) días antes que venza el pago del primer mes de cada nuevo período.</p>
+<p><b>TERCERA. PRECIO:</b> Las partes convienen un canon locativo de <b>${formatPeso(s.precioMensual)}</b> mensuales para los primeros ${periodoMesesTexto(parseInt(s.periodoAjuste)||4)} meses de locación. <b>Ajuste ${periodoLabel(parseInt(s.periodoAjuste)||4)}:</b> El canon locativo mensual se ajustará ${periodoAdv(parseInt(s.periodoAjuste)||4)} conforme al Art. 1199 del Código Civil y Comercial de la Nación, modificado por el Art. 257 del DNU N° 70/2023, utilizando el índice <b>${s.indice}</b> (${s.indice === 'IPC' ? 'Índice de Precios al Consumidor' : 'Índice para Contratos de Locación'}). Para ello la parte LOCADORA realizará el cálculo indexatorio con una anticipación no menor a DIEZ (10) días al vencimiento de cada período ${periodoLabel(parseInt(s.periodoAjuste)||4)} del contrato. El nuevo valor se le informará a la parte LOCATARIA por los medios electrónicos que el mismo constituye en este acto, al menos diez (10) días antes que venza el pago del primer mes de cada nuevo período.</p>
 
 <p><b>CUARTA. CLÁUSULA ESPECIAL:</b> Las PARTES acuerdan que en caso de derogarse por el Congreso el DNU 70/2023 o bien si se dictase una nueva ley que cambie las disposiciones del presente, especialmente en lo referido a: Plazo, Precio, Moneda, Índice de ajuste, Períodos de Ajustes, Garantía y/o Resolución del Contrato, las PARTES de común acuerdo readecuarán las condiciones del presente a la nueva normativa vigente. En ningún caso las PARTES podrán ejercer unilateralmente ningún tipo de modificación retroactiva de las condiciones pactadas, ni rescindir el contrato como consecuencia de un cambio normativo.</p>
 
@@ -672,7 +673,6 @@ export default function ContratoGenerador() {
                 <input
                   type="number"
                   min={1}
-                  max={24}
                   className="form-input w-24 text-sm"
                   value={form.periodoAjuste}
                   onChange={e => set('periodoAjuste')(e.target.value)}
