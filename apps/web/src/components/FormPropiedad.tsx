@@ -163,6 +163,7 @@ export default function FormPropiedad({ propiedad, onClose }: Props) {
   const [iaLoading, setIaLoading] = useState(false)
   const [iaError, setIaError] = useState('')
   const [iaResult, setIaResult] = useState<{ instagram: string; whatsapp: string; descripcion: string } | null>(null)
+  const [generandoDesc, setGenerandoDesc] = useState(false)
   const [caracts, setCaracts] = useState<Set<string>>(new Set())
   const [saving, setSaving] = useState(false)
   const [saveError, setSaveError] = useState('')
@@ -288,6 +289,24 @@ export default function FormPropiedad({ propiedad, onClose }: Props) {
     await api.delete(`/propiedades/${savedId}/videos/${id}`)
     setVideos(prev => prev.filter(v => v.id !== id))
     qc.invalidateQueries({ queryKey: ['propiedades'] })
+  }
+
+  // ── Generar descripción rápida (botón inline en Phase 1) ─────────────────
+  async function generarDescripcionRapida() {
+    setGenerandoDesc(true)
+    try {
+      const r = await api.post('/ia/generar-descripcion', {
+        tipo: form.tipo, direccion: form.direccion, barrio: form.barrio,
+        superficie: form.superficie || undefined, dormitorios: form.dormitorios || undefined,
+        banos: form.banos || undefined, cochera: form.cochera,
+        piso: form.piso || undefined, antiguedad: form.antiguedad || undefined,
+        enAlquiler: form.enAlquiler, enVenta: form.enVenta,
+        alquilerBase: form.alquilerBase || undefined, valorVenta: form.valorVenta || undefined,
+        caracteristicas: [],
+      })
+      if (r.data.descripcion) set('descripcion', r.data.descripcion)
+    } catch { /* silent — el usuario puede reintentar */ }
+    finally { setGenerandoDesc(false) }
   }
 
   // ── Generate AI description ───────────────────────────────────────────────
@@ -749,11 +768,23 @@ export default function FormPropiedad({ propiedad, onClose }: Props) {
                 )}
               </div>
 
-              <Field label="Descripción pública">
+              <div>
+                <div className="flex items-center justify-between mb-1">
+                  <label className="text-xs font-semibold text-white/60 uppercase tracking-wider">Descripción pública</label>
+                  <button
+                    type="button"
+                    onClick={generarDescripcionRapida}
+                    disabled={generandoDesc || !form.direccion}
+                    className="flex items-center gap-1 text-[11px] font-semibold text-arena hover:text-white transition-colors disabled:opacity-40"
+                  >
+                    {generandoDesc ? <Loader2 size={11} className="animate-spin" /> : <Sparkles size={11} />}
+                    {generandoDesc ? 'Generando...' : 'Generar con IA'}
+                  </button>
+                </div>
                 <textarea className={INPUT + " resize-none"} rows={5} value={form.descripcion}
                   onChange={e => set('descripcion', e.target.value)}
                   placeholder="Se usa al publicar en redes sociales y en el bot de WhatsApp..." />
-              </Field>
+              </div>
 
               <Field label="Notas internas">
                 <textarea className={INPUT + " resize-none"} rows={2} value={form.notas}
