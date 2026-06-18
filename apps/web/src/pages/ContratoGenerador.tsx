@@ -671,11 +671,15 @@ export default function ContratoGenerador() {
               <Label>Período de ajuste (meses)</Label>
               <div className="mt-1 flex items-center gap-3">
                 <input
-                  type="number"
-                  min={1}
+                  type="text"
+                  inputMode="numeric"
+                  pattern="[0-9]*"
                   className="form-input w-24 text-sm"
                   value={form.periodoAjuste}
-                  onChange={e => set('periodoAjuste')(e.target.value)}
+                  onChange={e => {
+                    const v = e.target.value.replace(/[^0-9]/g, '')
+                    set('periodoAjuste')(v)
+                  }}
                   placeholder="4"
                 />
                 <span className="text-sm text-muted">
