@@ -1,6 +1,7 @@
 import { Router } from 'express'
 import { prisma } from '../index'
 import { sendText } from '../services/whatsapp-meta'
+import { authMiddleware, requireAdmin, AuthRequest } from '../middleware/auth'
 
 const router = Router()
 
@@ -106,8 +107,8 @@ router.patch('/:id', async (req, res) => {
   res.json(conv)
 })
 
-// Eliminar conversación (y todos sus mensajes por cascade)
-router.delete('/:id', async (req, res) => {
+// Eliminar conversación (y todos sus mensajes por cascade) — solo ADMIN
+router.delete('/:id', authMiddleware, requireAdmin, async (req: AuthRequest, res) => {
   try {
     // Primero borrar InboxItems (no hay cascade automático en Prisma sin onDelete)
     await prisma.inboxItem.deleteMany({ where: { conversacionId: req.params.id } })

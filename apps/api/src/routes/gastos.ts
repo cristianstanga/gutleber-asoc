@@ -1,5 +1,6 @@
 import { Router } from 'express'
 import { prisma } from '../index'
+import { authMiddleware, requireAdmin, AuthRequest } from '../middleware/auth'
 
 const router = Router()
 
@@ -62,8 +63,8 @@ router.patch('/:id', async (req, res) => {
   }
 })
 
-// Anular gasto
-router.delete('/:id', async (req, res) => {
+// Anular gasto — solo ADMIN
+router.delete('/:id', authMiddleware, requireAdmin, async (req: AuthRequest, res) => {
   const gasto = await prisma.gasto.update({
     where: { id: req.params.id },
     data: { estado: 'ANULADO' },
