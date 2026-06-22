@@ -1,5 +1,5 @@
 import { NavLink } from 'react-router-dom'
-import { LayoutDashboard, Building2, Users, FileText, CreditCard, TrendingUp, MessageSquare, Smartphone, LogOut, Sparkles, FilePlus2, ShieldCheck, Bot, CalendarCheck, LucideIcon } from 'lucide-react'
+import { LayoutDashboard, Building2, Users, FileText, CreditCard, TrendingUp, MessageSquare, Smartphone, LogOut, Sparkles, FilePlus2, ShieldCheck, Bot, CalendarCheck, X, LucideIcon } from 'lucide-react'
 import { useAuthStore } from '../store/auth'
 import { useQuery } from '@tanstack/react-query'
 import { api } from '../lib/api'
@@ -33,7 +33,7 @@ const navInquilino: NavItem[] = [
   { to: '/mi-contrato', label: 'Mi contrato', Icon: FileText },
 ]
 
-export default function Sidebar() {
+export default function Sidebar({ onClose }: { onClose?: () => void } = {}) {
   const { usuario, logout } = useAuthStore()
   const rol = usuario?.rol
 
@@ -66,10 +66,17 @@ export default function Sidebar() {
   const extraItems = rol === 'ADMIN' ? navAdminExtra : []
 
   return (
-    <aside className="w-56 min-h-screen bg-carbon flex flex-col">
-      <div className="px-4 py-5 border-b border-white/10">
-        <img src="/emblema.svg" alt="Gutleber & Asoc." className="w-10 h-auto mb-2" />
-        <p className="text-[9px] text-piedra tracking-[0.2em]">GESTIÓN · INVERSIÓN · PATRIMONIO</p>
+    <aside className="w-64 md:w-56 h-full min-h-screen bg-carbon flex flex-col">
+      <div className="px-4 py-5 border-b border-white/10 flex items-start justify-between">
+        <div>
+          <img src="/emblema.svg" alt="Gutleber & Asoc." className="w-10 h-auto mb-2" />
+          <p className="text-[9px] text-piedra tracking-[0.2em]">GESTIÓN · INVERSIÓN · PATRIMONIO</p>
+        </div>
+        {onClose && (
+          <button onClick={onClose} className="text-arena hover:text-white mt-1 p-1 rounded transition-colors md:hidden">
+            <X size={16} />
+          </button>
+        )}
       </div>
 
       <nav className="flex-1 px-3 py-4 space-y-0.5">
@@ -77,6 +84,7 @@ export default function Sidebar() {
           <NavLink
             key={to}
             to={to}
+            onClick={onClose}
             className={({ isActive }) =>
               `flex items-center gap-3 px-3 py-2.5 rounded text-sm transition-colors ${
                 isActive ? 'bg-piedra text-white' : 'text-arena hover:bg-white/10 hover:text-white'
@@ -100,6 +108,7 @@ export default function Sidebar() {
               <NavLink
                 key={to}
                 to={to}
+                onClick={onClose}
                 className={({ isActive }) =>
                   `flex items-center gap-3 px-3 py-2.5 rounded text-sm transition-colors ${
                     isActive ? 'bg-piedra text-white' : 'text-arena hover:bg-white/10 hover:text-white'
