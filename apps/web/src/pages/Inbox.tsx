@@ -197,9 +197,11 @@ export default function Inbox() {
     <div className="flex h-[calc(100dvh-3rem)] md:h-screen overflow-hidden bg-crema">
 
       {/* ── Panel izquierdo: lista de conversaciones ─────────────────────── */}
-      <div className={`bg-white border-r border-arena flex flex-col shrink-0
-        w-full md:w-72
-        ${convSeleccionada ? 'hidden md:flex' : 'flex'}`}>
+      <div className={`bg-white border-r border-arena shrink-0 flex-col
+        ${convSeleccionada
+          ? 'hidden md:flex md:w-72'
+          : 'flex w-full md:w-72'
+        }`}>
         {/* Header */}
         <div className="px-4 py-4 border-b border-crema">
           <h1 className="font-display text-lg text-carbon">WhatsApp CRM</h1>
