@@ -194,10 +194,12 @@ export default function Inbox() {
   const conv = convDetalle
 
   return (
-    <div className="flex h-screen overflow-hidden bg-crema">
+    <div className="flex h-[calc(100dvh-3rem)] md:h-screen overflow-hidden bg-crema">
 
       {/* ── Panel izquierdo: lista de conversaciones ─────────────────────── */}
-      <div className="w-72 bg-white border-r border-arena flex flex-col shrink-0">
+      <div className={`bg-white border-r border-arena flex flex-col shrink-0
+        w-full md:w-72
+        ${convSeleccionada ? 'hidden md:flex' : 'flex'}`}>
         {/* Header */}
         <div className="px-4 py-4 border-b border-crema">
           <h1 className="font-display text-lg text-carbon">WhatsApp CRM</h1>
@@ -296,10 +298,17 @@ export default function Inbox() {
 
       {/* ── Panel central: chat ───────────────────────────────────────────── */}
       {conv ? (
-        <div className="flex-1 flex flex-col min-w-0">
+        <div className="flex-1 flex flex-col min-w-0 w-full md:w-auto">
           {/* Header del chat */}
-          <div className="bg-white border-b border-arena px-5 py-3 flex items-center justify-between">
+          <div className="bg-white border-b border-arena px-3 md:px-5 py-3 flex items-center justify-between">
             <div className="flex items-center gap-3">
+              {/* Botón volver — solo mobile */}
+              <button
+                className="md:hidden text-arena hover:text-carbon p-1 -ml-1"
+                onClick={() => setConvSeleccionada(null)}
+              >
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M15 18l-6-6 6-6"/></svg>
+              </button>
               {/* Avatar con foto WA */}
               <div className="w-10 h-10 rounded-full overflow-hidden bg-crema border border-arena flex items-center justify-center shrink-0">
                 {conv.fotoPerfilUrl ? (
@@ -423,7 +432,7 @@ export default function Inbox() {
           </div>
         </div>
       ) : (
-        <div className="flex-1 flex items-center justify-center">
+        <div className="hidden md:flex flex-1 items-center justify-center">
           <div className="text-center">
             <MessageSquare size={48} className="text-arena mx-auto mb-4" />
             <p className="font-display text-xl text-carbon mb-1">WhatsApp CRM</p>
