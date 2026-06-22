@@ -29,7 +29,8 @@ export default function MobileHeader({ onMenuClick }: { onMenuClick: () => void 
   })
 
   return (
-    <header className="bg-carbon flex items-center px-3 h-12 gap-2 sticky top-0 z-30">
+    <header className="bg-carbon sticky top-0 z-30" style={{ paddingTop: 'env(safe-area-inset-top)' }}>
+      <div className="flex items-center px-3 h-12 gap-2">
       <button
         onClick={onMenuClick}
         className="text-arena hover:text-white p-1.5 rounded transition-colors"
@@ -64,6 +65,7 @@ export default function MobileHeader({ onMenuClick }: { onMenuClick: () => void 
           </NavLink>
         </>
       )}
+      </div>
     </header>
   )
 }

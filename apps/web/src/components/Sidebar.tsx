@@ -66,7 +66,7 @@ export default function Sidebar({ onClose }: { onClose?: () => void } = {}) {
   const extraItems = rol === 'ADMIN' ? navAdminExtra : []
 
   return (
-    <aside className="w-64 md:w-56 h-full min-h-screen bg-carbon flex flex-col">
+    <aside className="w-64 md:w-56 h-full min-h-screen bg-carbon flex flex-col" style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}>
       <div className="px-4 py-5 border-b border-white/10 flex items-start justify-between">
         <div>
           <img src="/emblema.svg" alt="Gutleber & Asoc." className="w-10 h-auto mb-2" />
