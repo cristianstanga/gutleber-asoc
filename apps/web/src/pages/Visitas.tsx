@@ -165,42 +165,41 @@ export default function Visitas() {
   const dias = proximosDias(5)
 
   return (
-    <div className="p-8">
+    <div className="p-4 md:p-8">
       {toast && (
         <div className="fixed top-4 right-4 bg-carbon text-white px-4 py-2 rounded shadow-lg text-sm z-50">{toast}</div>
       )}
 
-      <div className="flex items-center justify-between mb-6">
-        <div>
-          <h1 className="font-display text-2xl text-carbon flex items-center gap-2">
-            <CalendarCheck size={22} className="text-piedra" /> Visitas
-          </h1>
-          <p className="text-piedra text-sm mt-1">Pedidos de visita captados por el agente IA y por el equipo.</p>
+      <div className="mb-5">
+        <h1 className="font-display text-xl md:text-2xl text-carbon flex items-center gap-2">
+          <CalendarCheck size={20} className="text-piedra" /> Visitas
+        </h1>
+        <p className="text-piedra text-xs md:text-sm mt-1">Pedidos de visita captados por el agente IA y por el equipo.</p>
+      </div>
+
+      <div className="flex flex-col sm:flex-row sm:items-center gap-2 mb-5">
+        <div className="flex rounded-lg overflow-hidden border border-gray-200 self-start">
+          <button
+            onClick={() => setTabActiva('visitas')}
+            className={`px-4 py-1.5 text-sm font-medium transition-colors ${tabActiva === 'visitas' ? 'bg-carbon text-white' : 'bg-white text-piedra hover:bg-gray-50'}`}
+          >
+            Visitas
+          </button>
+          <button
+            onClick={() => setTabActiva('disponibilidad')}
+            className={`px-4 py-1.5 text-sm font-medium transition-colors ${tabActiva === 'disponibilidad' ? 'bg-carbon text-white' : 'bg-white text-piedra hover:bg-gray-50'}`}
+          >
+            Disponibilidad
+          </button>
         </div>
-        <div className="flex items-center gap-3">
-          <div className="flex rounded-lg overflow-hidden border border-gray-200">
-            <button
-              onClick={() => setTabActiva('visitas')}
-              className={`px-4 py-1.5 text-sm font-medium transition-colors ${tabActiva === 'visitas' ? 'bg-carbon text-white' : 'bg-white text-piedra hover:bg-gray-50'}`}
-            >
-              Visitas
-            </button>
-            <button
-              onClick={() => setTabActiva('disponibilidad')}
-              className={`px-4 py-1.5 text-sm font-medium transition-colors ${tabActiva === 'disponibilidad' ? 'bg-carbon text-white' : 'bg-white text-piedra hover:bg-gray-50'}`}
-            >
-              Disponibilidad
-            </button>
-          </div>
-          {tabActiva === 'visitas' && (
-            <select className="form-select text-sm w-56" value={filtro} onChange={e => setFiltro(e.target.value)}>
-              <option value="">Todos los estados</option>
-              {Object.entries(ESTADO_LABEL).map(([val, label]) => (
-                <option key={val} value={val}>{label}</option>
-              ))}
-            </select>
-          )}
-        </div>
+        {tabActiva === 'visitas' && (
+          <select className="form-select text-sm w-full sm:w-56" value={filtro} onChange={e => setFiltro(e.target.value)}>
+            <option value="">Todos los estados</option>
+            {Object.entries(ESTADO_LABEL).map(([val, label]) => (
+              <option key={val} value={val}>{label}</option>
+            ))}
+          </select>
+        )}
       </div>
 
       {/* ── TAB: VISITAS ── */}
@@ -216,8 +215,8 @@ export default function Visitas() {
 
           <div className="space-y-3">
             {visitas.map(v => (
-              <div key={v.id} className="card p-5">
-                <div className="flex items-start justify-between gap-4">
+              <div key={v.id} className="card p-4 md:p-5">
+                <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-3">
                   <div className="min-w-0">
                     <div className="flex items-center gap-2 mb-1">
                       <p className="font-semibold text-carbon">{v.nombreContacto}</p>
@@ -247,9 +246,9 @@ export default function Visitas() {
                   </div>
 
                   {v.estado === 'PENDIENTE_CONFIRMACION' && (
-                    <div className="flex flex-col gap-2 shrink-0">
+                    <div className="flex flex-col gap-2 md:shrink-0">
                       {confirmando === v.id ? (
-                        <div className="flex flex-col items-end gap-2 min-w-[280px]">
+                        <div className="flex flex-col gap-2 w-full md:min-w-[280px]">
                           <div className="w-full">
                             <p className="text-[11px] text-piedra mb-1.5 font-medium">Elegí el día:</p>
                             <div className="flex flex-wrap gap-1.5">
@@ -306,7 +305,7 @@ export default function Visitas() {
                             </div>
                           )}
 
-                          <div className="flex gap-2 w-full justify-end mt-1">
+                          <div className="flex gap-2 w-full justify-end mt-1 flex-wrap">
                             <button
                               onClick={() => { setConfirmando(null); setFechaConfirm(''); setSlotSeleccionado(null) }}
                               className="text-xs text-piedra hover:text-carbon px-2 py-1"
@@ -325,16 +324,16 @@ export default function Visitas() {
                       ) : (
                         <button
                           onClick={() => abrirConfirmar(v)}
-                          className="flex items-center gap-1.5 text-xs font-semibold text-green-700 bg-green-100 hover:bg-green-200 px-3 py-1.5 rounded-lg transition-colors"
+                          className="flex items-center justify-center gap-1.5 text-xs font-semibold text-green-700 bg-green-100 hover:bg-green-200 px-3 py-2 rounded-lg transition-colors w-full md:w-auto"
                         >
-                          <CheckCircle size={13} /> Confirmar
+                          <CheckCircle size={13} /> Confirmar visita
                         </button>
                       )}
                       <button
                         onClick={() => cancelar.mutate(v.id)}
-                        className="flex items-center gap-1.5 text-xs font-semibold text-red-600 bg-red-100 hover:bg-red-200 px-3 py-1.5 rounded-lg transition-colors"
+                        className="flex items-center justify-center gap-1.5 text-xs font-semibold text-red-600 bg-red-100 hover:bg-red-200 px-3 py-2 rounded-lg transition-colors w-full md:w-auto"
                       >
-                        <XCircle size={13} /> Cancelar
+                        <XCircle size={13} /> Cancelar visita
                       </button>
                     </div>
                   )}
