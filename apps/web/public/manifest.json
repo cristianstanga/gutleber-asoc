@@ -1,0 +1,23 @@
+{
+  "name": "Gutleber & Asoc.",
+  "short_name": "Gutleber",
+  "description": "CRM inmobiliario — Gutleber & Asoc.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#1a1714",
+  "theme_color": "#1a1714",
+  "orientation": "portrait-primary",
+  "icons": [
+    {
+      "src": "/emblema.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/favicon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml"
+    }
+  ]
+}

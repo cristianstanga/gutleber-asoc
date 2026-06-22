@@ -1,8 +1,9 @@
 import Anthropic from '@anthropic-ai/sdk'
 import { prisma, logger } from '../index'
 import { sendText, sendImageUrl } from './whatsapp-meta'
-import { EtapaConversacion, EstadoVisita } from '@prisma/client'
+import { EtapaConversacion } from '@prisma/client'
 import { turnosDisponibles, proximosDiasHabiles, labelDia, formatearHoras } from './disponibilidad'
+import { alertarVisita, alertarRedFlag } from './alertas-operador'
 import { CLAVES_CONFIG } from '../routes/config'
 
 const DEFAULT_REQUISITOS =
@@ -176,6 +177,13 @@ async function ejecutarHerramienta(
       data: { etapa: EtapaConversacion.VISITA_PENDIENTE },
     })
 
+    alertarVisita({
+      nombre: String(input.nombre || ''),
+      direccion: String(input.direccion || ''),
+      diaHorario: String(input.diaHorario || ''),
+      conversacionId,
+    }).catch(() => {})
+
     return 'Visita registrada. Un asesor la va a confirmar a la brevedad.'
   }
 
@@ -234,9 +242,6 @@ REQUISITOS PARA ALQUILAR:
 ${requisitos}` : ''
 
     const ahora = new Date()
-    const ahoraAR = new Date(ahora.toLocaleString('en-US', { timeZone: 'America/Argentina/Buenos_Aires' }))
-    const horaActual = ahoraAR.getHours() + ahoraAR.getMinutes() / 60
-
     const hoyStr = ahora.toLocaleDateString('es-AR', {
       weekday: 'long', day: '2-digit', month: 'long', year: 'numeric', timeZone: 'America/Argentina/Buenos_Aires',
     })
@@ -399,6 +404,27 @@ ESTILO: Amigable, directo, profesional. Español argentino informal (vos, te). M
     })
 
     logger.info(`🤖 Agente IA respondió a ${numeroDestino}`)
+
+    // Detección de red flags en el último mensaje del lead
+    const textoLead = (conv.mensajes[conv.mensajes.length - 1]?.mensaje ?? '').toLowerCase()
+    const RED_FLAGS = [
+      { patron: /quiero hablar con (alguien|una persona|un asesor|ustedes)/i, motivo: 'Pidió hablar con una persona' },
+      { patron: /me comunic[ao] con/i, motivo: 'Pidió contacto directo' },
+      { patron: /\burgente\b|\bnecesito (hoy|ya|ahora)\b/i, motivo: 'Mencionó urgencia' },
+      { patron: /no me (respondieron|respondiste|contestaron)|mucho tiempo esperando/i, motivo: 'Se quejó de demora en respuesta' },
+      { patron: /voy a ir a otra\b|ya consegu[íi]/i, motivo: 'Posible pérdida de lead' },
+    ]
+    for (const { patron, motivo } of RED_FLAGS) {
+      if (patron.test(textoLead)) {
+        alertarRedFlag({
+          nombre: conv.mensajes.find(m => m.tipo === 'ENTRANTE')?.mensaje?.split(' ')[0] ?? '',
+          numero: numeroDestino,
+          motivo,
+          conversacionId,
+        }).catch(() => {})
+        break
+      }
+    }
   } catch (err) {
     logger.error({ err }, '❌ Error en agente IA')
   }
