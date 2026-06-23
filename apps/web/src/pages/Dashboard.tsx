@@ -249,7 +249,7 @@ export default function Dashboard() {
   })
 
   if (isLoading || !data) {
-    return <div className="p-8 text-piedra text-sm animate-pulse">Cargando dashboard...</div>
+    return <div className="p-4 md:p-8 text-piedra text-sm animate-pulse">Cargando dashboard...</div>
   }
 
   const kpis: Kpis = data.kpis
@@ -278,7 +278,7 @@ export default function Dashboard() {
   const totalProblemas = estadosPagos.pendiente + estadosPagos.vencido + estadosPagos.mora
 
   return (
-    <div className="p-8 space-y-8">
+    <div className="p-4 md:p-8 space-y-6 md:space-y-8">
 
       {/* Header + Buscador */}
       <div className="flex flex-col sm:flex-row sm:items-center gap-4">
@@ -534,31 +534,33 @@ export default function Dashboard() {
             <AlertTriangle size={16} className="text-amber-500" /> Alertas de pagos
           </h2>
           <div className="card overflow-hidden">
-            <table className="w-full text-sm">
-              <thead className="bg-crema border-b border-arena">
-                <tr>
-                  <th className="text-left px-4 py-3 text-xs text-piedra uppercase tracking-wide">Inquilino</th>
-                  <th className="text-left px-4 py-3 text-xs text-piedra uppercase tracking-wide hidden md:table-cell">Propiedad</th>
-                  <th className="text-left px-4 py-3 text-xs text-piedra uppercase tracking-wide">Monto</th>
-                  <th className="text-left px-4 py-3 text-xs text-piedra uppercase tracking-wide hidden sm:table-cell">Vencimiento</th>
-                  <th className="text-left px-4 py-3 text-xs text-piedra uppercase tracking-wide">Estado</th>
-                </tr>
-              </thead>
-              <tbody>
-                {data.alertas.map((p: PagoAlerta) => (
-                  <tr key={p.id} className="border-b border-crema last:border-0 hover:bg-crema/50 cursor-pointer"
-                    onClick={() => navigate('/pagos')}>
-                    <td className="px-4 py-3 text-carbon">{p.persona ? `${p.persona.nombre} ${p.persona.apellido}` : '—'}</td>
-                    <td className="px-4 py-3 text-carbon text-xs hidden md:table-cell">{p.propiedad?.direccion || '—'}</td>
-                    <td className="px-4 py-3 text-carbon font-semibold">{formatARS(p.monto)}</td>
-                    <td className="px-4 py-3 text-carbon hidden sm:table-cell">{formatFecha(p.fechaVencimiento)}</td>
-                    <td className="px-4 py-3">
-                      <span className={estadoBadge[p.estado] || 'badge-gray'}>{estadoLabel[p.estado] || p.estado}</span>
-                    </td>
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm min-w-[400px]">
+                <thead className="bg-crema border-b border-arena">
+                  <tr>
+                    <th className="text-left px-4 py-3 text-xs text-piedra uppercase tracking-wide">Inquilino</th>
+                    <th className="text-left px-4 py-3 text-xs text-piedra uppercase tracking-wide hidden md:table-cell">Propiedad</th>
+                    <th className="text-left px-4 py-3 text-xs text-piedra uppercase tracking-wide">Monto</th>
+                    <th className="text-left px-4 py-3 text-xs text-piedra uppercase tracking-wide hidden sm:table-cell">Vencimiento</th>
+                    <th className="text-left px-4 py-3 text-xs text-piedra uppercase tracking-wide">Estado</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
+                </thead>
+                <tbody>
+                  {data.alertas.map((p: PagoAlerta) => (
+                    <tr key={p.id} className="border-b border-crema last:border-0 hover:bg-crema/50 cursor-pointer"
+                      onClick={() => navigate('/pagos')}>
+                      <td className="px-4 py-3 text-carbon">{p.persona ? `${p.persona.nombre} ${p.persona.apellido}` : '—'}</td>
+                      <td className="px-4 py-3 text-carbon text-xs hidden md:table-cell">{p.propiedad?.direccion || '—'}</td>
+                      <td className="px-4 py-3 text-carbon font-semibold">{formatARS(p.monto)}</td>
+                      <td className="px-4 py-3 text-carbon hidden sm:table-cell">{formatFecha(p.fechaVencimiento)}</td>
+                      <td className="px-4 py-3">
+                        <span className={estadoBadge[p.estado] || 'badge-gray'}>{estadoLabel[p.estado] || p.estado}</span>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
           </div>
         </div>
       )}
@@ -570,28 +572,28 @@ export default function Dashboard() {
             <Clock size={16} className="text-piedra" /> Últimos movimientos
           </h2>
           <div className="card overflow-hidden">
-            <table className="w-full text-sm">
-              <thead className="bg-crema border-b border-arena">
-                <tr>
-                  <th className="text-left px-4 py-3 text-xs text-piedra uppercase tracking-wide">Concepto</th>
-                  <th className="text-left px-4 py-3 text-xs text-piedra uppercase tracking-wide">Inquilino</th>
-                  <th className="text-right px-4 py-3 text-xs text-piedra uppercase tracking-wide">Monto</th>
-                  <th className="text-left px-4 py-3 text-xs text-piedra uppercase tracking-wide">Estado</th>
-                </tr>
-              </thead>
-              <tbody>
-                {data.ultimosPagos.map((p: PagoAlerta) => (
-                  <tr key={p.id} className="border-b border-crema last:border-0 hover:bg-crema/50">
-                    <td className="px-4 py-3 text-carbon text-xs">{p.concepto}</td>
-                    <td className="px-4 py-3 text-carbon">{p.persona ? `${p.persona.nombre} ${p.persona.apellido}` : '—'}</td>
-                    <td className="px-4 py-3 text-right font-semibold text-carbon">{formatARS(p.monto)}</td>
-                    <td className="px-4 py-3">
-                      <span className={estadoBadge[p.estado] || 'badge-gray'}>{estadoLabel[p.estado] || p.estado}</span>
-                    </td>
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm min-w-[380px]">
+                <thead className="bg-crema border-b border-arena">
+                  <tr>
+                    <th className="text-left px-4 py-3 text-xs text-piedra uppercase tracking-wide">Inquilino</th>
+                    <th className="text-right px-4 py-3 text-xs text-piedra uppercase tracking-wide">Monto</th>
+                    <th className="text-left px-4 py-3 text-xs text-piedra uppercase tracking-wide">Estado</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
+                </thead>
+                <tbody>
+                  {data.ultimosPagos.map((p: PagoAlerta) => (
+                    <tr key={p.id} className="border-b border-crema last:border-0 hover:bg-crema/50">
+                      <td className="px-4 py-3 text-carbon text-sm">{p.persona ? `${p.persona.nombre} ${p.persona.apellido}` : '—'}</td>
+                      <td className="px-4 py-3 text-right font-semibold text-carbon">{formatARS(p.monto)}</td>
+                      <td className="px-4 py-3">
+                        <span className={estadoBadge[p.estado] || 'badge-gray'}>{estadoLabel[p.estado] || p.estado}</span>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
           </div>
         </div>
       )}

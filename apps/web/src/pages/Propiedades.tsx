@@ -143,8 +143,8 @@ export default function Propiedades() {
 
   // Modal catálogo WA (sincronización completa)
   const ModalCatalogo = modalCatalogo && (
-    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-      <div className="bg-white rounded-xl p-6 w-80 shadow-xl">
+    <div className="fixed inset-0 bg-black/50 flex items-end sm:items-center justify-center z-50 p-4">
+      <div className="bg-white rounded-xl p-6 w-full max-w-sm shadow-xl">
         <h3 className="font-semibold text-carbon mb-3">Sincronizar catálogo WA</h3>
         <p className="text-xs text-piedra mb-4">Enviará una tarjeta por cada propiedad disponible al número indicado.</p>
         <input
@@ -175,8 +175,8 @@ export default function Propiedades() {
 
   // Modal envío WA de propiedad individual
   const ModalPropWA = modalPropWA && (
-    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-      <div className="bg-white rounded-xl p-6 w-80 shadow-xl">
+    <div className="fixed inset-0 bg-black/50 flex items-end sm:items-center justify-center z-50 p-4">
+      <div className="bg-white rounded-xl p-6 w-full max-w-sm shadow-xl">
         <h3 className="font-semibold text-carbon mb-3">Enviar tarjeta por WhatsApp</h3>
         <p className="text-xs text-piedra mb-4">Número destino (sin 0 ni 15, con código de área).</p>
         <input
@@ -209,7 +209,7 @@ export default function Propiedades() {
   if (detalle) {
     const prop = propiedades.find((p) => p.id === detalle.id) || detalle
     return (
-      <div className="p-8">
+      <div className="p-4 md:p-8">
         {ModalCatalogo}
         {ModalPropWA}
         {toast && <div className="fixed top-4 right-4 bg-carbon text-white px-4 py-2 rounded shadow-lg text-sm z-50">{toast}</div>}
@@ -218,9 +218,9 @@ export default function Propiedades() {
           <ChevronLeft size={16} /> Volver a propiedades
         </button>
 
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          {/* Info */}
-          <div className="lg:col-span-2 space-y-4">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 md:gap-6">
+          {/* Acciones rápidas — primero en mobile, derecha en desktop */}
+          <div className="space-y-3 lg:order-last lg:col-start-3 lg:row-start-1">
             <div className="card p-6">
               <div className="flex items-start justify-between mb-4">
                 <div>
@@ -324,8 +324,8 @@ export default function Propiedades() {
             </div>
           </div>
 
-          {/* Sidebar acciones */}
-          <div className="space-y-4">
+          {/* Info — segundo en mobile, ocupa 2 cols en desktop */}
+          <div className="lg:col-span-2 space-y-4">
             <div className="card p-5 space-y-3">
               <h3 className="font-semibold text-carbon text-sm">
                 Tarjetas para compartir
@@ -425,33 +425,34 @@ export default function Propiedades() {
   const disponiblesCount = propiedades.filter(esDisponible).length
 
   return (
-    <div className="p-8">
+    <div className="p-4 md:p-8">
       {ModalCatalogo}
       {ModalPropWA}
       {toast && <div className="fixed top-4 right-4 bg-carbon text-white px-4 py-2 rounded shadow-lg text-sm z-50">{toast}</div>}
 
-      <div className="flex items-center justify-between mb-6">
+      <div className="flex items-start justify-between gap-3 mb-5">
         <div>
-          <h1 className="font-display text-2xl text-carbon">Propiedades</h1>
-          <p className="text-piedra text-sm mt-1">
+          <h1 className="font-display text-xl md:text-2xl text-carbon">Propiedades</h1>
+          <p className="text-piedra text-xs md:text-sm mt-1">
             {propiedades.length} en cartera
             {disponiblesCount > 0 && (
               <span className="ml-2 text-green-600 font-medium">· {disponiblesCount} disponible{disponiblesCount !== 1 ? 's' : ''}</span>
             )}
           </p>
         </div>
-        <div className="flex gap-2">
+        <div className="flex gap-2 shrink-0">
           <button
             onClick={() => setModalCatalogo(true)}
             disabled={sincronizandoCatalogo}
-            className="btn-secondary flex items-center gap-2"
+            className="btn-secondary flex items-center gap-1.5"
             title="Sincronizar catálogo WhatsApp"
           >
-            <RefreshCw size={15} className={sincronizandoCatalogo ? 'animate-spin' : ''} />
-            Catálogo WA
+            <RefreshCw size={14} className={sincronizandoCatalogo ? 'animate-spin' : ''} />
+            <span className="hidden sm:inline">Catálogo</span> WA
           </button>
-          <button onClick={abrirNueva} className="btn-primary flex items-center gap-2">
-            <Building2 size={16} /> Nueva propiedad
+          <button onClick={abrirNueva} className="btn-primary flex items-center gap-1.5">
+            <Building2 size={14} />
+            <span className="hidden sm:inline">Nueva</span> propiedad
           </button>
         </div>
       </div>
