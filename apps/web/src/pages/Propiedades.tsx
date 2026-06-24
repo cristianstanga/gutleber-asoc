@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { Building2, MapPin, Ruler, Tag, Pencil, Trash2, Instagram, Images, ChevronLeft, Sparkles, MessageCircle, RefreshCw, Share2, Search, X } from 'lucide-react'
+import { Building2, MapPin, Ruler, Tag, Pencil, Trash2, Instagram, Images, ChevronLeft, Sparkles, MessageCircle, RefreshCw, Share2, Search, X, ExternalLink } from 'lucide-react'
 import { api, formatARS } from '../lib/api'
 import FormPropiedad from '../components/FormPropiedad'
 import ImageUpload from '../components/ImageUpload'
@@ -451,7 +451,7 @@ export default function Propiedades() {
                 <p className="text-[11px] text-green-600 text-center mt-1">✓ Ya publicada en Instagram</p>
               )}
 
-              <div className="border-t border-crema mt-3 pt-3">
+              <div className="border-t border-crema mt-3 pt-3 space-y-2">
                 <button
                   onClick={() => { setModalCompartir(prop); setBusqConv('') }}
                   disabled={enviandoWA === prop.id}
@@ -460,10 +460,19 @@ export default function Propiedades() {
                   <MessageCircle size={15} />
                   {enviandoWA === prop.id ? 'Enviando...' : 'Enviar tarjeta por WA'}
                 </button>
+                <a
+                  href={`/api/public/propiedad/${prop.id}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="btn-secondary w-full flex items-center justify-center gap-2 text-sm"
+                >
+                  <ExternalLink size={15} />
+                  Ver página pública
+                </a>
                 {esDisponible(prop) ? (
-                  <p className="text-[11px] text-green-600 text-center mt-1">● Disponible en catálogo</p>
+                  <p className="text-[11px] text-green-600 text-center">● Disponible en catálogo</p>
                 ) : (
-                  <p className="text-[11px] text-amber-600 text-center mt-1">● Propiedad ocupada</p>
+                  <p className="text-[11px] text-amber-600 text-center">● Propiedad ocupada</p>
                 )}
               </div>
             </div>
