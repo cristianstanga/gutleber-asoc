@@ -73,6 +73,164 @@ router.get('/tarjeta/:id', async (req, res) => {
   }
 })
 
+// ── Página pública de propiedad para compartir con leads ─────────────────────
+
+router.get('/propiedad/:id', async (req, res) => {
+  const prop = await prisma.propiedad.findUnique({
+    where: { id: req.params.id },
+    include: { imagenes: { orderBy: { orden: 'asc' } } },
+  })
+  if (!prop) return res.status(404).send('Propiedad no encontrada')
+
+  const waNum = process.env.WABA_DISPLAY_NUMBER || ''
+  const waLink = waNum
+    ? `https://wa.me/${waNum}?text=${encodeURIComponent(`Hola! Me interesa la propiedad ${prop.direccion}`)}`
+    : ''
+
+  const tipoLabel: Record<string, string> = {
+    CASA: 'Casa', DEPARTAMENTO: 'Departamento', LOCAL: 'Local', TERRENO: 'Terreno', OFICINA: 'Oficina',
+  }
+
+  const formatPeso = (n: number) => n.toLocaleString('es-AR', { style: 'currency', currency: 'ARS', maximumFractionDigits: 0 })
+
+  const fotos = prop.imagenes.map((img, i) => `
+    <div class="slide" id="s${i}">
+      <img src="${img.url}" alt="Foto ${i + 1}" loading="${i === 0 ? 'eager' : 'lazy'}" />
+    </div>`).join('')
+
+  const dots = prop.imagenes.map((_, i) =>
+    `<div class="dot" id="dot${i}" onclick="goTo(${i})"></div>`
+  ).join('')
+
+  res.setHeader('Content-Type', 'text/html; charset=utf-8')
+  res.send(`<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <meta property="og:title" content="${prop.tipo} · ${prop.direccion}">
+  <meta property="og:description" content="${prop.descripcion || 'Propiedad en Posadas, Misiones'}">
+  ${prop.imagenes[0] ? `<meta property="og:image" content="${prop.imagenes[0].url}">` : ''}
+  <title>${prop.direccion} — Gutleber & Asoc.</title>
+  <style>
+    *,*::before,*::after{margin:0;padding:0;box-sizing:border-box}
+    body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:#f7f4ef;color:#2C2C2A;-webkit-tap-highlight-color:transparent}
+
+    /* Galería */
+    .gallery{position:relative;background:#1a1a1a;width:100%;aspect-ratio:1;overflow:hidden;max-height:100vw}
+    .slides{display:flex;height:100%;overflow-x:auto;scroll-snap-type:x mandatory;scroll-behavior:smooth;-webkit-overflow-scrolling:touch;scrollbar-width:none}
+    .slides::-webkit-scrollbar{display:none}
+    .slide{flex:0 0 100%;scroll-snap-align:start;height:100%}
+    .slide img{width:100%;height:100%;object-fit:cover;display:block}
+    .gallery-empty{display:flex;align-items:center;justify-content:center;height:100%;color:#555;font-size:14px;background:#f0ede8}
+    .counter{position:absolute;top:12px;right:12px;background:rgba(0,0,0,.55);color:#fff;font-size:11px;font-weight:600;padding:3px 9px;border-radius:20px}
+    .dots{display:flex;justify-content:center;gap:5px;padding:10px 0 2px;background:#1a1a1a}
+    .dot{width:6px;height:6px;border-radius:50%;background:rgba(255,255,255,.35);cursor:pointer;transition:background .2s}
+    .dot.active{background:#C4B09A;width:18px;border-radius:4px}
+
+    /* Info */
+    .info{padding:20px 16px 0}
+    .tipo{font-size:11px;color:#8C7B6B;text-transform:uppercase;letter-spacing:.08em;font-weight:600;margin-bottom:4px}
+    .dir{font-size:20px;font-weight:700;color:#2C2C2A;line-height:1.25;margin-bottom:12px}
+    .precio-row{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:14px}
+    .precio{background:#2C2C2A;color:#C4B09A;font-size:15px;font-weight:700;padding:6px 14px;border-radius:8px}
+    .precio-usd{background:#1e3a2e;color:#4ade80;font-size:15px;font-weight:700;padding:6px 14px;border-radius:8px}
+    .attrs{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:16px}
+    .attr{background:#fff;border:1px solid #e8e3dc;font-size:12px;color:#5a5046;padding:5px 11px;border-radius:20px;font-weight:500}
+    .desc{font-size:13px;color:#5a5046;line-height:1.6;padding:14px 16px;background:#fff;border-radius:12px;margin:0 16px 16px}
+    .section-label{font-size:10px;text-transform:uppercase;letter-spacing:.08em;color:#8C7B6B;font-weight:700;margin-bottom:6px;padding:0 16px}
+
+    /* CTA */
+    .cta{position:sticky;bottom:0;left:0;right:0;padding:12px 16px;padding-bottom:calc(12px + env(safe-area-inset-bottom));background:#f7f4ef;border-top:1px solid #e8e3dc}
+    .btn-wa{display:flex;align-items:center;justify-content:center;gap:10px;background:#25D366;color:#fff;font-size:16px;font-weight:700;padding:14px;border-radius:14px;text-decoration:none;border:none;width:100%;cursor:pointer}
+    .btn-wa svg{width:22px;height:22px;fill:#fff;flex-shrink:0}
+
+    /* Footer */
+    .footer{padding:12px 16px 4px;text-align:center;font-size:11px;color:#a09080}
+    .spacer{height:80px}
+  </style>
+</head>
+<body>
+
+  <!-- Galería de fotos -->
+  ${prop.imagenes.length > 0 ? `
+  <div class="gallery">
+    <div class="slides" id="slides" onscroll="onScroll()">
+      ${fotos}
+    </div>
+    ${prop.imagenes.length > 1 ? `<div class="counter" id="counter">1 / ${prop.imagenes.length}</div>` : ''}
+  </div>
+  ${prop.imagenes.length > 1 ? `<div class="dots" id="dots">${dots}</div>` : ''}
+  ` : `<div class="gallery"><div class="gallery-empty">Sin fotos</div></div>`}
+
+  <!-- Info -->
+  <div class="info">
+    <div class="tipo">${tipoLabel[prop.tipo] || prop.tipo}</div>
+    <div class="dir">${prop.direccion}${prop.barrio ? ` — ${prop.barrio}` : ''}</div>
+    <div class="precio-row">
+      ${prop.enAlquiler && prop.alquilerBase ? `<div class="precio">${formatPeso(prop.alquilerBase)}/mes</div>` : ''}
+      ${prop.enVenta && prop.valorVenta ? `<div class="precio-usd">USD ${prop.valorVenta.toLocaleString('es-AR')}</div>` : ''}
+    </div>
+    <div class="attrs">
+      ${prop.superficie ? `<div class="attr">📐 ${prop.superficie} m²</div>` : ''}
+      ${prop.dormitorios ? `<div class="attr">🛏 ${prop.dormitorios} dorm.</div>` : ''}
+      ${prop.banos ? `<div class="attr">🚿 ${prop.banos} baño${prop.banos > 1 ? 's' : ''}</div>` : ''}
+      ${prop.cochera ? `<div class="attr">🚗 Cochera</div>` : ''}
+      ${prop.piso ? `<div class="attr">Piso ${prop.piso}</div>` : ''}
+      ${prop.antiguedad ? `<div class="attr">${prop.antiguedad} años</div>` : ''}
+    </div>
+  </div>
+
+  ${prop.descripcion ? `
+  <div class="section-label">Descripción</div>
+  <div class="desc">${prop.descripcion}</div>
+  ` : ''}
+
+  <div class="footer">Gutleber & Asoc. · Posadas, Misiones</div>
+  <div class="spacer"></div>
+
+  <!-- CTA fijo -->
+  ${waLink ? `
+  <div class="cta">
+    <a href="${waLink}" class="btn-wa">
+      <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>
+      Consultar por WhatsApp
+    </a>
+  </div>
+  ` : ''}
+
+  <script>
+    var current = 0;
+    var total = ${prop.imagenes.length};
+
+    function goTo(i) {
+      var slides = document.getElementById('slides');
+      if (!slides) return;
+      slides.scrollTo({ left: slides.offsetWidth * i, behavior: 'smooth' });
+    }
+
+    function updateDots(i) {
+      document.querySelectorAll('.dot').forEach(function(d, j) {
+        d.classList.toggle('active', j === i);
+      });
+      var counter = document.getElementById('counter');
+      if (counter) counter.textContent = (i + 1) + ' / ' + total;
+    }
+
+    function onScroll() {
+      var slides = document.getElementById('slides');
+      if (!slides) return;
+      var i = Math.round(slides.scrollLeft / slides.offsetWidth);
+      if (i !== current) { current = i; updateDots(i); }
+    }
+
+    // Inicializar primer dot
+    updateDots(0);
+  </script>
+</body>
+</html>`)
+})
+
 // ── Preview HTML — carrusel de todas las imágenes ─────────────────────────────
 
 router.get('/tarjeta/:id/preview', async (req, res) => {

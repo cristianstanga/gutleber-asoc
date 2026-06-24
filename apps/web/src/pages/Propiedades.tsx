@@ -119,6 +119,7 @@ export default function Propiedades() {
   })
 
   function compartirWA(p: Propiedad) {
+    const urlPublica = `${window.location.origin}/api/public/propiedad/${p.id}`
     const lineas = [
       `🏠 *${p.direccion}${p.barrio ? ` — ${p.barrio}` : ''}*`,
       `${tipoLabel[p.tipo] || p.tipo}`,
@@ -133,7 +134,7 @@ export default function Propiedades() {
       p.cochera ? 'cochera' : '',
     ].filter(Boolean)
     if (atribs.length) lineas.push('📐 ' + atribs.join(' · '))
-    if (p.descripcion) lineas.push('', p.descripcion)
+    lineas.push('', `📸 Ver fotos: ${urlPublica}`)
     lineas.push('', '📞 Gutleber & Asoc. · Posadas, Misiones')
     const texto = encodeURIComponent(lineas.join('\n'))
     window.open(`https://wa.me/?text=${texto}`, '_blank')
