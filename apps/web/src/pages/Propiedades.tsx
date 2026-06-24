@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { Building2, MapPin, Ruler, Tag, Pencil, Trash2, Instagram, Images, ChevronLeft, Sparkles, MessageCircle, RefreshCw } from 'lucide-react'
+import { Building2, MapPin, Ruler, Tag, Pencil, Trash2, Instagram, Images, ChevronLeft, Sparkles, MessageCircle, RefreshCw, Share2, Search, X } from 'lucide-react'
 import { api, formatARS } from '../lib/api'
 import FormPropiedad from '../components/FormPropiedad'
 import ImageUpload from '../components/ImageUpload'
@@ -52,8 +52,8 @@ export default function Propiedades() {
   const [modalCatalogo, setModalCatalogo] = useState(false)
   const [numeroCatalogo, setNumeroCatalogo] = useState('')
   const [enviandoWA, setEnviandoWA] = useState<string | null>(null)
-  const [modalPropWA, setModalPropWA] = useState<string | null>(null)
-  const [numeroPropWA, setNumeroPropWA] = useState('')
+  const [modalCompartir, setModalCompartir] = useState<Propiedad | null>(null)
+  const [busqConv, setBusqConv] = useState('')
 
   const { data: propiedades = [], isLoading } = useQuery<Propiedad[]>({
     queryKey: ['propiedades'],
@@ -111,13 +111,41 @@ export default function Propiedades() {
     }
   }
 
-  async function enviarPropiedadWA(propId: string, destino: string) {
-    setEnviandoWA(propId)
+  // Conversaciones activas para envío via CRM
+  const { data: conversaciones = [] } = useQuery<Array<{ id: string; numero: string; nombreCapturado?: string; pushName?: string; persona?: { nombre: string; apellido: string }; ultimoMensaje: string }>>({
+    queryKey: ['conversaciones'],
+    queryFn: () => api.get('/conversaciones').then(r => r.data),
+    enabled: !!modalCompartir,
+  })
+
+  function compartirWA(p: Propiedad) {
+    const lineas = [
+      `🏠 *${p.direccion}${p.barrio ? ` — ${p.barrio}` : ''}*`,
+      `${tipoLabel[p.tipo] || p.tipo}`,
+      '',
+    ]
+    if (p.enAlquiler && p.alquilerBase) lineas.push(`💰 Alquiler: ${formatARS(p.alquilerBase)}/mes`)
+    if (p.enVenta && p.valorVenta)     lineas.push(`💰 Venta: USD ${p.valorVenta.toLocaleString('es-AR')}`)
+    const atribs = [
+      p.superficie ? `${p.superficie} m²` : '',
+      p.dormitorios ? `${p.dormitorios} dorm.` : '',
+      p.banos ? `${p.banos} baño${p.banos > 1 ? 's' : ''}` : '',
+      p.cochera ? 'cochera' : '',
+    ].filter(Boolean)
+    if (atribs.length) lineas.push('📐 ' + atribs.join(' · '))
+    if (p.descripcion) lineas.push('', p.descripcion)
+    lineas.push('', '📞 Gutleber & Asoc. · Posadas, Misiones')
+    const texto = encodeURIComponent(lineas.join('\n'))
+    window.open(`https://wa.me/?text=${texto}`, '_blank')
+    setModalCompartir(null)
+  }
+
+  async function enviarViaCRM(p: Propiedad, destino: string) {
+    setEnviandoWA(p.id)
     try {
-      await api.post(`/catalogo/wa/propiedad/${propId}`, { destino })
+      await api.post(`/catalogo/wa/propiedad/${p.id}`, { destino })
       mostrarToast('✅ Tarjeta enviada por WhatsApp')
-      setModalPropWA(null)
-      setNumeroPropWA('')
+      setModalCompartir(null)
     } catch (e: unknown) {
       const msg = (e as { response?: { data?: { error?: string } } })?.response?.data?.error || 'Error al enviar'
       mostrarToast(msg)
@@ -173,37 +201,86 @@ export default function Propiedades() {
     </div>
   )
 
-  // Modal envío WA de propiedad individual
-  const ModalPropWA = modalPropWA && (
-    <div className="fixed inset-0 bg-black/50 flex items-end sm:items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-xl p-6 w-full max-w-sm shadow-xl">
-        <h3 className="font-semibold text-carbon mb-3">Enviar tarjeta por WhatsApp</h3>
-        <p className="text-xs text-piedra mb-4">Número destino (sin 0 ni 15, con código de área).</p>
-        <input
-          type="tel"
-          placeholder="Ej: 3764XXXXXXX"
-          value={numeroPropWA}
-          onChange={(e) => setNumeroPropWA(e.target.value)}
-          className="input w-full mb-3"
-        />
-        <div className="flex gap-2">
-          <button
-            onClick={() => { setModalPropWA(null); setNumeroPropWA('') }}
-            className="btn-secondary flex-1"
-          >
-            Cancelar
-          </button>
-          <button
-            onClick={() => numeroPropWA && enviarPropiedadWA(modalPropWA, numeroPropWA)}
-            disabled={!numeroPropWA || enviandoWA === modalPropWA}
-            className="btn-primary flex-1"
-          >
-            {enviandoWA === modalPropWA ? 'Enviando...' : 'Enviar'}
-          </button>
+  // Modal compartir propiedad por WA
+  const ModalCompartir = modalCompartir && (() => {
+    const p = modalCompartir
+    const convsFiltradas = conversaciones.filter(c => {
+      const nombre = c.persona ? `${c.persona.nombre} ${c.persona.apellido}` : c.nombreCapturado || c.pushName || c.numero
+      return nombre.toLowerCase().includes(busqConv.toLowerCase()) || c.numero.includes(busqConv)
+    })
+    return (
+      <div className="fixed inset-0 bg-black/50 flex items-end sm:items-center justify-center z-50 p-4">
+        <div className="bg-white rounded-xl w-full max-w-sm shadow-xl overflow-hidden">
+          <div className="flex items-center justify-between px-5 pt-5 pb-3 border-b border-crema">
+            <div>
+              <h3 className="font-semibold text-carbon text-sm">Compartir por WhatsApp</h3>
+              <p className="text-xs text-piedra mt-0.5 truncate max-w-[220px]">{p.direccion}</p>
+            </div>
+            <button onClick={() => { setModalCompartir(null); setBusqConv('') }} className="text-piedra hover:text-carbon p-1">
+              <X size={16} />
+            </button>
+          </div>
+
+          {/* Opción 1: Compartir nativo */}
+          <div className="px-5 py-4 border-b border-crema">
+            <p className="text-[11px] text-piedra uppercase tracking-wide font-semibold mb-2">Compartir desde tu teléfono</p>
+            <button
+              onClick={() => compartirWA(p)}
+              className="w-full flex items-center gap-3 bg-green-50 hover:bg-green-100 border border-green-200 text-green-800 rounded-xl px-4 py-3 transition-colors text-left"
+            >
+              <Share2 size={18} className="shrink-0" />
+              <div>
+                <p className="text-sm font-semibold">Abrir en WhatsApp</p>
+                <p className="text-xs text-green-700">Vos elegís a quién enviárselo</p>
+              </div>
+            </button>
+          </div>
+
+          {/* Opción 2: Enviar a lead del CRM */}
+          <div className="px-5 py-4">
+            <p className="text-[11px] text-piedra uppercase tracking-wide font-semibold mb-2">Enviar a lead del CRM</p>
+            <div className="flex items-center gap-2 bg-crema rounded-lg px-3 py-1.5 mb-2">
+              <Search size={12} className="text-arena shrink-0" />
+              <input
+                className="bg-transparent text-xs w-full outline-none placeholder:text-arena"
+                placeholder="Buscar conversación..."
+                value={busqConv}
+                onChange={e => setBusqConv(e.target.value)}
+              />
+            </div>
+            <div className="max-h-40 overflow-y-auto space-y-1">
+              {convsFiltradas.slice(0, 8).map(c => {
+                const nombre = c.persona ? `${c.persona.nombre} ${c.persona.apellido}` : c.nombreCapturado || c.pushName || c.numero
+                const hace = Math.round((Date.now() - new Date(c.ultimoMensaje).getTime()) / 3600000)
+                const dentroVentana = hace < 24
+                return (
+                  <button
+                    key={c.id}
+                    onClick={() => dentroVentana && enviarViaCRM(p, c.numero)}
+                    disabled={!dentroVentana || enviandoWA === p.id}
+                    className={`w-full flex items-center justify-between px-3 py-2 rounded-lg text-left transition-colors text-xs ${
+                      dentroVentana
+                        ? 'hover:bg-crema cursor-pointer'
+                        : 'opacity-40 cursor-not-allowed'
+                    }`}
+                    title={!dentroVentana ? 'Conversación inactiva (más de 24hs)' : ''}
+                  >
+                    <span className="font-medium text-carbon truncate">{nombre}</span>
+                    <span className={`shrink-0 ml-2 text-[10px] ${dentroVentana ? 'text-green-600' : 'text-gray-400'}`}>
+                      {dentroVentana ? `hace ${hace}h` : `+24h`}
+                    </span>
+                  </button>
+                )
+              })}
+              {convsFiltradas.length === 0 && (
+                <p className="text-xs text-piedra text-center py-2">Sin resultados</p>
+              )}
+            </div>
+          </div>
         </div>
       </div>
-    </div>
-  )
+    )
+  })()
 
   // Si hay una propiedad abierta en detalle, mostrar el panel de detalle
   if (detalle) {
@@ -211,7 +288,7 @@ export default function Propiedades() {
     return (
       <div className="p-4 md:p-8">
         {ModalCatalogo}
-        {ModalPropWA}
+        {ModalCompartir}
         {toast && <div className="fixed top-4 right-4 bg-carbon text-white px-4 py-2 rounded shadow-lg text-sm z-50">{toast}</div>}
 
         <button onClick={() => setDetalle(null)} className="flex items-center gap-2 text-piedra text-sm mb-5 hover:text-carbon transition-colors">
@@ -375,7 +452,7 @@ export default function Propiedades() {
 
               <div className="border-t border-crema mt-3 pt-3">
                 <button
-                  onClick={() => setModalPropWA(prop.id)}
+                  onClick={() => { setModalCompartir(prop); setBusqConv('') }}
                   disabled={enviandoWA === prop.id}
                   className="btn-secondary w-full flex items-center justify-center gap-2"
                 >
@@ -427,7 +504,7 @@ export default function Propiedades() {
   return (
     <div className="p-4 md:p-8">
       {ModalCatalogo}
-      {ModalPropWA}
+      {ModalCompartir}
       {toast && <div className="fixed top-4 right-4 bg-carbon text-white px-4 py-2 rounded shadow-lg text-sm z-50">{toast}</div>}
 
       <div className="flex items-start justify-between gap-3 mb-5">
