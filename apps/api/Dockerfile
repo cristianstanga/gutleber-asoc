@@ -20,7 +20,7 @@ RUN cd apps/api && npm run build
 FROM node:20-alpine
 WORKDIR /app
 
-RUN apk add --no-cache openssl
+RUN apk add --no-cache openssl postgresql-client
 
 COPY package*.json ./
 COPY apps/api/package*.json ./apps/api/

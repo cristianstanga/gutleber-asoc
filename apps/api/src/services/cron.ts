@@ -14,6 +14,12 @@ import { prisma, logger } from '../index'
 import { EstadoPago, TipoPago, Moneda } from '@prisma/client'
 import { sendText } from './whatsapp-meta'
 import { enviarCatalogoWA } from './catalogo-wa'
+import { exec } from 'child_process'
+import { promisify } from 'util'
+import fs from 'fs'
+import path from 'path'
+
+const execAsync = promisify(exec)
 
 // Espera aleatoria entre mensajes para parecer humano (5–12 segundos)
 const pausaEntreEnvios = () =>
@@ -58,7 +64,13 @@ export function initCron() {
     }
   })
 
-  logger.info('📅 Cron jobs iniciados (6 schedules)')
+  // Diario 03:00 — backup de base de datos
+  cron.schedule('0 3 * * *', async () => {
+    logger.info('⏰ Cron: backup de base de datos...')
+    await hacerBackup()
+  })
+
+  logger.info('📅 Cron jobs iniciados (7 schedules)')
 }
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
@@ -244,6 +256,64 @@ async function marcarMora() {
         `*Gutleber & Asoc.* — Tel: 376 4XXX-XXXX`
       await enviarWA(p.persona?.whatsapp, msg, `inquilino en mora ${p.persona?.nombre}`)
       await pausaEntreEnvios()
+    }
+  }
+}
+
+// ─── Backup de base de datos ─────────────────────────────────────────────────
+
+async function hacerBackup() {
+  const dbUrl = process.env.DATABASE_URL
+  if (!dbUrl) {
+    logger.error('❌ Backup: DATABASE_URL no configurada')
+    return
+  }
+
+  const BACKUPS_DIR = path.join(process.cwd(), 'backups')
+  const RETENER_DIAS = 7
+
+  try {
+    // Crear carpeta si no existe
+    if (!fs.existsSync(BACKUPS_DIR)) fs.mkdirSync(BACKUPS_DIR, { recursive: true })
+
+    const fecha = new Date().toISOString().slice(0, 10) // YYYY-MM-DD
+    const archivo = path.join(BACKUPS_DIR, `gutleber_${fecha}.sql.gz`)
+
+    // pg_dump comprimido con gzip
+    await execAsync(`pg_dump "${dbUrl}" | gzip > "${archivo}"`, { shell: '/bin/sh' })
+
+    const tamaño = Math.round(fs.statSync(archivo).size / 1024)
+    logger.info(`✅ Backup completado: gutleber_${fecha}.sql.gz (${tamaño} KB)`)
+
+    // Rotar: eliminar backups con más de RETENER_DIAS días
+    const archivos = fs.readdirSync(BACKUPS_DIR)
+      .filter(f => f.startsWith('gutleber_') && f.endsWith('.sql.gz'))
+      .map(f => ({ nombre: f, mtime: fs.statSync(path.join(BACKUPS_DIR, f)).mtime }))
+      .sort((a, b) => b.mtime.getTime() - a.mtime.getTime())
+
+    const limite = new Date(Date.now() - RETENER_DIAS * 24 * 60 * 60 * 1000)
+    for (const f of archivos) {
+      if (f.mtime < limite) {
+        fs.unlinkSync(path.join(BACKUPS_DIR, f.nombre))
+        logger.info(`🗑️  Backup antiguo eliminado: ${f.nombre}`)
+      }
+    }
+
+    // Notificar a operadores si está configurado
+    const operadores = (process.env.NOTIF_OPERADORES ?? '').split(',').map(n => n.trim()).filter(Boolean)
+    for (const num of operadores) {
+      try {
+        await sendText(num, `✅ *Backup automático completado*\n📁 gutleber_${fecha}.sql.gz (${tamaño} KB)\n🗄️ Retención: últimos ${RETENER_DIAS} días`)
+      } catch { /* no crítico */ }
+    }
+  } catch (err) {
+    logger.error({ err }, '❌ Error en backup de base de datos')
+    // Notificar error a operadores
+    const operadores = (process.env.NOTIF_OPERADORES ?? '').split(',').map(n => n.trim()).filter(Boolean)
+    for (const num of operadores) {
+      try {
+        await sendText(num, `❌ *Error en backup automático*\nRevisá los logs del servidor.`)
+      } catch { /* no crítico */ }
     }
   }
 }
