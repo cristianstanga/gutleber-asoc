@@ -119,151 +119,136 @@ function drawCard(
     ctx.fillStyle = g; ctx.fillRect(0, 0, W, H)
   }
 
-  // ── Viñeta ───────────────────────────────────────────────────────────────
-  const vd = H * 0.28
-  const vig = (gx0: number, gy0: number, gx1: number, gy1: number, x: number, y: number, w: number, h: number) => {
-    const g = ctx.createLinearGradient(gx0, gy0, gx1, gy1)
-    g.addColorStop(0, 'rgba(0,0,0,0.75)'); g.addColorStop(1, 'rgba(0,0,0,0)')
-    ctx.fillStyle = g; ctx.fillRect(x, y, w, h)
-  }
-  vig(0, 0, 0, vd, 0, 0, W, vd)
-  vig(0, H, 0, H-vd, 0, H-vd, W, vd)
-  vig(0, 0, vd*0.8, 0, 0, 0, vd*0.8, H)
-  vig(W, 0, W-vd*0.8, 0, W-vd*0.8, 0, vd*0.8, H)
+  // ── Gradientes de legibilidad (sin paneles sólidos) ────────────────────────
+  // Izquierda: oscurece la columna de texto
+  const gLeft = ctx.createLinearGradient(0, 0, W * 0.62, 0)
+  gLeft.addColorStop(0,    'rgba(8,18,28,0.82)')
+  gLeft.addColorStop(0.65, 'rgba(8,18,28,0.12)')
+  gLeft.addColorStop(1,    'rgba(0,0,0,0)')
+  ctx.fillStyle = gLeft; ctx.fillRect(0, 0, W, H)
 
-  // ── Header flotante ───────────────────────────────────────────────────────
-  const HH = Math.round(H * 0.076)  // ~82px
-  const HW = W - FM * 2
-  ctx.fillStyle = C.headerBg; rr(ctx, FM, FM, HW, HH, 16)
+  // Arriba suave
+  const gTop = ctx.createLinearGradient(0, 0, 0, H * 0.22)
+  gTop.addColorStop(0, 'rgba(8,18,28,0.72)')
+  gTop.addColorStop(1, 'rgba(0,0,0,0)')
+  ctx.fillStyle = gTop; ctx.fillRect(0, 0, W, H * 0.22)
 
-  // Emblema SVG
-  const EP = 14  // padding izquierdo
-  let nx = FM + EP
+  // Abajo suave
+  const gBot = ctx.createLinearGradient(0, H, 0, H * 0.40)
+  gBot.addColorStop(0, 'rgba(8,18,28,0.88)')
+  gBot.addColorStop(1, 'rgba(0,0,0,0)')
+  ctx.fillStyle = gBot; ctx.fillRect(0, H * 0.40, W, H * 0.60)
+
+  ctx.shadowColor = 'rgba(0,0,0,0.55)'
+  ctx.shadowBlur  = 5
+
+  // ── Marca — top-left, sin fondo ──────────────────────────────────────────
+  let emblemaRX = FM
   if (embImg && embImg.complete && embImg.naturalWidth > 0) {
-    const eh = Math.round(HH * 0.62)
+    const eh = Math.round(H * 0.053)
     const ew = Math.round(eh * embImg.naturalWidth / embImg.naturalHeight)
-    ctx.drawImage(embImg, FM + EP, FM + (HH - eh) / 2, ew, eh)
-    nx = FM + EP + ew + 14
+    ctx.drawImage(embImg, FM, FM + 4, ew, eh)
+    emblemaRX = FM + ew + 14
   }
-  ctx.font = `bold ${Math.round(H * 0.02)}px WorkSans`
+  const bY1 = FM + Math.round(H * 0.027)
+  const bY2 = bY1 + Math.round(H * 0.022)
+  ctx.font = `bold ${Math.round(H * 0.021)}px WorkSans`
   ctx.fillStyle = C.crema; ctx.textBaseline = 'alphabetic'; ctx.textAlign = 'left'
-  ctx.fillText('GUTLEBER & ASOCIADOS', nx, FM + HH * 0.49)
-  ctx.font = `${Math.round(H * 0.011)}px WorkSans`
-  ctx.fillStyle = C.champagne; ctx.globalAlpha = 0.75
-  ctx.fillText('NEGOCIOS INMOBILIARIOS  ·  POSADAS, MISIONES', nx, FM + HH * 0.80)
+  ctx.fillText('GUTLEBER & ASOCIADOS', emblemaRX, bY1)
+  ctx.font = `${Math.round(H * 0.012)}px WorkSans`
+  ctx.fillStyle = C.champagne; ctx.globalAlpha = 0.82
+  ctx.fillText('NEGOCIOS INMOBILIARIOS  ·  POSADAS, MISIONES', emblemaRX, bY2)
   ctx.globalAlpha = 1
 
-  // ── Badge de operación — grande, bajo el header ──────────────────────────
-  const modoLabel = s.operacion === 'ambas' ? 'ALQUILER  ·  VENTA'
-    : s.operacion === 'alquiler' ? 'EN ALQUILER' : 'EN VENTA'
-  const modoBg = s.operacion === 'venta' ? C.crema : C.champagne
-  const MFONT = `bold ${Math.round(H * 0.024)}px WorkSans`
-  ctx.font = MFONT
-  const mtw = ctx.measureText(modoLabel).width
-  const mbw = mtw + Math.round(W * 0.037)
-  const mbh = Math.round(H * 0.048)
-  const mby = FM + HH + Math.round(H * 0.016)
-  ctx.fillStyle = modoBg; rr(ctx, FM, mby, mbw, mbh, mbh / 2)
-  ctx.fillStyle = C.carbon; ctx.textBaseline = 'middle'; ctx.textAlign = 'center'
-  ctx.fillText(modoLabel, FM + mbw / 2, mby + mbh / 2)
+  // ── Bloque datos — bottom-left ────────────────────────────────────────────
+  const BX   = FM
+  const MAXW = W * 0.68
 
-  // ── Características — pills derecha ──────────────────────────────────────
-  const pillW  = Math.round(W * 0.195)  // ~210px
-  const pillH  = Math.round(H * 0.048)  // ~52px
-  const pillGap = Math.round(H * 0.012)
-  const pillX  = W - FM - pillW
-  const pillFontSz = Math.round(H * 0.015)
-  const pillFont = `bold ${pillFontSz}px WorkSans`
-
-  const characteristics: string[] = []
-  if (s.superficie)   characteristics.push(`${s.superficie} M²`)
-  if (s.habitaciones) characteristics.push(`${s.habitaciones} DORM.`)
-  if (s.banos)        characteristics.push(`${s.banos} BAÑO${+s.banos !== 1 ? 'S' : ''}`)
-  s.caracts.forEach(c => characteristics.push(c.toUpperCase()))
-
-  if (characteristics.length > 0) {
-    // Inicio de las pills: centradas verticalmente en la zona media de la foto
-    const totalPillH = characteristics.length * pillH + (characteristics.length - 1) * pillGap
-    const pillsStartY = Math.max(FM + HH + mbh + FM * 2, H * 0.25)
-    const pillsEndY   = H - Math.round(H * 0.32) // no entrar en zona del panel
-    const availableH  = pillsEndY - pillsStartY
-    const startY = pillsStartY + Math.max(0, (availableH - totalPillH) / 2)
-
-    characteristics.forEach((c, i) => {
-      const py = startY + i * (pillH + pillGap)
-      ctx.fillStyle = 'rgba(15,34,51,0.85)'; rr(ctx, pillX, py, pillW, pillH, pillH / 2)
-      ctx.font = pillFont; ctx.fillStyle = C.white
-      ctx.textBaseline = 'middle'; ctx.textAlign = 'center'
-      ctx.fillText(c, pillX + pillW / 2, py + pillH / 2)
-    })
-  }
-
-  // ── Panel inferior flotante ───────────────────────────────────────────────
-  const tipoLabel = s.tipo.toUpperCase()
-  const PANEL_W = W - FM * 2
-  const dirLines = (() => {
-    ctx.font = `bold ${Math.round(H * 0.04)}px Lora`
-    return wrapText(ctx, s.direccion || 'DIRECCIÓN DE LA PROPIEDAD', PANEL_W - IPAD * 2).slice(0, 2)
-  })()
-  const hasPrecio = s.precio && +s.precio > 0
-  let panelH = IPAD + 32 + 12 + dirLines.length * Math.round(H * 0.05) + 8
-  if (hasPrecio) panelH += Math.round(H * 0.064) + 12
-  panelH = Math.max(panelH, Math.round(H * 0.27))
-  panelH = Math.min(panelH, Math.round(H * 0.36))
-
-  const panelY = H - panelH - FM
-  ctx.fillStyle = C.panelBg; rr(ctx, FM, panelY, PANEL_W, panelH, 18)
-
-  let cy = panelY + IPAD
-
-  // Badge tipo
-  const tipoBadgeFsz = Math.round(H * 0.012)
-  ctx.font = `bold ${tipoBadgeFsz}px WorkSans`
-  const tbw = ctx.measureText(tipoLabel).width + 32
-  const tbh = tipoBadgeFsz + 18
-  ctx.fillStyle = C.champagneD; rr(ctx, FM + IPAD, cy, tbw, tbh, tbh / 2)
-  ctx.fillStyle = C.carbon; ctx.textBaseline = 'middle'; ctx.textAlign = 'center'
-  ctx.fillText(tipoLabel, FM + IPAD + tbw / 2, cy + tbh / 2)
-  cy += tbh + 12
-
-  // Dirección
-  const dirFsz = Math.round(H * 0.04)
+  const dirFsz  = Math.round(H * 0.044)
   ctx.font = `bold ${dirFsz}px Lora`
-  ctx.fillStyle = C.white; ctx.textBaseline = 'top'; ctx.textAlign = 'left'
-  dirLines.forEach(line => {
-    ctx.fillText(line, FM + IPAD, cy)
-    cy += Math.round(dirFsz * 1.2)
-  })
-  cy += 6
+  const dirLines = wrapText(ctx, s.direccion || 'DIRECCIÓN DE LA PROPIEDAD', MAXW).slice(0, 2)
+
+  const hasPrecio  = !!(s.precio && +s.precio > 0)
+  const badgeFsz   = Math.round(H * 0.015)
+  const badgeH     = badgeFsz + 18
+  const pFsz       = Math.round(H * 0.048)
+  const atribFsz   = Math.round(H * 0.019)
+  const footerFsz  = Math.round(H * 0.014)
+
+  // Construir bottom-up desde el margen inferior
+  let cy = H - FM - 6
+
+  // Footer
+  ctx.font = `${footerFsz}px WorkSans`
+  ctx.fillStyle = C.champagne; ctx.globalAlpha = 0.68
+  ctx.textBaseline = 'alphabetic'; ctx.textAlign = 'left'
+  ctx.fillText('@gutleberasociados  ·  gutleberyasociados.com', BX, cy)
+  ctx.globalAlpha = 1
+  cy -= footerFsz + 14
+
+  // Divisor
+  ctx.shadowBlur = 0
+  ctx.fillStyle = C.champagne; ctx.globalAlpha = 0.32
+  ctx.fillRect(BX, cy, Math.round(W * 0.42), 1)
+  ctx.globalAlpha = 1
+  ctx.shadowBlur = 5
+  cy -= atribFsz + 12
+
+  // Atributos en línea
+  const atribs: string[] = []
+  if (s.superficie)   atribs.push(`${s.superficie} m²`)
+  if (s.habitaciones) atribs.push(`${s.habitaciones} dorm.`)
+  if (s.banos)        atribs.push(`${s.banos} baño${+s.banos !== 1 ? 's' : ''}`)
+  s.caracts.forEach(c => atribs.push(c.toLowerCase()))
+  if (atribs.length > 0) {
+    ctx.font = `${atribFsz}px WorkSans`
+    ctx.fillStyle = C.crema; ctx.globalAlpha = 0.85
+    ctx.textBaseline = 'alphabetic'; ctx.textAlign = 'left'
+    ctx.fillText(atribs.join('  ·  '), BX, cy)
+    ctx.globalAlpha = 1
+    cy -= atribFsz + 20
+  }
 
   // Precio
   if (hasPrecio) {
     const precioFmt = s.moneda === 'ARS'
       ? new Intl.NumberFormat('es-AR', { style: 'currency', currency: 'ARS', maximumFractionDigits: 0 }).format(+s.precio)
       : `USD ${new Intl.NumberFormat('es-AR').format(+s.precio)}`
-
-    const pFsz = Math.round(H * 0.05)
     ctx.font = `bold ${pFsz}px Lora`
-    ctx.fillStyle = C.champagne; ctx.textBaseline = 'top'; ctx.textAlign = 'left'
-    ctx.fillText(precioFmt, FM + IPAD, cy)
-    if (s.operacion === 'alquiler') {
+    ctx.fillStyle = C.champagne; ctx.textBaseline = 'alphabetic'; ctx.textAlign = 'left'
+    ctx.fillText(precioFmt, BX, cy)
+    if (s.operacion !== 'venta') {
       const pw = ctx.measureText(precioFmt).width
       ctx.font = `${Math.round(H * 0.016)}px WorkSans`
-      ctx.fillStyle = C.crema; ctx.globalAlpha = 0.7; ctx.textBaseline = 'alphabetic'
-      ctx.fillText('/ mes', FM + IPAD + pw + 12, cy + pFsz * 0.88)
+      ctx.fillStyle = C.crema; ctx.globalAlpha = 0.62
+      ctx.fillText(' / mes', BX + pw, cy)
       ctx.globalAlpha = 1
     }
+    cy -= pFsz + 16
   }
 
-  // Footer
-  const footerY = H - 20
-  ctx.fillStyle = C.champagne; ctx.globalAlpha = 0.5
-  ctx.fillRect(FM, footerY - 6, 44, 3)
-  ctx.globalAlpha = 0.75
-  ctx.font = `${Math.round(H * 0.013)}px WorkSans`
-  ctx.fillStyle = C.champagne; ctx.textBaseline = 'alphabetic'; ctx.textAlign = 'right'
-  ctx.fillText('gutleberyasociados.com', W - FM, footerY)
-  ctx.globalAlpha = 1
+  // Dirección
+  ctx.font = `bold ${dirFsz}px Lora`
+  ctx.fillStyle = C.white; ctx.textBaseline = 'alphabetic'; ctx.textAlign = 'left'
+  for (let i = dirLines.length - 1; i >= 0; i--) {
+    ctx.fillText(dirLines[i], BX, cy)
+    cy -= Math.round(dirFsz * 1.18)
+  }
+  cy -= 14
+
+  // Badge operación
+  ctx.shadowBlur = 0
+  ctx.font = `bold ${badgeFsz}px WorkSans`
+  const modoLabel = s.operacion === 'ambas' ? 'ALQUILER · VENTA'
+    : s.operacion === 'alquiler' ? 'EN ALQUILER' : 'EN VENTA'
+  const modoBg = s.operacion === 'venta' ? C.crema : C.champagne
+  const modoBW = ctx.measureText(modoLabel).width + 32
+  ctx.fillStyle = modoBg
+  rr(ctx, BX, cy - badgeH, modoBW, badgeH, badgeH / 2)
+  ctx.fillStyle = C.carbon; ctx.textBaseline = 'middle'; ctx.textAlign = 'center'
+  ctx.fillText(modoLabel, BX + modoBW / 2, cy - badgeH / 2)
+
+  ctx.shadowColor = 'transparent'; ctx.shadowBlur = 0
 }
 
 // ── Componente principal ──────────────────────────────────────────────────────
