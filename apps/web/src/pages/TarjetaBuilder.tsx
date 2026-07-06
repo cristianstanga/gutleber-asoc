@@ -78,18 +78,6 @@ function rr(ctx: CanvasRenderingContext2D, x: number, y: number, w: number, h: n
   ctx.fill()
 }
 
-function wrapText(ctx: CanvasRenderingContext2D, text: string, maxW: number): string[] {
-  const words = text.split(' '), lines: string[] = []
-  let line = ''
-  for (const w of words) {
-    const t = line ? `${line} ${w}` : w
-    if (ctx.measureText(t).width > maxW) { if (line) lines.push(line); line = w }
-    else line = t
-  }
-  if (line) lines.push(line)
-  return lines
-}
-
 // ── Función principal de dibujo ───────────────────────────────────────────────
 function drawCard(
   ctx: CanvasRenderingContext2D,
