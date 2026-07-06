@@ -215,7 +215,7 @@ function drawCard(
   })
 
   // ── Logo + firma — columna derecha ────────────────────────────────────────
-  const embH  = Math.round(STRIP_H * 0.42)
+  const embH  = Math.round(STRIP_H * 0.58)
   const embW  = embImg ? Math.round(embH * embImg.naturalWidth / embImg.naturalHeight) : 0
   const logoX = W - SP - embW
   if (embImg && embImg.complete && embImg.naturalWidth > 0) {
