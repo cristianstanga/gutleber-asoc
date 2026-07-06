@@ -1,160 +1,264 @@
 """
-Cartel de propiedad — Gutleber & Asoc.
+Cartel de propiedad v2 — Gutleber & Asociados
+Foto a pantalla completa, SIN marquesina superior.
+Panel de datos flotante alineado al costado (derecha) de la foto.
 Formato: 40cm x 50cm a 150dpi = 2362 x 2953 px
 """
 
-import math, os, io
-from PIL import Image, ImageDraw, ImageFont
+import os, io
+from PIL import Image, ImageDraw, ImageFont, ImageFilter
 import qrcode
 import cairosvg
 
-# ── COLORES ──────────────────────────────────────────────────────────────────
-CARBON  = (15,  23,  42)   # #0F172A navy
-PIEDRA  = (179, 67,  41)   # #B34329 copper-dark (para textos)
-ARENA   = (179, 67,  41)   # #B34329 copper
-CREMA   = (248, 247, 244)  # #F8F7F4
+PETROLEO  = (15, 34, 51)
+CHAMPAGNE = (200, 169, 107)
+CREMA     = (245, 239, 227)
+CARBON    = (26, 26, 24)
 
-# ── DIMENSIONES ──────────────────────────────────────────────────────────────
-W, H    = 2362, 2953
-MARGIN  = 100
+WHATSAPP_NUMBER  = "+54 9 3765 41-0765"
+WHATSAPP_WA_ME   = "5493765410765"
+INSTAGRAM_HANDLE = "@gutleberasociados"
 
-# ── DATOS DE EJEMPLO ─────────────────────────────────────────────────────────
-DATA = {
-    "tipo":     "EN VENTA",
-    "direccion":"RIVADAVIA 1450",
-    "barrio":   "Centro · Posadas",
-    "precio":   "USD 95.000",
-    "sup":      "120 m²",
-    "dorm":     "3 dorm.",
-    "banios":   "2 baños",
-    "extras":   "Cochera · Balcón",
-    "tel":      "+54 376 400-0000",
-    "web":      "gutleber.com.ar",
-    "qr_url":   "https://gutleber.com.ar",
-}
+W, H = 2362, 2953
 
-# ── FUENTES ───────────────────────────────────────────────────────────────────
-BASE = "/usr/share/fonts/truetype/dejavu/"
-def font(name, size):
-    try:    return ImageFont.truetype(BASE + name, size)
+BASE_SERIF = "/usr/share/fonts/truetype/liberation2/"
+BASE_SANS  = "/usr/share/fonts/truetype/dejavu/"
+def font(base, name, size):
+    try:    return ImageFont.truetype(base + name, size)
     except: return ImageFont.load_default()
 
-F_SERIF_B  = "DejaVuSerif-Bold.ttf"
-F_SERIF    = "DejaVuSerif.ttf"
-F_SERIF_I  = "DejaVuSerifCondensed-Italic.ttf"
-F_SANS     = "DejaVuSans.ttf"
-F_SANS_B   = "DejaVuSans-Bold.ttf"
+F_SERIF_B = lambda s: font(BASE_SERIF, "LiberationSerif-Bold.ttf", s)
+F_SERIF   = lambda s: font(BASE_SERIF, "LiberationSerif-Regular.ttf", s)
+F_SERIF_I = lambda s: font(BASE_SERIF, "LiberationSerif-Italic.ttf", s)
+F_SANS    = lambda s: font(BASE_SANS, "DejaVuSans.ttf", s)
+F_SANS_B  = lambda s: font(BASE_SANS, "DejaVuSans-Bold.ttf", s)
 
-# ── CANVAS ────────────────────────────────────────────────────────────────────
-img  = Image.new("RGB", (W, H), CARBON)
-draw = ImageDraw.Draw(img, "RGBA")
+GPIN = os.path.join(os.path.dirname(__file__), "../logo/")
+EMBLEM_OSCURO = GPIN + "gutleber_emblema_oscuro.svg"
 
-# ── HEADER (fondo carbón) ─────────────────────────────────────────────────────
-HEADER_H = 280
-draw.rectangle([0, 0, W, HEADER_H], fill=CARBON)
 
-# Emblema SVG → PNG en memoria, pegado en el header
-SVG_PATH = os.path.join(os.path.dirname(__file__), "../logo/gutleber_emblema.svg")
-emblem_size = 160
-emblem_png = cairosvg.svg2png(url=SVG_PATH, output_width=emblem_size, output_height=emblem_size)
-emblem_img = Image.open(io.BytesIO(emblem_png)).convert("RGBA")
-# Pegar con transparencia
-emblem_y = (HEADER_H - emblem_size) // 2
-img.paste(emblem_img, (MARGIN, emblem_y), emblem_img)
+def placeholder_photo(w, h):
+    """Foto ilustrativa de referencia (no real) — fachada estilizada al atardecer,
+    a reemplazar por la foto real de cada propiedad."""
+    img = Image.new("RGB", (w, h), (60, 70, 78))
+    draw = ImageDraw.Draw(img)
+    sky_h = int(h * 0.62)
+    for y in range(sky_h):
+        t = y / sky_h
+        r = int(150 - t*90); g = int(120 - t*60); b = int(120 - t*40)
+        draw.line([(0,y),(w,y)], fill=(max(r,40), max(g,50), max(b,60)))
+    draw.rectangle([0, sky_h, w, h], fill=(40, 42, 40))
+    for y in range(sky_h, h):
+        t = (y - sky_h) / (h - sky_h)
+        r = int(40 + t*10); g = int(42+t*8); b = int(40+t*8)
+        draw.line([(0,y),(w,y)], fill=(r,g,b))
+    fx0, fx1 = int(w*0.10), int(w*0.62)
+    fy0, fy1 = int(h*0.34), sky_h + int(h*0.05)
+    draw.rectangle([fx0, fy0, fx1, fy1], fill=(30, 32, 33))
+    draw.polygon([(fx0-30, fy0), (fx1+30, fy0), (fx1-40, fy0-90), (fx0+40, fy0-90)], fill=(24,26,26))
+    win_w, win_h = int((fx1-fx0)*0.14), int((fy1-fy0)*0.22)
+    for i in range(3):
+        wx = fx0 + int((fx1-fx0)*0.15) + i*int((fx1-fx0)*0.28)
+        wy = fy0 + int((fy1-fy0)*0.30)
+        draw.rectangle([wx, wy, wx+win_w, wy+win_h], fill=(210,175,110))
+    for i in range(6):
+        tx = int(w*0.68) + i*70
+        ty = sky_h - 10
+        draw.ellipse([tx-35, ty-140, tx+35, ty-30], fill=(20,45,32))
+        draw.rectangle([tx-6, ty-40, tx+6, ty+20], fill=(35,28,20))
 
-# Wordmark junto al emblema
-wx = MARGIN + emblem_size + 36
-draw.text((wx, 68),  "GUTLEBER & ASOC.",
-          font=font(F_SERIF_B, 88), fill=CREMA)
-draw.text((wx + 2, 172), "gestión · inversión · patrimonio",
-          font=font(F_SERIF_I, 36), fill=ARENA)
+    blur = img.filter(ImageFilter.GaussianBlur(1))
+    img = Image.blend(img, blur, 0.3)
 
-# Badge EN VENTA / EN ALQUILER
-bw, bh = 300, 68
-bx = W - MARGIN - bw
-by = (HEADER_H - bh) // 2
-draw.rounded_rectangle([bx, by, bx + bw, by + bh], radius=34, fill=PIEDRA)
-draw.text((bx + bw // 2, by + bh // 2), DATA["tipo"],
-          font=font(F_SANS_B, 32), fill=CREMA, anchor="mm")
+    dwm = ImageDraw.Draw(img, "RGBA")
+    dwm.text((w//2, int(h*0.94)), "— fotografía de referencia · reemplazar por foto real —",
+              font=F_SANS(30), fill=(255,255,255,130), anchor="mm")
+    return img
 
-# Línea separadora header/foto
-draw.line([0, HEADER_H, W, HEADER_H], fill=PIEDRA, width=3)
 
-# ── ZONA FOTO ─────────────────────────────────────────────────────────────────
-FOTO_TOP    = HEADER_H
-FOTO_BOTTOM = int(H * 0.58)
-FOTO_H      = FOTO_BOTTOM - FOTO_TOP
+def wrap_text(text, fnt, max_w, draw):
+    words = text.split()
+    lines, cur = [], ""
+    for w in words:
+        trial = (cur + " " + w).strip()
+        if draw.textbbox((0,0), trial, font=fnt)[2] <= max_w:
+            cur = trial
+        else:
+            if cur: lines.append(cur)
+            cur = w
+    if cur: lines.append(cur)
+    return lines
 
-# Fondo placeholder
-for band in range(FOTO_H):
-    t = band / FOTO_H
-    r = int(80 + t * 20)
-    g = int(72 + t * 18)
-    b = int(64 + t * 16)
-    draw.line([(0, FOTO_TOP + band), (W, FOTO_TOP + band)], fill=(r, g, b))
 
-draw.text((W // 2, FOTO_TOP + FOTO_H // 2),
-          "— fotografía de la propiedad —",
-          font=font(F_SANS, 36), fill=(*ARENA, 90), anchor="mm")
+def build_panel_content(panel_w, data, pad=70):
+    """Dibuja el contenido del panel sobre un lienzo alto de sobra,
+    devuelve la imagen recortada a la altura realmente usada."""
+    tall_h = 2200
+    panel = Image.new("RGBA", (panel_w, tall_h), (*PETROLEO, 246))
+    draw = ImageDraw.Draw(panel, "RGBA")
+    inner_w = panel_w - pad*2
+    x = pad
+    y = 60
 
-# Línea separadora foto/panel
-draw.line([0, FOTO_BOTTOM, W, FOTO_BOTTOM], fill=PIEDRA, width=3)
+    # emblema + wordmark
+    emblem_size = 96
+    emblem_png = cairosvg.svg2png(url=EMBLEM_OSCURO, output_width=emblem_size*2, output_height=int(emblem_size*1.2*2))
+    emblem_img = Image.open(io.BytesIO(emblem_png)).convert("RGBA")
+    emblem_img = emblem_img.resize((emblem_size, int(emblem_size*1.2)))
+    panel.paste(emblem_img, (x, y), emblem_img)
+    tx = x + emblem_img.width + 26
+    draw.text((tx, y-6), "GUTLEBER", font=F_SERIF_B(52), fill=CREMA)
+    bbox = draw.textbbox((tx, y-6), "GUTLEBER", font=F_SERIF_B(52))
+    draw.text((tx, bbox[3]+4), "& Asociados", font=F_SERIF_I(30), fill=CHAMPAGNE)
+    draw.text((tx, bbox[3]+42), "NEGOCIOS INMOBILIARIOS", font=F_SANS(14), fill=(*CREMA,190))
+    y = max(y + emblem_img.height, bbox[3]+42) + 56
 
-# ── PANEL INFERIOR ────────────────────────────────────────────────────────────
-y = FOTO_BOTTOM + 80
+    # badge
+    bw, bh = 300, 62
+    draw.rounded_rectangle([x, y, x+bw, y+bh], radius=31, fill=CHAMPAGNE)
+    draw.text((x+bw//2, y+bh//2), data["tipo"], font=F_SANS_B(28), fill=PETROLEO, anchor="mm")
+    y += bh + 46
 
-# DIRECCIÓN
-draw.text((MARGIN, y), DATA["direccion"],
-          font=font(F_SERIF_B, 130), fill=CREMA)
-y += 150
-draw.text((MARGIN, y), DATA["barrio"],
-          font=font(F_SERIF, 52), fill=ARENA)
-y += 80
+    draw.line([x, y, x+inner_w, y], fill=(*CHAMPAGNE, 140), width=1)
+    y += 40
 
-draw.line([MARGIN, y, W - MARGIN, y], fill=(*PIEDRA, 100), width=1)
-y += 56
+    for line in wrap_text(data["direccion"], F_SERIF_B(58), inner_w, draw):
+        draw.text((x, y), line, font=F_SERIF_B(58), fill=CREMA)
+        y += 64
+    y += 6
+    draw.text((x, y), data["barrio"], font=F_SERIF_I(30), fill=(*CHAMPAGNE,220))
+    y += 56
 
-# PRECIO
-draw.text((MARGIN, y), DATA["precio"],
-          font=font(F_SERIF_B, 112), fill=CREMA)
-y += 130
+    draw.line([x, y, x+inner_w, y], fill=(*CHAMPAGNE, 90), width=1)
+    y += 40
 
-# CARACTERÍSTICAS
-carac = f"{DATA['sup']}   ·   {DATA['dorm']}   ·   {DATA['banios']}"
-draw.text((MARGIN, y), carac, font=font(F_SANS, 48), fill=ARENA)
-y += 66
-draw.text((MARGIN, y), DATA["extras"], font=font(F_SANS, 40), fill=PIEDRA)
-y += 90
+    draw.text((x, y), data["precio"], font=F_SERIF_B(66), fill=CHAMPAGNE)
+    y += 84
 
-draw.line([MARGIN, y, W - MARGIN, y], fill=(*PIEDRA, 80), width=1)
-y += 60
+    draw.text((x, y), f"{data['sup']}  ·  {data['dorm']}  ·  {data['banios']}", font=F_SANS(30), fill=CREMA)
+    y += 42
+    draw.text((x, y), data["extras"], font=F_SANS(24), fill=(*CREMA,170))
+    y += 56
 
-# QR (derecha)
-qr_size = 340
-qr = qrcode.QRCode(version=2, box_size=9, border=2,
-                   error_correction=qrcode.constants.ERROR_CORRECT_M)
-qr.add_data(DATA["qr_url"])
-qr.make(fit=True)
-qr_img = qr.make_image(fill_color=CREMA, back_color=CARBON).convert("RGB")
-qr_img = qr_img.resize((qr_size, qr_size), Image.LANCZOS)
-qr_x = W - MARGIN - qr_size
-qr_y = y + 8
-img.paste(qr_img, (qr_x, qr_y))
-draw.text((qr_x + qr_size // 2, qr_y + qr_size + 32),
-          "Escaneá para ver más", font=font(F_SANS, 36), fill=PIEDRA, anchor="mm")
+    draw.line([x, y, x+inner_w, y], fill=(*CHAMPAGNE, 90), width=1)
+    y += 44
 
-# CONTACTO
-draw.text((MARGIN, y + 24),  DATA["tel"], font=font(F_SANS,   44), fill=CREMA)
-draw.text((MARGIN, y + 88),  DATA["web"], font=font(F_SANS_B, 44), fill=ARENA)
+    draw.text((x, y), "WhatsApp", font=F_SANS_B(22), fill=(*CHAMPAGNE,220))
+    y += 34
+    draw.text((x, y), WHATSAPP_NUMBER, font=F_SERIF_B(36), fill=CREMA)
+    y += 56
+    draw.text((x, y), "Instagram", font=F_SANS_B(22), fill=(*CHAMPAGNE,220))
+    y += 34
+    draw.text((x, y), INSTAGRAM_HANDLE, font=F_SERIF_B(36), fill=CREMA)
+    y += 60
 
-# PIE
-foot_y = H - 56
-draw.line([MARGIN, foot_y - 16, W - MARGIN, foot_y - 16], fill=PIEDRA, width=1)
-draw.text((MARGIN, foot_y),
-          "Gutleber & Asoc.  ·  Corredores Inmobiliarios Matriculados  ·  Posadas, Misiones",
-          font=font(F_SANS, 32), fill=(*PIEDRA, 160), anchor="lm")
+    qr_size = 240
+    qr = qrcode.QRCode(version=3, box_size=8, border=1, error_correction=qrcode.constants.ERROR_CORRECT_M)
+    mensaje = f"Hola, quiero mas informacion sobre {data['direccion']}"
+    qr.add_data(f"https://wa.me/{WHATSAPP_WA_ME}?text={mensaje}")
+    qr.make(fit=True)
+    qr_img = qr.make_image(fill_color="black", back_color="white").convert("RGB")
+    qr_img = qr_img.resize((qr_size, qr_size), Image.LANCZOS)
+    qr_bg_pad = 16
+    draw.rounded_rectangle([x, y, x+qr_size+qr_bg_pad*2, y+qr_size+qr_bg_pad*2], radius=14, fill=CREMA)
+    panel.paste(qr_img, (x+qr_bg_pad, y+qr_bg_pad))
+    draw.text((x+qr_size+qr_bg_pad*2+22, y+qr_size//2 - 20), "Escaneá y", font=F_SANS(24), fill=CREMA)
+    draw.text((x+qr_size+qr_bg_pad*2+22, y+qr_size//2 + 10), "escribinos", font=F_SANS(24), fill=CREMA)
+    y += qr_size + qr_bg_pad*2 + 50
 
-# ── GUARDAR ───────────────────────────────────────────────────────────────────
-out = os.path.join(os.path.dirname(__file__), "cartel_propiedad_preview.png")
-img.save(out, "PNG", dpi=(150, 150))
-print(f"✓ {out}  ({W}x{H}px — {W/150*2.54:.0f}x{H/150*2.54:.0f} cm @ 150dpi)")
+    draw.line([x, y, x+inner_w, y], fill=(*CHAMPAGNE, 90), width=1)
+    y += 30
+    draw.text((x, y), "Corredores Inmobiliarios Matriculados", font=F_SANS(18), fill=(*CREMA,160))
+    y += 26
+    draw.text((x, y), "Posadas, Misiones", font=F_SANS(18), fill=(*CREMA,160))
+    y += 50
+
+    return panel.crop((0, 0, panel_w, y))
+
+
+def rounded_mask(w, h, radius):
+    mask = Image.new("L", (w, h), 0)
+    d = ImageDraw.Draw(mask)
+    d.rounded_rectangle([0, 0, w-1, h-1], radius=radius, fill=255)
+    return mask
+
+
+def generar_cartel_v2(data, out_name, photo_path=None):
+    canvas = Image.new("RGB", (W, H), CREMA)
+
+    # ── FOTO A PANTALLA COMPLETA (sin marquesina) ─────────────────────────────
+    if photo_path and os.path.exists(photo_path):
+        photo = Image.open(photo_path).convert("RGB")
+        scale = max(W/photo.width, H/photo.height)
+        photo = photo.resize((int(photo.width*scale), int(photo.height*scale)), Image.LANCZOS)
+        cx = (photo.width - W)//2
+        cy = (photo.height - H)//2
+        photo = photo.crop((cx, cy, cx+W, cy+H))
+    else:
+        photo = placeholder_photo(W, H)
+    canvas.paste(photo, (0, 0))
+
+    # viñeta para que el panel flotante resalte sobre la foto
+    vign = Image.new("L", (W, H), 0)
+    vd = ImageDraw.Draw(vign)
+    vd.rectangle([int(W*0.52), 0, W, H], fill=110)
+    vign = vign.filter(ImageFilter.GaussianBlur(160))
+    dark = Image.new("RGB", (W, H), (0,0,0))
+    canvas = Image.composite(dark, canvas, vign.point(lambda p: int(p*0.55)))
+
+    # ── PANEL FLOTANTE, ALINEADO AL COSTADO DERECHO DE LA FOTO ────────────────
+    margin = 110
+    panel_w = int(W * 0.40)
+    radius = 36
+
+    panel_rgba = build_panel_content(panel_w, data)
+    panel_h = panel_rgba.height
+    mask = rounded_mask(panel_w, panel_h, radius)
+    panel_rgba.putalpha(Image.composite(panel_rgba.split()[3], Image.new("L", (panel_w, panel_h), 0), mask))
+
+    panel_x0 = W - margin - panel_w
+    avail_h = H - margin*2
+    panel_y0 = margin + max(0, (avail_h - panel_h)//2)
+
+    # sombra
+    canvas_rgba = canvas.convert("RGBA")
+    shadow = Image.new("RGBA", (W, H), (0,0,0,0))
+    sd = ImageDraw.Draw(shadow)
+    sd.rounded_rectangle([panel_x0+16, panel_y0+24, panel_x0+panel_w+16, panel_y0+panel_h+24],
+                          radius=radius, fill=(0,0,0,130))
+    shadow = shadow.filter(ImageFilter.GaussianBlur(28))
+    canvas_rgba = Image.alpha_composite(canvas_rgba, shadow)
+    canvas_rgba.paste(panel_rgba, (panel_x0, panel_y0), panel_rgba)
+
+    draw = ImageDraw.Draw(canvas_rgba, "RGBA")
+    draw.rounded_rectangle([panel_x0, panel_y0, panel_x0+panel_w, panel_y0+panel_h],
+                            radius=radius, outline=(*CHAMPAGNE, 210), width=2)
+
+    canvas = canvas_rgba.convert("RGB")
+
+    out = os.path.join(os.path.dirname(__file__), out_name)
+    canvas.save(out, "PNG", dpi=(150,150))
+    print(f"✓ {out}  panel_h={panel_h}")
+
+
+DATA_VENTA = {
+    "tipo": "EN VENTA",
+    "direccion": "RIVADAVIA 1450",
+    "barrio": "Centro · Posadas",
+    "precio": "USD 95.000",
+    "sup": "120 m²", "dorm": "3 dorm.", "banios": "2 baños",
+    "extras": "Cochera · Balcón",
+}
+
+DATA_ALQUILER = {
+    "tipo": "EN ALQUILER",
+    "direccion": "SAN LORENZO 780",
+    "barrio": "Villa Sarita · Posadas",
+    "precio": "$ 380.000 /mes",
+    "sup": "85 m²", "dorm": "2 dorm.", "banios": "1 baño",
+    "extras": "Patio · Sin expensas",
+}
+
+if __name__ == "__main__":
+    generar_cartel_v2(DATA_VENTA, "cartel_venta_preview.png")
+    generar_cartel_v2(DATA_ALQUILER, "cartel_alquiler_preview.png")

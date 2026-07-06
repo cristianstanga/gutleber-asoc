@@ -1,0 +1,40 @@
+{
+  "$schema": "brand config — Gutleber & Asociados",
+  "nombre": "Gutleber & Asociados",
+  "descriptor": "Negocios Inmobiliarios",
+  "tagline": "gestión · inversión · patrimonio",
+  "colores": {
+    "petroleo": "#0F2233",
+    "champagne": "#C8A96B",
+    "crema": "#F5EFE3",
+    "carbon": "#1A1A18"
+  },
+  "tipografia": {
+    "display": "Georgia",
+    "cuerpo": "Arial, Inter"
+  },
+  "logo": {
+    "emblema_claro_svg": "brand/logo/gutleber_emblema.svg",
+    "emblema_oscuro_svg": "brand/logo/gutleber_emblema_oscuro.svg",
+    "emblema_monocromo_svg": "brand/logo/gutleber_emblema_monocromo.svg",
+    "horizontal_png": "brand/logo/gutleber_logo_horizontal_2x.png",
+    "vertical_png": "brand/logo/gutleber_logo_vertical_2x.png"
+  },
+  "contacto": {
+    "whatsapp_display": "+54 9 3765 41-0765",
+    "whatsapp_wa_me": "5493765410765",
+    "instagram_handle": "@gutleberasociados",
+    "whatsapp_integracion": "apps/api/src/services/whatsapp-meta.ts (Meta Cloud API oficial)"
+  },
+  "instagram": {
+    "username": "gutleberasociados",
+    "username_alternativo": "gutleber.asoc",
+    "nombre_visible": "Gutleber & Asociados",
+    "categoria_cuenta": "Agencia inmobiliaria",
+    "bio": "Gutleber & Asociados — gestión, inversión y patrimonio inmobiliario. Posadas, Misiones. El propietario siempre sabe qué pasa con su propiedad."
+  },
+  "notas": {
+    "no_usar": "Paleta anterior navy #0F172A / copper #B45309, y paleta tierra Carbón/Piedra/Arena/Crema del brief original — ambas descartadas.",
+    "documento_referencia": "Gutleber_Ecosistema_Marca.docx (raíz del proyecto)"
+  }
+}
