@@ -99,10 +99,11 @@ function drawCard(
   embImg: HTMLImageElement | null,
 ) {
   ctx.clearRect(0, 0, W, H)
-  const FM  = Math.round(W * 0.033)  // float margin ~36px a 1080
-  const IPAD = Math.round(W * 0.026) // inner padding ~28px
+  const M      = Math.round(W * 0.038)
+  const STRIP_H = Math.round(W * 0.265)  // franja de datos — fija por ancho
+  const PH      = H - STRIP_H
 
-  // ── Foto ─────────────────────────────────────────────────────────────────
+  // ── Foto — ocupa todo el canvas (incluye zona franja) ─────────────────────
   if (img && img.complete && img.naturalWidth > 0) {
     ctx.save()
     ctx.beginPath(); ctx.rect(0, 0, W, H); ctx.clip()
@@ -115,140 +116,128 @@ function drawCard(
     ctx.restore()
   } else {
     const g = ctx.createLinearGradient(0, 0, W, H)
-    g.addColorStop(0, '#B0A090'); g.addColorStop(1, '#3A3835')
+    g.addColorStop(0, '#1C3A52'); g.addColorStop(1, '#0A1A28')
     ctx.fillStyle = g; ctx.fillRect(0, 0, W, H)
   }
 
-  // ── Gradientes de legibilidad (sin paneles sólidos) ────────────────────────
-  // Izquierda: oscurece la columna de texto
-  const gLeft = ctx.createLinearGradient(0, 0, W * 0.62, 0)
-  gLeft.addColorStop(0,    'rgba(8,18,28,0.82)')
-  gLeft.addColorStop(0.65, 'rgba(8,18,28,0.12)')
-  gLeft.addColorStop(1,    'rgba(0,0,0,0)')
-  ctx.fillStyle = gLeft; ctx.fillRect(0, 0, W, H)
+  // ── Gradiente arriba — para el ribbon ─────────────────────────────────────
+  const gT = ctx.createLinearGradient(0, 0, 0, H * 0.18)
+  gT.addColorStop(0, 'rgba(8,18,28,0.55)'); gT.addColorStop(1, 'rgba(0,0,0,0)')
+  ctx.fillStyle = gT; ctx.fillRect(0, 0, W, H * 0.18)
 
-  // Arriba suave
-  const gTop = ctx.createLinearGradient(0, 0, 0, H * 0.22)
-  gTop.addColorStop(0, 'rgba(8,18,28,0.72)')
-  gTop.addColorStop(1, 'rgba(0,0,0,0)')
-  ctx.fillStyle = gTop; ctx.fillRect(0, 0, W, H * 0.22)
+  // ── Degrade petróleo desde ~55% → sólido al final (el "degrade" que pediste) ─
+  const gStrip = ctx.createLinearGradient(0, H * 0.54, 0, H)
+  gStrip.addColorStop(0,    'rgba(15,34,51,0)')
+  gStrip.addColorStop(0.30, 'rgba(15,34,51,0.72)')
+  gStrip.addColorStop(0.60, 'rgba(15,34,51,0.92)')
+  gStrip.addColorStop(1,    'rgba(15,34,51,0.98)')
+  ctx.fillStyle = gStrip; ctx.fillRect(0, H * 0.54, W, H * 0.46)
 
-  // Abajo suave
-  const gBot = ctx.createLinearGradient(0, H, 0, H * 0.40)
-  gBot.addColorStop(0, 'rgba(8,18,28,0.88)')
-  gBot.addColorStop(1, 'rgba(0,0,0,0)')
-  ctx.fillStyle = gBot; ctx.fillRect(0, H * 0.40, W, H * 0.60)
+  // ── Ribbon diagonal — top-right ───────────────────────────────────────────
+  const rlabel = s.operacion === 'ambas' ? 'ALQUILER / VENTA'
+    : s.operacion === 'alquiler' ? 'EN ALQUILER' : 'EN VENTA'
+  const rBg = s.operacion === 'venta' ? C.crema : C.champagne
+  ctx.save()
+  ctx.translate(W, 0)
+  ctx.rotate(Math.PI / 4)
+  const rBW = Math.round(W * 0.42), rBH = Math.round(W * 0.062), rCY = Math.round(W * 0.155)
+  ctx.fillStyle = rBg
+  ctx.fillRect(-rBW / 2, rCY - rBH / 2, rBW, rBH)
+  ctx.font = `bold ${Math.round(rBH * 0.50)}px WorkSans`
+  ctx.fillStyle = C.carbon; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'
+  ctx.fillText(rlabel, 0, rCY)
+  ctx.restore()
 
-  ctx.shadowColor = 'rgba(0,0,0,0.55)'
-  ctx.shadowBlur  = 5
+  // ── Texto sobre foto — TIPO + dirección (arranca en la zona de degrade) ───
+  ctx.shadowColor = 'rgba(0,0,0,0.65)'; ctx.shadowBlur = 6
 
-  // ── Marca — top-left, sin fondo ──────────────────────────────────────────
-  let emblemaRX = FM
-  if (embImg && embImg.complete && embImg.naturalWidth > 0) {
-    const eh = Math.round(H * 0.053)
-    const ew = Math.round(eh * embImg.naturalWidth / embImg.naturalHeight)
-    ctx.drawImage(embImg, FM, FM + 4, ew, eh)
-    emblemaRX = FM + ew + 14
-  }
-  const bY1 = FM + Math.round(H * 0.027)
-  const bY2 = bY1 + Math.round(H * 0.022)
-  ctx.font = `bold ${Math.round(H * 0.021)}px WorkSans`
-  ctx.fillStyle = C.crema; ctx.textBaseline = 'alphabetic'; ctx.textAlign = 'left'
-  ctx.fillText('GUTLEBER & ASOCIADOS', emblemaRX, bY1)
-  ctx.font = `${Math.round(H * 0.012)}px WorkSans`
-  ctx.fillStyle = C.champagne; ctx.globalAlpha = 0.82
-  ctx.fillText('NEGOCIOS INMOBILIARIOS  ·  POSADAS, MISIONES', emblemaRX, bY2)
+  const tipoFsz = Math.round(W * 0.068)
+  ctx.font = `bold ${tipoFsz}px Lora`
+  ctx.fillStyle = C.white; ctx.textBaseline = 'alphabetic'; ctx.textAlign = 'left'
+  ctx.fillText(s.tipo.toUpperCase(), M, PH - Math.round(W * 0.074))
+
+  const dirFsz2 = Math.round(W * 0.026)
+  ctx.font = `${dirFsz2}px WorkSans`
+  ctx.fillStyle = C.champagne; ctx.globalAlpha = 0.90
+  const blt = '• '
+  ctx.fillText(blt, M, PH - Math.round(W * 0.034))
+  ctx.fillStyle = C.crema
+  ctx.fillText(s.direccion || 'Dirección de la propiedad', M + ctx.measureText(blt).width, PH - Math.round(W * 0.034))
   ctx.globalAlpha = 1
 
-  // ── Bloque datos — bottom-left ────────────────────────────────────────────
-  const BX   = FM
-  const MAXW = W * 0.68
-
-  const dirFsz  = Math.round(H * 0.044)
-  ctx.font = `bold ${dirFsz}px Lora`
-  const dirLines = wrapText(ctx, s.direccion || 'DIRECCIÓN DE LA PROPIEDAD', MAXW).slice(0, 2)
-
-  const hasPrecio  = !!(s.precio && +s.precio > 0)
-  const badgeFsz   = Math.round(H * 0.015)
-  const badgeH     = badgeFsz + 18
-  const pFsz       = Math.round(H * 0.048)
-  const atribFsz   = Math.round(H * 0.019)
-  const footerFsz  = Math.round(H * 0.014)
-
-  // Construir bottom-up desde el margen inferior
-  let cy = H - FM - 6
-
-  // Footer
-  ctx.font = `${footerFsz}px WorkSans`
-  ctx.fillStyle = C.champagne; ctx.globalAlpha = 0.68
-  ctx.textBaseline = 'alphabetic'; ctx.textAlign = 'left'
-  ctx.fillText('@gutleberasociados  ·  gutleberyasociados.com', BX, cy)
-  ctx.globalAlpha = 1
-  cy -= footerFsz + 14
-
-  // Divisor
+  // ── Precio — pill bottom-right ────────────────────────────────────────────
   ctx.shadowBlur = 0
-  ctx.fillStyle = C.champagne; ctx.globalAlpha = 0.32
-  ctx.fillRect(BX, cy, Math.round(W * 0.42), 1)
-  ctx.globalAlpha = 1
-  ctx.shadowBlur = 5
-  cy -= atribFsz + 12
-
-  // Atributos en línea
-  const atribs: string[] = []
-  if (s.superficie)   atribs.push(`${s.superficie} m²`)
-  if (s.habitaciones) atribs.push(`${s.habitaciones} dorm.`)
-  if (s.banos)        atribs.push(`${s.banos} baño${+s.banos !== 1 ? 's' : ''}`)
-  s.caracts.forEach(c => atribs.push(c.toLowerCase()))
-  if (atribs.length > 0) {
-    ctx.font = `${atribFsz}px WorkSans`
-    ctx.fillStyle = C.crema; ctx.globalAlpha = 0.85
-    ctx.textBaseline = 'alphabetic'; ctx.textAlign = 'left'
-    ctx.fillText(atribs.join('  ·  '), BX, cy)
-    ctx.globalAlpha = 1
-    cy -= atribFsz + 20
-  }
-
-  // Precio
+  const hasPrecio = !!(s.precio && +s.precio > 0)
   if (hasPrecio) {
-    const precioFmt = s.moneda === 'ARS'
-      ? new Intl.NumberFormat('es-AR', { style: 'currency', currency: 'ARS', maximumFractionDigits: 0 }).format(+s.precio)
+    const pFmt = s.moneda === 'ARS'
+      ? `AR$ ${new Intl.NumberFormat('es-AR', { maximumFractionDigits: 0 }).format(+s.precio)}`
       : `USD ${new Intl.NumberFormat('es-AR').format(+s.precio)}`
-    ctx.font = `bold ${pFsz}px Lora`
-    ctx.fillStyle = C.champagne; ctx.textBaseline = 'alphabetic'; ctx.textAlign = 'left'
-    ctx.fillText(precioFmt, BX, cy)
+    const pFsz = Math.round(W * 0.025)
+    ctx.font = `bold ${pFsz}px WorkSans`
+    const pW = ctx.measureText(pFmt).width + 36, pH2 = pFsz + 24
+    const pX = W - M - pW, pY = PH - Math.round(W * 0.128)
+    ctx.fillStyle = C.petroleo; ctx.globalAlpha = 0.88
+    rr(ctx, pX, pY, pW, pH2, 8)
+    ctx.globalAlpha = 1
+    ctx.fillStyle = C.champagne; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'
+    ctx.fillText(pFmt, pX + pW / 2, pY + pH2 / 2)
     if (s.operacion !== 'venta') {
-      const pw = ctx.measureText(precioFmt).width
-      ctx.font = `${Math.round(H * 0.016)}px WorkSans`
+      ctx.font = `${Math.round(pFsz * 0.64)}px WorkSans`
       ctx.fillStyle = C.crema; ctx.globalAlpha = 0.62
-      ctx.fillText(' / mes', BX + pw, cy)
+      ctx.fillText('/ mes', pX + pW / 2, pY + pH2 / 2 + pFsz * 0.88)
       ctx.globalAlpha = 1
     }
-    cy -= pFsz + 16
   }
-
-  // Dirección
-  ctx.font = `bold ${dirFsz}px Lora`
-  ctx.fillStyle = C.white; ctx.textBaseline = 'alphabetic'; ctx.textAlign = 'left'
-  for (let i = dirLines.length - 1; i >= 0; i--) {
-    ctx.fillText(dirLines[i], BX, cy)
-    cy -= Math.round(dirFsz * 1.18)
-  }
-  cy -= 14
-
-  // Badge operación
-  ctx.shadowBlur = 0
-  ctx.font = `bold ${badgeFsz}px WorkSans`
-  const modoLabel = s.operacion === 'ambas' ? 'ALQUILER · VENTA'
-    : s.operacion === 'alquiler' ? 'EN ALQUILER' : 'EN VENTA'
-  const modoBg = s.operacion === 'venta' ? C.crema : C.champagne
-  const modoBW = ctx.measureText(modoLabel).width + 32
-  ctx.fillStyle = modoBg
-  rr(ctx, BX, cy - badgeH, modoBW, badgeH, badgeH / 2)
-  ctx.fillStyle = C.carbon; ctx.textBaseline = 'middle'; ctx.textAlign = 'center'
-  ctx.fillText(modoLabel, BX + modoBW / 2, cy - badgeH / 2)
-
   ctx.shadowColor = 'transparent'; ctx.shadowBlur = 0
+
+  // ── Franja datos (flotando sobre el degrade) ──────────────────────────────
+  // NO hay fillRect sólido — el degrade de arriba ya da el fondo
+  // Línea decorativa champagne muy sutil
+  ctx.fillStyle = C.champagne; ctx.globalAlpha = 0.25
+  ctx.fillRect(M, PH + Math.round(STRIP_H * 0.08), W - M * 2, 1)
+  ctx.globalAlpha = 1
+
+  const SP  = M
+  const SMY = PH + STRIP_H / 2
+
+  // Atributos — columna izquierda
+  const atribs: string[] = []
+  if (s.superficie)   atribs.push(`${s.superficie} m²`)
+  if (s.habitaciones) atribs.push(+s.habitaciones === 1 ? '1 habitación' : `${s.habitaciones} habitaciones`)
+  if (s.banos)        atribs.push(+s.banos === 1 ? '1 baño' : `${s.banos} baños`)
+  s.caracts.forEach(c => atribs.push(c))
+
+  const aFsz   = Math.round(W * 0.021)
+  const aLineH = Math.round(aFsz * 1.60)
+  let ay = SMY - (atribs.length * aLineH) / 2 + aFsz
+
+  atribs.forEach((a, i) => {
+    ctx.font         = i === 0 ? `bold ${aFsz}px WorkSans` : `${aFsz}px WorkSans`
+    ctx.fillStyle    = i === 0 ? C.champagne : C.crema
+    ctx.globalAlpha  = i === 0 ? 1 : 0.80
+    ctx.textAlign    = 'left'; ctx.textBaseline = 'alphabetic'
+    ctx.fillText(a, SP, ay)
+    ctx.globalAlpha  = 1
+    ay += aLineH
+  })
+
+  // Logo + firma — columna derecha
+  const embH = Math.round(STRIP_H * 0.44)
+  const embW = embImg ? Math.round(embH * embImg.naturalWidth / embImg.naturalHeight) : 0
+  const logoX = W - SP - embW - M * 0.2
+  if (embImg && embImg.complete && embImg.naturalWidth > 0) {
+    ctx.drawImage(embImg, logoX, SMY - embH / 2, embW, embH)
+  }
+  const fFsz = Math.round(W * 0.019)
+  const firmX = logoX - 14
+  ctx.font = `bold ${fFsz}px WorkSans`
+  ctx.fillStyle = C.crema; ctx.textAlign = 'right'; ctx.textBaseline = 'alphabetic'
+  ctx.fillText('GUTLEBER', firmX, SMY - fFsz * 0.10)
+  ctx.fillText('& ASOCIADOS', firmX, SMY + fFsz * 1.30)
+  ctx.font = `${Math.round(fFsz * 0.72)}px WorkSans`
+  ctx.fillStyle = C.champagne; ctx.globalAlpha = 0.78
+  ctx.fillText('NEGOCIOS INMOBILIARIOS', firmX, SMY + fFsz * 2.65)
+  ctx.globalAlpha = 1
 }
 
 // ── Componente principal ──────────────────────────────────────────────────────
@@ -291,10 +280,14 @@ export default function TarjetaBuilder() {
       const p = r.data
       const operacion: Operacion = p.enAlquiler && p.enVenta ? 'ambas' : p.enAlquiler ? 'alquiler' : 'venta'
       const precio = p.enAlquiler ? (p.alquilerBase ?? '') : (p.valorVenta ?? '')
-      // Strip the API origin so images go through Vite proxy (same-origin → no canvas taint)
-      const fotos: string[] = (p.imagenes ?? []).map((img: { url: string }) =>
-        img.url.replace(/^https?:\/\/localhost:\d+/, '')
-      )
+      // Normalizar URLs: mismo hostname → path relativo (evita CORS en canvas)
+      const fotos: string[] = (p.imagenes ?? []).map((img: { url: string }) => {
+        try {
+          const u = new URL(img.url, window.location.href)
+          if (u.hostname === window.location.hostname) return u.pathname + u.search
+          return img.url
+        } catch { return img.url }
+      })
       setPropNombre(p.direccion ?? '')
       setS(prev => ({
         ...prev,
