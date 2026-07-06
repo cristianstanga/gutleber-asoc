@@ -28,7 +28,7 @@ export async function alertarVisita(params: {
   diaHorario: string
   conversacionId: string
 }): Promise<void> {
-  const url = `${process.env.APP_URL ?? 'https://crm.gutleber.com.ar'}/conversaciones`
+  const url = `${process.env.APP_URL ?? 'https://app.gutleberyasociados.com'}/conversaciones`
   const msg = [
     '🏠 *Nueva visita solicitada*',
     `👤 ${params.nombre}`,
@@ -45,7 +45,7 @@ export async function alertarRedFlag(params: {
   motivo: string
   conversacionId: string
 }): Promise<void> {
-  const url = `${process.env.APP_URL ?? 'https://crm.gutleber.com.ar'}/conversaciones`
+  const url = `${process.env.APP_URL ?? 'https://app.gutleberyasociados.com'}/conversaciones`
   const msg = [
     '🚨 *Atención requerida*',
     `👤 ${params.nombre || params.numero}`,

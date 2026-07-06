@@ -14,9 +14,9 @@ function createTransport() {
 }
 
 export async function sendPasswordResetEmail(email: string, token: string) {
-  const baseUrl = 'https://app.automatizapp.pro'
+  const baseUrl = process.env.APP_URL || 'https://app.gutleberyasociados.com'
   const resetUrl = `${baseUrl}/reset-password?token=${token}`
-  const from = 'sistema@automatizapp.pro'
+  const from = process.env.SMTP_FROM || 'sistema@gutleberyasociados.com'
 
   if (!process.env.SMTP_PASS) {
     logger.warn(`📧 SMTP_PASS no configurado — token de reset para ${email}: ${token}`)
