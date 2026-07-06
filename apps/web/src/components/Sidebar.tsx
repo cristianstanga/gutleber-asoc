@@ -68,9 +68,13 @@ export default function Sidebar({ onClose }: { onClose?: () => void } = {}) {
   return (
     <aside className="w-64 md:w-56 h-full min-h-screen bg-carbon flex flex-col" style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}>
       <div className="px-4 py-5 border-b border-white/10 flex items-start justify-between">
-        <div>
-          <img src="/emblema.svg" alt="Gutleber & Asoc." className="w-10 h-auto mb-2" />
-          <p className="text-[9px] text-piedra tracking-[0.2em]">GESTIÓN · INVERSIÓN · PATRIMONIO</p>
+        <div className="flex items-center gap-3">
+          <img src="/emblema.svg" alt="Gutleber & Asoc." className="w-9 h-auto flex-shrink-0" />
+          <div>
+            <p className="font-display text-crema text-[13px] font-bold tracking-wider leading-tight">GUTLEBER</p>
+            <p className="font-display text-crema text-[13px] font-bold tracking-wider leading-tight">&amp; ASOCIADOS</p>
+            <p className="text-champagne text-[8px] tracking-[0.18em] mt-0.5 opacity-80">NEGOCIOS INMOBILIARIOS</p>
+          </div>
         </div>
         {onClose && (
           <button onClick={onClose} className="text-arena hover:text-white mt-1 p-1 rounded transition-colors md:hidden">

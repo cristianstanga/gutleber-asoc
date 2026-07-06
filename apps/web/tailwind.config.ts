@@ -5,10 +5,13 @@ export default {
   theme: {
     extend: {
       colors: {
-        carbon: '#2C2C2A',
-        piedra: '#8C7B6B',
-        arena: '#C4B09A',
-        crema: '#F0E8DC',
+        carbon:    '#1A1A18',
+        petroleo:  '#0F2233',
+        champagne: '#C8A96B',
+        crema:     '#F5EFE3',
+        // aliases para compatibilidad con clases existentes
+        piedra:    '#0F2233',
+        arena:     '#C8A96B',
       },
       fontFamily: {
         display: ['Georgia', 'serif'],

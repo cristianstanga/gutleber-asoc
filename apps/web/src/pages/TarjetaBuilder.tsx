@@ -5,11 +5,14 @@ import { api } from '../lib/api'
 
 // ── Paleta de marca ───────────────────────────────────────────────────────────
 const C = {
-  carbon:  '#2C2C2A',
-  piedra:  '#8C7B6B',
-  arena:   '#C4B09A',
-  crema:   '#F0E8DC',
-  white:   '#FFFFFF',
+  petroleo:   '#0F2233',
+  champagne:  '#C8A96B',
+  crema:      '#F5EFE3',
+  carbon:     '#1A1A18',
+  white:      '#FFFFFF',
+  headerBg:   'rgba(15,34,51,0.90)',
+  panelBg:    'rgba(15,34,51,0.93)',
+  champagneD: 'rgba(200,169,107,0.85)',
 }
 
 // ── Catálogos ─────────────────────────────────────────────────────────────────
@@ -87,31 +90,13 @@ function wrapText(ctx: CanvasRenderingContext2D, text: string, maxW: number): st
   return lines
 }
 
-function drawEmblema(ctx: CanvasRenderingContext2D, cx: number, cy: number, size = 38) {
-  const r   = size / 2
-  const lw  = Math.max(1.2, size / 22)
-  ctx.strokeStyle = C.crema
-  ctx.lineWidth   = lw
-  ctx.globalAlpha = 0.92
-  ctx.beginPath(); ctx.arc(cx, cy, r, 0, Math.PI * 2); ctx.stroke()
-  const ai = r * 0.52, ay = cy - r * 0.08
-  ctx.beginPath(); ctx.arc(cx, ay, ai, Math.PI, 0); ctx.stroke()
-  const jh = ai * 0.55
-  ctx.beginPath(); ctx.moveTo(cx - ai, ay); ctx.lineTo(cx - ai, ay + jh); ctx.stroke()
-  ctx.beginPath(); ctx.moveTo(cx + ai, ay); ctx.lineTo(cx + ai, ay + jh); ctx.stroke()
-  ctx.fillStyle = C.crema
-  ctx.beginPath(); ctx.arc(cx, ay + ai * 0.18, Math.max(2, lw + 0.5), 0, Math.PI * 2); ctx.fill()
-  const tipY = cy + r + size * 0.52, pw = Math.max(3, size / 6)
-  ctx.beginPath(); ctx.moveTo(cx - pw, cy + r - 2); ctx.lineTo(cx + pw, cy + r - 2); ctx.lineTo(cx, tipY); ctx.closePath(); ctx.fill()
-  ctx.globalAlpha = 1
-}
-
 // ── Función principal de dibujo ───────────────────────────────────────────────
 function drawCard(
   ctx: CanvasRenderingContext2D,
   W: number, H: number,
   s: CardState,
   img: HTMLImageElement | null,
+  embImg: HTMLImageElement | null,
 ) {
   ctx.clearRect(0, 0, W, H)
   const FM  = Math.round(W * 0.033)  // float margin ~36px a 1080
@@ -149,23 +134,29 @@ function drawCard(
   // ── Header flotante ───────────────────────────────────────────────────────
   const HH = Math.round(H * 0.076)  // ~82px
   const HW = W - FM * 2
-  ctx.fillStyle = 'rgba(44,44,42,0.88)'; rr(ctx, FM, FM, HW, HH, 16)
-  const ecx = FM + Math.round(HH * 0.54)
-  const ecy = FM + HH / 2 - 2
-  drawEmblema(ctx, ecx, ecy, Math.round(HH * 0.58))
-  const nx = ecx + Math.round(HH * 0.44)
+  ctx.fillStyle = C.headerBg; rr(ctx, FM, FM, HW, HH, 16)
+
+  // Emblema SVG
+  const EP = 14  // padding izquierdo
+  let nx = FM + EP
+  if (embImg && embImg.complete && embImg.naturalWidth > 0) {
+    const eh = Math.round(HH * 0.62)
+    const ew = Math.round(eh * embImg.naturalWidth / embImg.naturalHeight)
+    ctx.drawImage(embImg, FM + EP, FM + (HH - eh) / 2, ew, eh)
+    nx = FM + EP + ew + 14
+  }
   ctx.font = `bold ${Math.round(H * 0.02)}px WorkSans`
   ctx.fillStyle = C.crema; ctx.textBaseline = 'alphabetic'; ctx.textAlign = 'left'
-  ctx.fillText('GUTLEBER & ASOC.', nx, FM + HH * 0.49)
+  ctx.fillText('GUTLEBER & ASOCIADOS', nx, FM + HH * 0.49)
   ctx.font = `${Math.round(H * 0.011)}px WorkSans`
-  ctx.fillStyle = C.arena; ctx.globalAlpha = 0.7
-  ctx.fillText('INMOBILIARIA BOUTIQUE  ·  POSADAS', nx, FM + HH * 0.78)
+  ctx.fillStyle = C.champagne; ctx.globalAlpha = 0.75
+  ctx.fillText('NEGOCIOS INMOBILIARIOS  ·  POSADAS, MISIONES', nx, FM + HH * 0.80)
   ctx.globalAlpha = 1
 
   // ── Badge de operación — grande, bajo el header ──────────────────────────
   const modoLabel = s.operacion === 'ambas' ? 'ALQUILER  ·  VENTA'
     : s.operacion === 'alquiler' ? 'EN ALQUILER' : 'EN VENTA'
-  const modoBg = s.operacion === 'venta' ? 'rgba(196,176,154,0.95)' : 'rgba(140,123,107,0.95)'
+  const modoBg = s.operacion === 'venta' ? C.crema : C.champagne
   const MFONT = `bold ${Math.round(H * 0.024)}px WorkSans`
   ctx.font = MFONT
   const mtw = ctx.measureText(modoLabel).width
@@ -200,7 +191,7 @@ function drawCard(
 
     characteristics.forEach((c, i) => {
       const py = startY + i * (pillH + pillGap)
-      ctx.fillStyle = 'rgba(30,30,28,0.82)'; rr(ctx, pillX, py, pillW, pillH, pillH / 2)
+      ctx.fillStyle = 'rgba(15,34,51,0.85)'; rr(ctx, pillX, py, pillW, pillH, pillH / 2)
       ctx.font = pillFont; ctx.fillStyle = C.white
       ctx.textBaseline = 'middle'; ctx.textAlign = 'center'
       ctx.fillText(c, pillX + pillW / 2, py + pillH / 2)
@@ -221,7 +212,7 @@ function drawCard(
   panelH = Math.min(panelH, Math.round(H * 0.36))
 
   const panelY = H - panelH - FM
-  ctx.fillStyle = 'rgba(36,36,34,0.92)'; rr(ctx, FM, panelY, PANEL_W, panelH, 18)
+  ctx.fillStyle = C.panelBg; rr(ctx, FM, panelY, PANEL_W, panelH, 18)
 
   let cy = panelY + IPAD
 
@@ -230,8 +221,8 @@ function drawCard(
   ctx.font = `bold ${tipoBadgeFsz}px WorkSans`
   const tbw = ctx.measureText(tipoLabel).width + 32
   const tbh = tipoBadgeFsz + 18
-  ctx.fillStyle = 'rgba(140,123,107,0.95)'; rr(ctx, FM + IPAD, cy, tbw, tbh, tbh / 2)
-  ctx.fillStyle = C.crema; ctx.textBaseline = 'middle'; ctx.textAlign = 'center'
+  ctx.fillStyle = C.champagneD; rr(ctx, FM + IPAD, cy, tbw, tbh, tbh / 2)
+  ctx.fillStyle = C.carbon; ctx.textBaseline = 'middle'; ctx.textAlign = 'center'
   ctx.fillText(tipoLabel, FM + IPAD + tbw / 2, cy + tbh / 2)
   cy += tbh + 12
 
@@ -253,24 +244,25 @@ function drawCard(
 
     const pFsz = Math.round(H * 0.05)
     ctx.font = `bold ${pFsz}px Lora`
-    ctx.fillStyle = C.white; ctx.textBaseline = 'top'; ctx.textAlign = 'left'
+    ctx.fillStyle = C.champagne; ctx.textBaseline = 'top'; ctx.textAlign = 'left'
     ctx.fillText(precioFmt, FM + IPAD, cy)
     if (s.operacion === 'alquiler') {
       const pw = ctx.measureText(precioFmt).width
       ctx.font = `${Math.round(H * 0.016)}px WorkSans`
-      ctx.fillStyle = C.arena; ctx.textBaseline = 'alphabetic'
+      ctx.fillStyle = C.crema; ctx.globalAlpha = 0.7; ctx.textBaseline = 'alphabetic'
       ctx.fillText('/ mes', FM + IPAD + pw + 12, cy + pFsz * 0.88)
+      ctx.globalAlpha = 1
     }
   }
 
   // Footer
   const footerY = H - 20
-  ctx.fillStyle = C.arena; ctx.globalAlpha = 0.6
+  ctx.fillStyle = C.champagne; ctx.globalAlpha = 0.5
   ctx.fillRect(FM, footerY - 6, 44, 3)
-  ctx.globalAlpha = 0.8
+  ctx.globalAlpha = 0.75
   ctx.font = `${Math.round(H * 0.013)}px WorkSans`
-  ctx.fillStyle = C.piedra; ctx.textBaseline = 'alphabetic'; ctx.textAlign = 'right'
-  ctx.fillText('gutleber.com.ar', W - FM, footerY)
+  ctx.fillStyle = C.champagne; ctx.textBaseline = 'alphabetic'; ctx.textAlign = 'right'
+  ctx.fillText('gutleberyasociados.com', W - FM, footerY)
   ctx.globalAlpha = 1
 }
 
@@ -285,6 +277,7 @@ export default function TarjetaBuilder() {
 
   const canvasRef   = useRef<HTMLCanvasElement>(null)
   const imgRef      = useRef<HTMLImageElement | null>(null)
+  const embRef      = useRef<HTMLImageElement | null>(null)
   const dragging    = useRef(false)
   const dragStart   = useRef({ x: 0, y: 0, ox: 0, oy: 0 })
   const [fontsOk, setFontsOk]     = useState(false)
@@ -297,9 +290,12 @@ export default function TarjetaBuilder() {
   const displayH = Math.round(DISPLAY_W * CH / CW)
   const ratio    = CW / DISPLAY_W
 
-  // Load fonts once
+  // Load fonts + emblema once
   useEffect(() => {
     ensureFonts().then(() => setFontsOk(true))
+    const e = new Image()
+    e.onload = () => { embRef.current = e }
+    e.src = '/emblema_oscuro.svg'
   }, [])
 
   // Pre-fill from property when ?propId is present
@@ -345,7 +341,7 @@ export default function TarjetaBuilder() {
     if (!canvas) return
     const ctx = canvas.getContext('2d')
     if (!ctx) return
-    drawCard(ctx, CW, CH, s, imgRef.current)
+    drawCard(ctx, CW, CH, s, imgRef.current, embRef.current)
   }, [s, CW, CH])
 
   useEffect(() => { if (fontsOk) redraw() }, [s, fontsOk, redraw])
