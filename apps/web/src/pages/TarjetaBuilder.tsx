@@ -196,19 +196,19 @@ function drawCard(
 
   const LOGO_ZONE = Math.round(W * 0.27)
   const DATA_W    = W - SP * 2 - LOGO_ZONE
-  const COLS      = 4
-  const ROWS      = 3
+  const COLS      = 3
+  const ROWS      = 4
   const cellW     = DATA_W / COLS
   const aFsz      = Math.round(W * 0.020)
-  const rowH      = Math.round(STRIP_H * 0.295)
+  const rowH      = Math.round(STRIP_H * 0.222)
   const gridTop   = PH + (STRIP_H - rowH * ROWS) / 2 + Math.round(aFsz * 0.85)
 
   atribs.slice(0, COLS * ROWS).forEach((a, i) => {
     const col = i % COLS
     const row = Math.floor(i / COLS)
-    ctx.font         = i === 0 ? `bold ${aFsz}px WorkSans` : `${aFsz}px WorkSans`
-    ctx.fillStyle    = i === 0 ? C.champagne : C.crema
-    ctx.globalAlpha  = i === 0 ? 1 : 0.80
+    ctx.font         = `bold ${aFsz}px WorkSans`
+    ctx.fillStyle    = row === 0 ? C.champagne : C.crema
+    ctx.globalAlpha  = row === 0 ? 1 : 0.85
     ctx.textAlign    = 'left'; ctx.textBaseline = 'alphabetic'
     ctx.fillText(a, SP + col * cellW, gridTop + row * rowH)
     ctx.globalAlpha  = 1
