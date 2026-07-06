@@ -113,13 +113,13 @@ function drawCard(
   gT.addColorStop(0, 'rgba(8,18,28,0.55)'); gT.addColorStop(1, 'rgba(0,0,0,0)')
   ctx.fillStyle = gT; ctx.fillRect(0, 0, W, H * 0.18)
 
-  // ── Degrade petróleo desde ~55% → sólido al final (el "degrade" que pediste) ─
-  const gStrip = ctx.createLinearGradient(0, H * 0.54, 0, H)
+  // ── Degrade petróleo desde ~63% → sólido al final ────────────────────────
+  const gStrip = ctx.createLinearGradient(0, H * 0.63, 0, H)
   gStrip.addColorStop(0,    'rgba(15,34,51,0)')
-  gStrip.addColorStop(0.30, 'rgba(15,34,51,0.72)')
-  gStrip.addColorStop(0.60, 'rgba(15,34,51,0.92)')
+  gStrip.addColorStop(0.28, 'rgba(15,34,51,0.70)')
+  gStrip.addColorStop(0.58, 'rgba(15,34,51,0.93)')
   gStrip.addColorStop(1,    'rgba(15,34,51,0.98)')
-  ctx.fillStyle = gStrip; ctx.fillRect(0, H * 0.54, W, H * 0.46)
+  ctx.fillStyle = gStrip; ctx.fillRect(0, H * 0.63, W, H * 0.37)
 
   // ── Ribbon diagonal — top-right ───────────────────────────────────────────
   const rlabel = s.operacion === 'ambas' ? 'ALQUILER / VENTA'
@@ -136,21 +136,20 @@ function drawCard(
   ctx.fillText(rlabel, 0, rCY)
   ctx.restore()
 
-  // ── Texto sobre foto — TIPO + dirección (arranca en la zona de degrade) ───
+  // ── Texto sobre foto — dirección (hero) + tipo (label pequeño) ──────────
   ctx.shadowColor = 'rgba(0,0,0,0.65)'; ctx.shadowBlur = 6
 
-  const tipoFsz = Math.round(W * 0.068)
-  ctx.font = `bold ${tipoFsz}px Lora`
+  // Dirección — texto hero (60%)
+  const dirFsz2 = Math.round(W * 0.052)
+  ctx.font = `bold ${dirFsz2}px Lora`
   ctx.fillStyle = C.white; ctx.textBaseline = 'alphabetic'; ctx.textAlign = 'left'
-  ctx.fillText(s.tipo.toUpperCase(), M, PH - Math.round(W * 0.074))
+  ctx.fillText(s.direccion || 'Dirección de la propiedad', M, PH - Math.round(W * 0.040))
 
-  const dirFsz2 = Math.round(W * 0.026)
-  ctx.font = `${dirFsz2}px WorkSans`
-  ctx.fillStyle = C.champagne; ctx.globalAlpha = 0.90
-  const blt = '• '
-  ctx.fillText(blt, M, PH - Math.round(W * 0.034))
-  ctx.fillStyle = C.crema
-  ctx.fillText(s.direccion || 'Dirección de la propiedad', M + ctx.measureText(blt).width, PH - Math.round(W * 0.034))
+  // Tipo — label pequeño encima (40%)
+  const tipoFsz = Math.round(W * 0.022)
+  ctx.font = `bold ${tipoFsz}px WorkSans`
+  ctx.fillStyle = C.champagne; ctx.globalAlpha = 0.88
+  ctx.fillText(s.tipo.toUpperCase(), M, PH - Math.round(W * 0.040) - dirFsz2 - Math.round(W * 0.010))
   ctx.globalAlpha = 1
 
   // ── Precio — pill bottom-right ────────────────────────────────────────────
@@ -185,46 +184,52 @@ function drawCard(
   ctx.fillRect(M, PH + Math.round(STRIP_H * 0.08), W - M * 2, 1)
   ctx.globalAlpha = 1
 
-  const SP  = M
-  const SMY = PH + STRIP_H / 2
+  const SP   = M
+  const SMY  = PH + STRIP_H / 2
 
-  // Atributos — columna izquierda
+  // ── Grilla 4×3 de atributos ───────────────────────────────────────────────
   const atribs: string[] = []
   if (s.superficie)   atribs.push(`${s.superficie} m²`)
-  if (s.habitaciones) atribs.push(+s.habitaciones === 1 ? '1 habitación' : `${s.habitaciones} habitaciones`)
+  if (s.habitaciones) atribs.push(+s.habitaciones === 1 ? '1 hab.' : `${s.habitaciones} hab.`)
   if (s.banos)        atribs.push(+s.banos === 1 ? '1 baño' : `${s.banos} baños`)
   s.caracts.forEach(c => atribs.push(c))
 
-  const aFsz   = Math.round(W * 0.021)
-  const aLineH = Math.round(aFsz * 1.60)
-  let ay = SMY - (atribs.length * aLineH) / 2 + aFsz
+  const LOGO_ZONE = Math.round(W * 0.27)
+  const DATA_W    = W - SP * 2 - LOGO_ZONE
+  const COLS      = 4
+  const ROWS      = 3
+  const cellW     = DATA_W / COLS
+  const aFsz      = Math.round(W * 0.020)
+  const rowH      = Math.round(STRIP_H * 0.295)
+  const gridTop   = PH + (STRIP_H - rowH * ROWS) / 2 + Math.round(aFsz * 0.85)
 
-  atribs.forEach((a, i) => {
+  atribs.slice(0, COLS * ROWS).forEach((a, i) => {
+    const col = i % COLS
+    const row = Math.floor(i / COLS)
     ctx.font         = i === 0 ? `bold ${aFsz}px WorkSans` : `${aFsz}px WorkSans`
     ctx.fillStyle    = i === 0 ? C.champagne : C.crema
     ctx.globalAlpha  = i === 0 ? 1 : 0.80
     ctx.textAlign    = 'left'; ctx.textBaseline = 'alphabetic'
-    ctx.fillText(a, SP, ay)
+    ctx.fillText(a, SP + col * cellW, gridTop + row * rowH)
     ctx.globalAlpha  = 1
-    ay += aLineH
   })
 
-  // Logo + firma — columna derecha
-  const embH = Math.round(STRIP_H * 0.44)
-  const embW = embImg ? Math.round(embH * embImg.naturalWidth / embImg.naturalHeight) : 0
-  const logoX = W - SP - embW - M * 0.2
+  // ── Logo + firma — columna derecha ────────────────────────────────────────
+  const embH  = Math.round(STRIP_H * 0.42)
+  const embW  = embImg ? Math.round(embH * embImg.naturalWidth / embImg.naturalHeight) : 0
+  const logoX = W - SP - embW
   if (embImg && embImg.complete && embImg.naturalWidth > 0) {
     ctx.drawImage(embImg, logoX, SMY - embH / 2, embW, embH)
   }
-  const fFsz = Math.round(W * 0.019)
-  const firmX = logoX - 14
+  const fFsz = Math.round(W * 0.018)
+  const firmX = logoX - 12
   ctx.font = `bold ${fFsz}px WorkSans`
   ctx.fillStyle = C.crema; ctx.textAlign = 'right'; ctx.textBaseline = 'alphabetic'
-  ctx.fillText('GUTLEBER', firmX, SMY - fFsz * 0.10)
-  ctx.fillText('& ASOCIADOS', firmX, SMY + fFsz * 1.30)
+  ctx.fillText('GUTLEBER', firmX, SMY - fFsz * 0.15)
+  ctx.fillText('& ASOCIADOS', firmX, SMY + fFsz * 1.25)
   ctx.font = `${Math.round(fFsz * 0.72)}px WorkSans`
-  ctx.fillStyle = C.champagne; ctx.globalAlpha = 0.78
-  ctx.fillText('NEGOCIOS INMOBILIARIOS', firmX, SMY + fFsz * 2.65)
+  ctx.fillStyle = C.champagne; ctx.globalAlpha = 0.76
+  ctx.fillText('NEGOCIOS INMOBILIARIOS', firmX, SMY + fFsz * 2.55)
   ctx.globalAlpha = 1
 }
 
