@@ -5,14 +5,14 @@ import { api } from '../lib/api'
 
 // ── Paleta de marca ───────────────────────────────────────────────────────────
 const C = {
-  petroleo:   '#0F2233',
-  champagne:  '#C8A96B',
-  crema:      '#F5EFE3',
-  carbon:     '#1A1A18',
-  white:      '#FFFFFF',
-  headerBg:   'rgba(15,34,51,0.90)',
-  panelBg:    'rgba(15,34,51,0.93)',
-  champagneD: 'rgba(200,169,107,0.85)',
+  petroleo:   '#0D3B4E',
+  acero:      '#7FA1BB',
+  crema:      '#E7EBEE',
+  carbon:     '#091E2E',
+  white:      '#F7F7F5',
+  headerBg:   'rgba(13,59,78,0.90)',
+  panelBg:    'rgba(13,59,78,0.93)',
+  aceroD:     'rgba(127,161,187,0.85)',
 }
 
 // ── Catálogos ─────────────────────────────────────────────────────────────────
@@ -124,7 +124,7 @@ function drawCard(
   // ── Ribbon diagonal — top-right ───────────────────────────────────────────
   const rlabel = s.operacion === 'ambas' ? 'ALQUILER / VENTA'
     : s.operacion === 'alquiler' ? 'EN ALQUILER' : 'EN VENTA'
-  const rBg = s.operacion === 'venta' ? C.crema : C.champagne
+  const rBg = s.operacion === 'venta' ? C.crema : C.acero
   ctx.save()
   ctx.translate(W, 0)
   ctx.rotate(Math.PI / 4)
@@ -148,7 +148,7 @@ function drawCard(
   // Tipo — label pequeño encima (40%)
   const tipoFsz = Math.round(W * 0.022)
   ctx.font = `bold ${tipoFsz}px WorkSans`
-  ctx.fillStyle = C.champagne; ctx.globalAlpha = 0.88
+  ctx.fillStyle = C.acero; ctx.globalAlpha = 0.88
   ctx.fillText(s.tipo.toUpperCase(), M, PH - Math.round(W * 0.040) - dirFsz2 - Math.round(W * 0.010))
   ctx.globalAlpha = 1
 
@@ -166,7 +166,7 @@ function drawCard(
     ctx.fillStyle = C.petroleo; ctx.globalAlpha = 0.88
     rr(ctx, pX, pY, pW, pH2, 8)
     ctx.globalAlpha = 1
-    ctx.fillStyle = C.champagne; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'
+    ctx.fillStyle = C.acero; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'
     ctx.fillText(pFmt, pX + pW / 2, pY + pH2 / 2)
     if (s.operacion !== 'venta') {
       ctx.font = `${Math.round(pFsz * 0.64)}px WorkSans`
@@ -180,7 +180,7 @@ function drawCard(
   // ── Franja datos (flotando sobre el degrade) ──────────────────────────────
   // NO hay fillRect sólido — el degrade de arriba ya da el fondo
   // Línea decorativa champagne muy sutil
-  ctx.fillStyle = C.champagne; ctx.globalAlpha = 0.25
+  ctx.fillStyle = C.acero; ctx.globalAlpha = 0.25
   ctx.fillRect(M, PH + Math.round(STRIP_H * 0.08), W - M * 2, 1)
   ctx.globalAlpha = 1
 
@@ -207,7 +207,7 @@ function drawCard(
     const col = i % COLS
     const row = Math.floor(i / COLS)
     ctx.font         = `bold ${aFsz}px WorkSans`
-    ctx.fillStyle    = row === 0 ? C.champagne : C.crema
+    ctx.fillStyle    = row === 0 ? C.acero : C.crema
     ctx.globalAlpha  = row === 0 ? 1 : 0.85
     ctx.textAlign    = 'left'; ctx.textBaseline = 'alphabetic'
     ctx.fillText(a, SP + col * cellW, gridTop + row * rowH)
@@ -228,7 +228,7 @@ function drawCard(
   ctx.fillText('GUTLEBER', firmX, SMY - fFsz * 0.15)
   ctx.fillText('& ASOCIADOS', firmX, SMY + fFsz * 1.25)
   ctx.font = `${Math.round(fFsz * 0.72)}px WorkSans`
-  ctx.fillStyle = C.champagne; ctx.globalAlpha = 0.76
+  ctx.fillStyle = C.acero; ctx.globalAlpha = 0.76
   ctx.fillText('NEGOCIOS INMOBILIARIOS', firmX, SMY + fFsz * 2.55)
   ctx.globalAlpha = 1
 }

@@ -3,8 +3,8 @@
  * Canvas 1080×1080 px — Instagram / WhatsApp
  *
  * Paleta vigente (brand.config.json 2026):
- *   Petróleo  #0F2233  |  Champagne  #C8A96B
- *   Crema     #F5EFE3  |  Carbón     #1A1A18
+ *   Petróleo  #0D3B4E  |  Acero Claro  #7FA1BB
+ *   Gris Claro #E7EBEE |  Blanco Roto  #F7F7F5
  *
  * Layout:
  *   ┌────────────────────────────────────────┐
@@ -45,14 +45,14 @@ const P  = 32     // padding interior del panel
 
 // ── Paleta ─────────────────────────────────────────────────────────────────────
 const C = {
-  petroleo:    '#0F2233',
-  champagne:   '#C8A96B',
-  crema:       '#F5EFE3',
-  carbon:      '#1A1A18',
-  white:       '#FFFFFF',
-  panelBg:     'rgba(15,34,51,0.93)',
-  headerBg:    'rgba(15,34,51,0.90)',
-  champagneD:  'rgba(200,169,107,0.85)',
+  petroleo:    '#0D3B4E',
+  acero:       '#7FA1BB',
+  crema:       '#E7EBEE',
+  carbon:      '#091E2E',
+  white:       '#F7F7F5',
+  panelBg:     'rgba(13,59,78,0.93)',
+  headerBg:    'rgba(13,59,78,0.90)',
+  aceroD:      'rgba(127,161,187,0.85)',
 }
 
 const TIPO_LABEL: Record<string, string> = {
@@ -206,7 +206,7 @@ export async function generarTarjeta(datos: DatosTarjeta): Promise<Buffer> {
     ctx.textAlign    = 'left'
     ctx.fillText('GUTLEBER & Asociados', TX, HY + 36)
     ctx.font         = '11px WorkSans'
-    ctx.fillStyle    = C.champagne
+    ctx.fillStyle    = C.acero
     ctx.globalAlpha  = 0.80
     ctx.fillText('NEGOCIOS INMOBILIARIOS  ·  POSADAS, MISIONES', TX, HY + 56)
     ctx.globalAlpha  = 1
@@ -253,7 +253,7 @@ export async function generarTarjeta(datos: DatosTarjeta): Promise<Buffer> {
   // ── Badges ────────────────────────────────────────────────────────────────────
   let bx = PX + P
   if (datos.enAlquiler) {
-    const bw = badge(ctx, 'EN ALQUILER', bx, cy, C.champagne, C.carbon, 16, 20, 10)
+    const bw = badge(ctx, 'EN ALQUILER', bx, cy, C.acero, C.carbon, 16, 20, 10)
     bx += bw + 10
   }
   if (datos.enVenta) {
@@ -264,7 +264,7 @@ export async function generarTarjeta(datos: DatosTarjeta): Promise<Buffer> {
   // ── Tipo chip pequeño ────────────────────────────────────────────────────────
   const tipoLabel = TIPO_LABEL[datos.tipo] || datos.tipo
   ctx.font         = '13px WorkSans'
-  ctx.fillStyle    = C.champagneD
+  ctx.fillStyle    = C.aceroD
   ctx.textBaseline = 'top'
   ctx.textAlign    = 'left'
   ctx.fillText(tipoLabel, PX + P, cy)
@@ -283,7 +283,7 @@ export async function generarTarjeta(datos: DatosTarjeta): Promise<Buffer> {
   // ── Barrio ────────────────────────────────────────────────────────────────────
   if (hasBarrio) {
     ctx.font         = 'italic 22px Lora'
-    ctx.fillStyle    = C.champagne
+    ctx.fillStyle    = C.acero
     ctx.textBaseline = 'top'
     ctx.fillText(`${datos.barrio}  ·  Posadas, Misiones`, PX + P, cy)
     cy += 36 + 8
@@ -292,7 +292,7 @@ export async function generarTarjeta(datos: DatosTarjeta): Promise<Buffer> {
   // ── Precios ───────────────────────────────────────────────────────────────────
   if (hasAlq) {
     ctx.font         = 'bold 44px Lora'
-    ctx.fillStyle    = C.champagne
+    ctx.fillStyle    = C.acero
     ctx.textBaseline = 'top'
     const txt = fmtARS(datos.alquilerBase!)
     ctx.fillText(txt, PX + P, cy)
@@ -307,7 +307,7 @@ export async function generarTarjeta(datos: DatosTarjeta): Promise<Buffer> {
   }
   if (hasVta) {
     ctx.font         = hasBoth ? 'bold 36px Lora' : 'bold 44px Lora'
-    ctx.fillStyle    = hasBoth ? C.crema : C.champagne
+    ctx.fillStyle    = hasBoth ? C.crema : C.acero
     ctx.textBaseline = 'top'
     ctx.fillText(`USD ${datos.valorVenta!.toLocaleString('es-AR')}`, PX + P, cy)
     cy += (hasBoth ? 44 : 58) + 8
@@ -324,7 +324,7 @@ export async function generarTarjeta(datos: DatosTarjeta): Promise<Buffer> {
       ctx.fillText(atribs[i], ax, cy)
       ax += ctx.measureText(atribs[i]).width
       if (i < atribs.length - 1) {
-        ctx.fillStyle = C.champagne
+        ctx.fillStyle = C.acero
         ctx.fillText('  ·  ', ax, cy)
         ax += ctx.measureText('  ·  ').width
       }
@@ -333,7 +333,7 @@ export async function generarTarjeta(datos: DatosTarjeta): Promise<Buffer> {
   }
 
   // ── Divisor ───────────────────────────────────────────────────────────────────
-  ctx.fillStyle   = C.champagne
+  ctx.fillStyle   = C.acero
   ctx.globalAlpha = 0.30
   ctx.fillRect(PX + P, cy, PW - P * 2, 1)
   ctx.globalAlpha = 1
@@ -341,7 +341,7 @@ export async function generarTarjeta(datos: DatosTarjeta): Promise<Buffer> {
 
   // ── Footer ────────────────────────────────────────────────────────────────────
   ctx.font         = '18px WorkSans'
-  ctx.fillStyle    = C.champagne
+  ctx.fillStyle    = C.acero
   ctx.textBaseline = 'top'
   ctx.textAlign    = 'left'
   ctx.globalAlpha  = 0.80

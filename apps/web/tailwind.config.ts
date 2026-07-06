@@ -5,13 +5,14 @@ export default {
   theme: {
     extend: {
       colors: {
-        carbon:    '#1A1A18',
-        petroleo:  '#0F2233',
-        champagne: '#C8A96B',
-        crema:     '#F5EFE3',
+        carbon:     '#091E2E',   // azul muy oscuro — sidebar / fondos dark
+        petroleo:   '#0D3B4E',   // azul petróleo primario
+        champagne:  '#7FA1BB',   // acero claro (el dorado fue retirado 2026-07-06)
+        crema:      '#E7EBEE',   // gris claro — fondos claros
+        blancoRoto: '#F7F7F5',   // off-white
         // aliases para compatibilidad con clases existentes
-        piedra:    '#0F2233',
-        arena:     '#C8A96B',
+        piedra:     '#1A4A63',   // nav activo — azul medio
+        arena:      '#B8D2E0',   // texto secundario sobre fondos dark
       },
       fontFamily: {
         display: ['Georgia', 'serif'],
