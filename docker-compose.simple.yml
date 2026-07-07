@@ -55,6 +55,10 @@ services:
       WHATSAPP_VERIFY_TOKEN: gutleber_webhook_2026
       NOTIF_OPERADORES: ${NOTIF_OPERADORES:-}
       SMTP_PASS: ${SMTP_PASS}
+      GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID:-}
+      GOOGLE_CLIENT_SECRET: ${GOOGLE_CLIENT_SECRET:-}
+      GOOGLE_REFRESH_TOKEN: ${GOOGLE_REFRESH_TOKEN:-}
+      GOOGLE_CALENDAR_ID: ${GOOGLE_CALENDAR_ID:-}
     volumes:
       - gutleber-uploads:/app/apps/api/uploads
       - /root/gutleber-backups:/app/apps/api/backups
