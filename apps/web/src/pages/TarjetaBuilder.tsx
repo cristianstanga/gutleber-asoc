@@ -411,7 +411,7 @@ export default function TarjetaBuilder() {
       {/* Topbar */}
       <div className="flex items-center gap-4 px-6 py-3 border-b border-white/10 bg-[#0d0d0d] shrink-0">
         <Layers size={16} className="text-arena" />
-        <span className="font-semibold text-sm text-arena">Generador de Tarjetas</span>
+        <span className="font-semibold text-sm text-arena">Generador de Placas</span>
         <span className="text-white/50 text-sm">—</span>
         {propNombre ? (
           <span className="flex items-center gap-1.5 text-xs bg-white/8 border border-white/15 rounded-full px-2.5 py-1 text-white/80">

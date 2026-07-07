@@ -145,7 +145,7 @@ export default function Propiedades() {
     setEnviandoWA(p.id)
     try {
       await api.post(`/catalogo/wa/propiedad/${p.id}`, { destino })
-      mostrarToast('✅ Tarjeta enviada por WhatsApp')
+      mostrarToast('✅ Placa enviada por WhatsApp')
       setModalCompartir(null)
     } catch (e: unknown) {
       const msg = (e as { response?: { data?: { error?: string } } })?.response?.data?.error || 'Error al enviar'
