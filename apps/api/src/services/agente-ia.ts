@@ -184,7 +184,16 @@ async function ejecutarHerramienta(
       conversacionId,
     }).catch(() => {})
 
-    return 'Visita registrada y confirmada. Procedé ahora con el mensaje de confirmación definitiva para el lead.'
+    // El código manda la confirmación — no el LLM
+    const nombreConfirm = String(input.nombre || 'cliente')
+    const dirConfirm = prop?.direccion || String(input.direccion || 'la propiedad')
+    const diaConfirm = String(input.diaHorario || '')
+    const msgConfirm =
+      `¡Listo, ${nombreConfirm}! Tu visita a ${dirConfirm} está confirmada para el ${diaConfirm}. ` +
+      `Te esperamos ahí. Ante cualquier cambio escribinos por acá. — Gutleber & Asociados`
+    sendText(numeroDestino, msgConfirm).catch(() => {})
+
+    return 'Visita registrada. La confirmación ya fue enviada automáticamente al lead. Solo avisale brevemente que quedó todo listo.'
   }
 
   return 'Herramienta desconocida.'
@@ -294,9 +303,7 @@ CÓMO MANEJAR VISITAS:
 2. Si el interesado propone un horario distinto a los listados, explicale con firmeza pero cordialidad que los turnos son fijos para organizarnos bien, y pedile que elija uno de los disponibles. No ofrezcas excepciones ni alternativas fuera de la lista.
 3. Pedí el nombre del interesado si todavía no lo tenés, antes de registrar la visita.
 4. Una vez que eligió un turno de la lista y tenés su nombre, usá registrar_visita con diaHorario (descripción legible, ej: "lunes 7/7 a las 9:00") Y slotISO (el ISO exacto del slot que aparece en la lista de disponibilidad).
-5. Después de usar registrar_visita, enviá SIEMPRE este mensaje de confirmación definitiva (adaptando los datos):
-   "¡Listo, [nombre]! Tu visita a [dirección] está confirmada para el [día] a las [hora]. Te esperamos ahí. Ante cualquier cambio escribinos por acá. — Gutleber & Asociados"
-   La visita queda confirmada en ese momento. NO digas "te confirmarán" ni "a la brevedad" ni "un asesor te va a contactar".
+5. Después de registrar_visita, el sistema ya envió automáticamente la confirmación al lead. Vos solo cerrá con algo breve y cálido, como "¡Todo listo!" o "Quedó confirmado, nos vemos ahí."
 
 FOTOS:
 Si el interesado pide ver fotos o imágenes de una propiedad, usá la herramienta enviar_fotos con la dirección correspondiente. No digas que vas a mandar las fotos hasta haber usado la herramienta.
