@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from 'react'
+import { useLocation } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import {
   MessageSquare, Send, Search, User,
@@ -72,7 +73,10 @@ function formatHora(fecha: string) {
 
 export default function Inbox() {
   const qc = useQueryClient()
-  const [convSeleccionada, setConvSeleccionada] = useState<string | null>(null)
+  const location = useLocation()
+  const [convSeleccionada, setConvSeleccionada] = useState<string | null>(
+    (location.state as { convId?: string } | null)?.convId ?? null
+  )
   const [busqueda, setBusqueda] = useState('')
   const [texto, setTexto] = useState('')
   const [enviando, setEnviando] = useState(false)

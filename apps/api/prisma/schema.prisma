@@ -102,6 +102,7 @@ model Propiedad {
   descripcion      String?
   notas            String?
   instagramPostId  String?
+  vistas           Int               @default(0)
   lat              Float?
   lng              Float?
   barrio           String?

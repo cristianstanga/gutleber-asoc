@@ -22,10 +22,11 @@ import catalogoRouter from './routes/catalogo'
 import usuariosRouter from './routes/usuarios'
 import configRouter from './routes/config'
 import visitasRouter from './routes/visitas'
+import statsRouter from './routes/stats'
 import webhookWhatsappRouter from './routes/webhook-whatsapp'
 import { initCron } from './services/cron'
 import { sendHelloWorld, getStatus as getWAStatus } from './services/whatsapp-meta'
-import { authMiddleware, requireAdmin, requireAdminOrOperador } from './middleware/auth'
+import { authMiddleware, requireAdminOrOperador } from './middleware/auth'
 
 export const prisma = new PrismaClient()
 export const logger = pino({ transport: { target: 'pino-pretty' } })
@@ -128,6 +129,7 @@ app.use('/api/catalogo', authMiddleware, catalogoRouter)
 app.use('/api/usuarios', authMiddleware, requireAdminOrOperador, usuariosRouter)
 app.use('/api/config', authMiddleware, requireAdminOrOperador, configRouter)
 app.use('/api/visitas', authMiddleware, requireAdminOrOperador, visitasRouter)
+app.use('/api/stats', authMiddleware, requireAdminOrOperador, statsRouter)
 
 async function fixImageUrls() {
   // Reemplaza URLs viejas (https://automatizapp.pro/uploads/) por la URL correcta (https://app.automatizapp.pro/uploads/)

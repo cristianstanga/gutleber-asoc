@@ -85,6 +85,9 @@ router.get('/propiedad/:id', async (req, res) => {
   })
   if (!prop) return res.status(404).send('Propiedad no encontrada')
 
+  // Incrementar contador de vistas (fire-and-forget)
+  prisma.propiedad.update({ where: { id: prop.id }, data: { vistas: { increment: 1 } } }).catch(() => {})
+
   const waNum = process.env.WABA_DISPLAY_NUMBER || process.env.CATALOGO_WA_NUMERO || ''
   const waText = encodeURIComponent(`Hola! Vi la propiedad en ${prop.direccion} y quiero más información.`)
   const waLink = waNum ? `https://wa.me/${waNum}?text=${waText}` : `https://wa.me/?text=${waText}`
