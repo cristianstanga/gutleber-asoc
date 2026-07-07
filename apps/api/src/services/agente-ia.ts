@@ -4,6 +4,7 @@ import { sendText, sendImageUrl } from './whatsapp-meta'
 import { EtapaConversacion } from '@prisma/client'
 import { turnosDisponibles, proximosDiasHabiles, labelDia, formatearHoras } from './disponibilidad'
 import { alertarVisita, alertarRedFlag } from './alertas-operador'
+import { crearEventoVisita } from './google-calendar'
 import { CLAVES_CONFIG } from '../routes/config'
 
 const DEFAULT_REQUISITOS =
@@ -160,7 +161,7 @@ async function ejecutarHerramienta(
     const slotISO = input.slotISO ? String(input.slotISO) : null
     const fechaSolicitada = slotISO ? new Date(slotISO) : null
 
-    await prisma.visita.create({
+    const visita = await prisma.visita.create({
       data: {
         propiedadId: prop?.id,
         conversacionId,
@@ -171,6 +172,21 @@ async function ejecutarHerramienta(
         ...(fechaSolicitada ? { fechaSolicitada } : {}),
       },
     })
+
+    // Crear evento en Google Calendar si hay fecha exacta del slot
+    if (fechaSolicitada) {
+      crearEventoVisita({
+        id: visita.id,
+        nombreContacto: String(input.nombre || ''),
+        numeroContacto: numeroDestino,
+        fechaConfirmada: fechaSolicitada,
+        propiedadDireccion: prop?.direccion || String(input.direccion || ''),
+      }).then(googleEventId => {
+        if (googleEventId) {
+          prisma.visita.update({ where: { id: visita.id }, data: { googleEventId } }).catch(() => {})
+        }
+      }).catch(() => {})
+    }
 
     await prisma.conversacion.update({
       where: { id: conversacionId },
