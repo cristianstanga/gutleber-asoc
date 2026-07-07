@@ -4,6 +4,7 @@ import { sendText } from '../services/whatsapp-meta'
 import { crearEventoVisita, cancelarEventoVisita } from '../services/google-calendar'
 import { turnosDisponibles, todosLosTurnos, formatearHoras } from '../services/disponibilidad'
 import { EstadoVisita } from '@prisma/client'
+import { requireAdmin } from '../middleware/auth'
 
 const router = Router()
 
@@ -61,7 +62,7 @@ router.post('/bloquear', async (req, res) => {
 })
 
 // DELETE /visitas/bloquear/:id
-router.delete('/bloquear/:id', async (req, res) => {
+router.delete('/bloquear/:id', requireAdmin, async (req, res) => {
   await prisma.turnoBloqueado.delete({ where: { id: req.params.id } })
   res.json({ ok: true })
 })
