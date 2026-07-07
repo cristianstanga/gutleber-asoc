@@ -42,9 +42,9 @@ services:
       JWT_EXPIRES_IN: 7d
       NODE_ENV: production
       PORT: 3001
-      CORS_ORIGIN: ${CORS_ORIGIN:-https://gutleberyasociados.com}
-      PUBLIC_URL: ${APP_URL:-https://gutleberyasociados.com}
-      APP_URL: ${APP_URL:-https://gutleberyasociados.com}
+      CORS_ORIGIN: ${CORS_ORIGIN:-https://app.gutleberyasociados.com}
+      PUBLIC_URL: ${APP_URL:-https://app.gutleberyasociados.com}
+      APP_URL: ${APP_URL:-https://app.gutleberyasociados.com}
       ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY}
       INSTAGRAM_ACCESS_TOKEN: ${INSTAGRAM_ACCESS_TOKEN:-}
       INSTAGRAM_ACCOUNT_ID: ${INSTAGRAM_ACCOUNT_ID:-}
