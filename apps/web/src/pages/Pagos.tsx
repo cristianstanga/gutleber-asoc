@@ -927,9 +927,10 @@ function ModalConfirmarTransferencia({ pago, vinculo, onClose, onConfirmar, isPe
 
 interface PanelPagosProps {
   vinculo: Vinculo
+  onBack?: () => void
 }
 
-function PanelPagos({ vinculo }: PanelPagosProps) {
+function PanelPagos({ vinculo, onBack }: PanelPagosProps) {
   const qc = useQueryClient()
   const { usuario } = useAuthStore()
   const esAdmin = usuario?.rol === 'ADMIN'
@@ -1033,9 +1034,15 @@ function PanelPagos({ vinculo }: PanelPagosProps) {
       )}
 
       {/* Header del panel */}
-      <div className="px-6 py-4 border-b border-arena flex items-center justify-between bg-white">
-        <div>
-          <h3 className="font-display text-base text-carbon">
+      <div className="px-4 md:px-6 py-4 border-b border-arena flex items-center justify-between bg-white gap-3">
+        <div className="flex items-center gap-3 min-w-0">
+          {onBack && (
+            <button onClick={onBack} className="md:hidden p-1.5 -ml-1 text-piedra hover:text-carbon shrink-0">
+              <ChevronRight size={18} className="rotate-180" />
+            </button>
+          )}
+          <div className="min-w-0">
+          <h3 className="font-display text-base text-carbon truncate">
             {vinculo.propiedad.direccion}
           </h3>
           <div className="flex items-center gap-3 mt-1">
@@ -1051,17 +1058,18 @@ function PanelPagos({ vinculo }: PanelPagosProps) {
                 </span>
               </span>
             )}
-            <span className="text-xs text-piedra">
+            <span className="text-xs text-piedra hidden sm:inline">
               {formatFecha(vinculo.fechaInicio)} — {vinculo.fechaFin ? formatFecha(vinculo.fechaFin) : 'Sin fin'} ·{' '}
               {formatARS(vinculo.alquilerActual ?? vinculo.alquilerInicial ?? 0)}/mes
             </span>
           </div>
+          </div>
         </div>
         <button
           onClick={() => setModalNuevo(true)}
-          className="btn-primary flex items-center gap-2 text-sm"
+          className="btn-primary flex items-center gap-2 text-sm shrink-0"
         >
-          <Plus size={14} /> Nuevo pago
+          <Plus size={14} /> <span className="hidden sm:inline">Nuevo pago</span><span className="sm:hidden">Nuevo</span>
         </button>
       </div>
 
@@ -1436,7 +1444,7 @@ export default function Pagos() {
   return (
     <div className="flex h-screen overflow-hidden">
       {/* ── Panel izquierdo: lista de contratos ─────────────────────────────── */}
-      <div className="w-80 flex-shrink-0 border-r border-arena flex flex-col bg-white">
+      <div className={`flex-shrink-0 border-r border-arena flex-col bg-white w-full md:w-80 ${vinculoSeleccionado ? 'hidden md:flex' : 'flex'}`}>
         {/* Header */}
         <div className="px-4 py-4 border-b border-arena">
           <h1 className="font-display text-lg text-carbon">Contratos</h1>
@@ -1535,9 +1543,9 @@ export default function Pagos() {
       </div>
 
       {/* ── Panel derecho: detalle de pagos ─────────────────────────────────── */}
-      <div className="flex-1 flex flex-col overflow-hidden bg-white">
+      <div className={`flex-1 flex-col overflow-hidden bg-white ${vinculoSeleccionado ? 'flex' : 'hidden md:flex'}`}>
         {vinculoSeleccionado ? (
-          <PanelPagos vinculo={vinculoSeleccionado} />
+          <PanelPagos vinculo={vinculoSeleccionado} onBack={() => setVinculoSeleccionado(null)} />
         ) : (
           <div className="flex-1 flex flex-col items-center justify-center text-piedra gap-3">
             <Building2 size={48} className="opacity-20" />

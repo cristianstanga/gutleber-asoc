@@ -137,7 +137,7 @@ export default function Personas() {
   if (detalle && personaDetalle) {
     const p = personaDetalle
     return (
-      <div className="p-8">
+      <div className="p-4 md:p-8">
         {toast && (
           <div className="fixed top-4 right-4 bg-carbon text-white px-4 py-2 rounded shadow-lg text-sm z-50">{toast}</div>
         )}
@@ -345,7 +345,7 @@ export default function Personas() {
 
   // ── Lista ──────────────────────────────────────────────────────────────────
   return (
-    <div className="p-8">
+    <div className="p-4 md:p-8">
       {toast && (
         <div className="fixed top-4 right-4 bg-carbon text-white px-4 py-2 rounded shadow-lg text-sm z-50">{toast}</div>
       )}
@@ -361,9 +361,9 @@ export default function Personas() {
       </div>
 
       {/* Filtros */}
-      <div className="flex gap-3 mb-5">
+      <div className="flex flex-wrap gap-2 mb-5">
         <input
-          className="form-input max-w-xs text-sm"
+          className="form-input flex-1 min-w-[200px] text-sm"
           placeholder="Buscar por nombre, apellido o DNI..."
           value={busqueda}
           onChange={(e) => setBusqueda(e.target.value)}
@@ -384,7 +384,8 @@ export default function Personas() {
       {isLoading && <p className="text-piedra text-sm animate-pulse">Cargando...</p>}
 
       <div className="card overflow-hidden">
-        <table className="w-full text-sm">
+        <div className="overflow-x-auto">
+        <table className="w-full text-sm min-w-[480px]">
           <thead className="bg-crema border-b border-arena">
             <tr>
               <th className="text-left px-5 py-3 text-xs text-piedra uppercase tracking-wide">Nombre</th>
@@ -461,6 +462,7 @@ export default function Personas() {
             <button onClick={abrirNueva} className="btn-primary">Crear primera persona</button>
           </div>
         )}
+        </div>
       </div>
 
       {modalForm && <FormPersona persona={editando} onClose={cerrarForm} />}

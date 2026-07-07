@@ -79,13 +79,13 @@ export default function Contratos() {
   })
 
   return (
-    <div className="p-8">
-      <div className="flex items-center justify-between mb-6">
+    <div className="p-4 md:p-8">
+      <div className="flex flex-wrap items-center justify-between gap-3 mb-6">
         <div>
           <h1 className="font-display text-2xl text-carbon">Contratos</h1>
           <p className="text-piedra text-sm mt-1">{vinculos.length} contratos {soloActivos ? 'activos' : 'en total'}</p>
         </div>
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-3 shrink-0">
           <label className="flex items-center gap-2 text-sm text-piedra cursor-pointer">
             <input type="checkbox" checked={soloActivos} onChange={(e) => setSoloActivos(e.target.checked)}
               className="rounded border-arena accent-piedra" />
@@ -136,7 +136,8 @@ export default function Contratos() {
         <div className="mb-6">
           <h2 className="font-display text-lg text-carbon mb-3">Alquileres</h2>
           <div className="card overflow-hidden">
-            <table className="w-full text-sm">
+            <div className="overflow-x-auto">
+            <table className="w-full text-sm min-w-[560px]">
               <thead className="bg-crema border-b border-arena">
                 <tr>
                   <th className="text-left px-4 py-3 text-xs text-piedra uppercase tracking-wide">Propiedad</th>
@@ -215,6 +216,7 @@ export default function Contratos() {
                 })}
               </tbody>
             </table>
+            </div>
           </div>
         </div>
       )}
@@ -224,7 +226,8 @@ export default function Contratos() {
         <div>
           <h2 className="font-display text-lg text-carbon mb-3">Venta y Administración</h2>
           <div className="card overflow-hidden">
-            <table className="w-full text-sm">
+            <div className="overflow-x-auto">
+            <table className="w-full text-sm min-w-[480px]">
               <thead className="bg-crema border-b border-arena">
                 <tr>
                   <th className="text-left px-4 py-3 text-xs text-piedra uppercase tracking-wide">Tipo</th>
@@ -263,6 +266,7 @@ export default function Contratos() {
                 ))}
               </tbody>
             </table>
+            </div>
           </div>
         </div>
       )}
