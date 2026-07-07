@@ -297,26 +297,29 @@ export default function Propiedades() {
         </button>
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 md:gap-6">
-          {/* Acciones rápidas — primero en mobile, derecha en desktop */}
-          <div className="space-y-3 lg:order-last lg:col-start-3 lg:row-start-1">
+
+          {/* ── Datos principales — 2 columnas en desktop ────────────────── */}
+          <div className="lg:col-span-2 space-y-4">
+
+            {/* Info central */}
             <div className="card p-6">
-              <div className="flex items-start justify-between mb-4">
+              <div className="flex items-start justify-between mb-3">
                 <div>
                   <p className="text-xs text-piedra uppercase tracking-wide">{tipoLabel[prop.tipo]}</p>
-                  <h2 className="font-display text-2xl text-carbon mt-1">{prop.direccion}</h2>
+                  <h2 className="font-display text-2xl text-carbon mt-0.5">{prop.direccion}</h2>
+                  {prop.barrio && <p className="text-sm text-piedra mt-0.5">{prop.barrio}</p>}
                 </div>
-                <div className="flex gap-2">
-                  <button onClick={() => abrirEditar(prop)} className="btn-secondary flex items-center gap-1.5 text-xs">
-                    <Pencil size={13} /> Editar
-                  </button>
-                </div>
+                <button onClick={() => abrirEditar(prop)} className="btn-secondary flex items-center gap-1.5 text-xs shrink-0">
+                  <Pencil size={13} /> Editar
+                </button>
               </div>
 
-              <div className="flex flex-wrap gap-2 mb-4">
+              {/* Estado / badges */}
+              <div className="flex flex-wrap gap-2 mb-5">
                 {prop.enAlquiler && <span className="badge-piedra">En alquiler</span>}
                 {prop.enVenta && <span className="badge-blue">En venta</span>}
                 {prop.administrada && <span className="badge-green">Administrada</span>}
-                {prop.instagramPostId && <span className="badge-gray flex items-center gap-1"><Instagram size={10} /> Publicada</span>}
+                {prop.instagramPostId && <span className="badge-gray flex items-center gap-1"><Instagram size={10} /> Publicada IG</span>}
                 {esDisponible(prop) ? (
                   <span className="inline-flex items-center gap-1 text-xs font-semibold px-2 py-0.5 rounded-full bg-green-100 text-green-700">● Disponible</span>
                 ) : (
@@ -324,65 +327,74 @@ export default function Propiedades() {
                 )}
               </div>
 
+              {/* Precio — prominente */}
+              {(prop.enAlquiler && prop.alquilerBase) || (prop.enVenta && prop.valorVenta) ? (
+                <div className="flex flex-wrap gap-4 mb-5 p-4 bg-crema rounded-xl">
+                  {prop.enAlquiler && prop.alquilerBase && (
+                    <div>
+                      <p className="text-[10px] text-piedra uppercase tracking-wide mb-0.5">Alquiler</p>
+                      <p className="text-xl font-bold text-carbon">{formatARS(prop.alquilerBase)}<span className="text-sm font-normal text-piedra">/mes</span></p>
+                      {prop.indiceActual && <span className="badge-gray text-[10px] mt-1 inline-block">{prop.indiceActual}</span>}
+                    </div>
+                  )}
+                  {prop.enVenta && prop.valorVenta && (
+                    <div>
+                      <p className="text-[10px] text-piedra uppercase tracking-wide mb-0.5">Venta</p>
+                      <p className="text-xl font-bold text-carbon">USD {prop.valorVenta.toLocaleString('es-AR')}</p>
+                    </div>
+                  )}
+                </div>
+              ) : null}
+
               {/* Atributos físicos */}
-              <div className="flex flex-wrap gap-3 text-sm mb-2">
+              <div className="flex flex-wrap gap-2">
                 {prop.superficie && (
-                  <div className="flex items-center gap-1.5 bg-crema px-2.5 py-1 rounded-full">
+                  <div className="flex items-center gap-1.5 bg-crema px-3 py-1.5 rounded-full">
                     <Ruler size={12} className="text-piedra" />
-                    <span className="text-carbon text-xs">{prop.superficie} m²</span>
+                    <span className="text-carbon text-xs font-medium">{prop.superficie} m²</span>
                   </div>
                 )}
                 {prop.dormitorios && (
-                  <div className="flex items-center gap-1.5 bg-crema px-2.5 py-1 rounded-full">
+                  <div className="flex items-center gap-1.5 bg-crema px-3 py-1.5 rounded-full">
                     <span className="text-xs">🛏</span>
-                    <span className="text-carbon text-xs">{prop.dormitorios} dorm.</span>
+                    <span className="text-carbon text-xs font-medium">{prop.dormitorios} dorm.</span>
                   </div>
                 )}
                 {prop.banos && (
-                  <div className="flex items-center gap-1.5 bg-crema px-2.5 py-1 rounded-full">
+                  <div className="flex items-center gap-1.5 bg-crema px-3 py-1.5 rounded-full">
                     <span className="text-xs">🚿</span>
-                    <span className="text-carbon text-xs">{prop.banos} baño{prop.banos > 1 ? 's' : ''}</span>
+                    <span className="text-carbon text-xs font-medium">{prop.banos} baño{prop.banos > 1 ? 's' : ''}</span>
                   </div>
                 )}
                 {prop.cochera && (
-                  <div className="flex items-center gap-1.5 bg-crema px-2.5 py-1 rounded-full">
+                  <div className="flex items-center gap-1.5 bg-crema px-3 py-1.5 rounded-full">
                     <span className="text-xs">🚗</span>
-                    <span className="text-carbon text-xs">Cochera</span>
+                    <span className="text-carbon text-xs font-medium">Cochera</span>
                   </div>
                 )}
                 {prop.piso && (
-                  <div className="flex items-center gap-1.5 bg-crema px-2.5 py-1 rounded-full">
-                    <span className="text-carbon text-xs">Piso {prop.piso}</span>
+                  <div className="flex items-center gap-1.5 bg-crema px-3 py-1.5 rounded-full">
+                    <span className="text-carbon text-xs font-medium">Piso {prop.piso}</span>
                   </div>
                 )}
                 {prop.antiguedad && (
-                  <div className="flex items-center gap-1.5 bg-crema px-2.5 py-1 rounded-full">
-                    <span className="text-carbon text-xs">{prop.antiguedad} años</span>
-                  </div>
-                )}
-              </div>
-
-              {/* Precio */}
-              <div className="flex flex-wrap gap-4 text-sm">
-                {prop.enAlquiler && prop.alquilerBase && (
-                  <div className="flex items-center gap-2">
-                    <span className="text-muted">Alquiler:</span>
-                    <span className="font-semibold text-carbon">{formatARS(prop.alquilerBase)}</span>
-                    {prop.indiceActual && <span className="badge-gray">{prop.indiceActual}</span>}
-                  </div>
-                )}
-                {prop.enVenta && prop.valorVenta && (
-                  <div className="flex items-center gap-2">
-                    <Tag size={14} className="text-muted" />
-                    <span className="font-semibold text-carbon">USD {prop.valorVenta.toLocaleString('es-AR')}</span>
+                  <div className="flex items-center gap-1.5 bg-crema px-3 py-1.5 rounded-full">
+                    <span className="text-carbon text-xs font-medium">{prop.antiguedad} años</span>
                   </div>
                 )}
               </div>
 
               {prop.descripcion && (
+                <div className="mt-5 pt-4 border-t border-crema">
+                  <p className="text-xs text-piedra uppercase tracking-wide mb-2">Descripción pública</p>
+                  <p className="text-sm text-carbon leading-relaxed">{prop.descripcion}</p>
+                </div>
+              )}
+
+              {prop.notas && (
                 <div className="mt-4 pt-4 border-t border-crema">
-                  <p className="text-xs text-piedra uppercase tracking-wide mb-1">Descripción pública</p>
-                  <p className="text-sm text-carbon">{prop.descripcion}</p>
+                  <p className="text-xs text-piedra uppercase tracking-wide mb-2">Notas internas</p>
+                  <p className="text-sm text-carbon leading-relaxed">{prop.notas}</p>
                 </div>
               )}
             </div>
@@ -400,83 +412,8 @@ export default function Propiedades() {
               </div>
               <ImageUpload propiedadId={prop.id} imagenes={prop.imagenes} videos={prop.videos || []} />
             </div>
-          </div>
 
-          {/* Info — segundo en mobile, ocupa 2 cols en desktop */}
-          <div className="lg:col-span-2 space-y-4">
-            <div className="card p-5 space-y-3">
-              <h3 className="font-semibold text-carbon text-sm">
-                Tarjetas para compartir
-                {prop.imagenes.length > 1 && (
-                  <span className="ml-2 text-[10px] font-normal text-muted bg-crema px-1.5 py-0.5 rounded-full">
-                    {prop.imagenes.length} imágenes
-                  </span>
-                )}
-              </h3>
-              <button
-                onClick={() => navigate(`/tarjetas?propId=${prop.id}`)}
-                className="btn-primary w-full flex items-center justify-center gap-2"
-              >
-                <Sparkles size={15} />
-                {prop.imagenes.length > 1
-                  ? `Armar tarjetas (${prop.imagenes.length} fotos)`
-                  : prop.imagenes.length === 1
-                  ? 'Armar tarjeta'
-                  : 'Abrir generador'}
-              </button>
-              {prop.imagenes.length === 0 && (
-                <p className="text-[11px] text-muted">Podés subir fotos desde el generador.</p>
-              )}
-              <p className="text-[11px] text-muted text-center">1080×1080 px · WhatsApp · Instagram</p>
-            </div>
-
-            <div className="card p-5">
-              <h3 className="font-semibold text-carbon mb-3 text-sm">Publicar</h3>
-              <button
-                onClick={() => publicarInstagram(prop)}
-                disabled={publicando === prop.id}
-                className="btn-primary w-full flex items-center justify-center gap-2 mb-2"
-              >
-                <Instagram size={15} />
-                {publicando === prop.id ? 'Publicando...' : 'Publicar en Instagram'}
-              </button>
-              <p className="text-[11px] text-muted text-center">
-                {prop.imagenes.length === 0
-                  ? 'Necesitás subir fotos primero'
-                  : prop.imagenes.length === 1
-                  ? 'Se publicará como imagen simple'
-                  : `Se publicará como carrusel (${prop.imagenes.length} fotos)`}
-              </p>
-              {prop.instagramPostId && (
-                <p className="text-[11px] text-green-600 text-center mt-1">✓ Ya publicada en Instagram</p>
-              )}
-
-              <div className="border-t border-crema mt-3 pt-3 space-y-2">
-                <button
-                  onClick={() => { setModalCompartir(prop); setBusqConv('') }}
-                  disabled={enviandoWA === prop.id}
-                  className="btn-secondary w-full flex items-center justify-center gap-2"
-                >
-                  <MessageCircle size={15} />
-                  {enviandoWA === prop.id ? 'Enviando...' : 'Enviar tarjeta por WA'}
-                </button>
-                <a
-                  href={`/api/public/propiedad/${prop.id}`}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="btn-secondary w-full flex items-center justify-center gap-2 text-sm"
-                >
-                  <ExternalLink size={15} />
-                  Ver página pública
-                </a>
-                {esDisponible(prop) ? (
-                  <p className="text-[11px] text-green-600 text-center">● Disponible en catálogo</p>
-                ) : (
-                  <p className="text-[11px] text-amber-600 text-center">● Propiedad ocupada</p>
-                )}
-              </div>
-            </div>
-
+            {/* Contratos activos */}
             {prop.vinculos && prop.vinculos.length > 0 && (
               <div className="card p-5 space-y-3">
                 <h3 className="font-semibold text-carbon text-sm">Contratos activos</h3>
@@ -498,6 +435,74 @@ export default function Propiedades() {
                 ))}
               </div>
             )}
+          </div>
+
+          {/* ── Acciones — columna derecha ───────────────────────────────── */}
+          <div className="space-y-3">
+
+            {/* Compartir */}
+            <div className="card p-5 space-y-2">
+              <h3 className="font-semibold text-carbon text-sm mb-3">Compartir</h3>
+              <button
+                onClick={() => { setModalCompartir(prop); setBusqConv('') }}
+                disabled={enviandoWA === prop.id}
+                className="btn-primary w-full flex items-center justify-center gap-2"
+              >
+                <MessageCircle size={15} />
+                {enviandoWA === prop.id ? 'Enviando...' : 'Enviar por WhatsApp'}
+              </button>
+              <a
+                href={`/api/public/propiedad/${prop.id}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="btn-secondary w-full flex items-center justify-center gap-2 text-sm"
+              >
+                <ExternalLink size={15} />
+                Ver página pública
+              </a>
+              {esDisponible(prop) ? (
+                <p className="text-[11px] text-green-600 text-center pt-1">● Disponible en catálogo</p>
+              ) : (
+                <p className="text-[11px] text-amber-600 text-center pt-1">● Propiedad ocupada</p>
+              )}
+            </div>
+
+            {/* Placas */}
+            <div className="card p-5 space-y-2">
+              <h3 className="font-semibold text-carbon text-sm mb-1">Placas</h3>
+              <button
+                onClick={() => navigate(`/tarjetas?propId=${prop.id}`)}
+                className="btn-secondary w-full flex items-center justify-center gap-2"
+              >
+                <Sparkles size={15} />
+                {prop.imagenes.length > 0 ? `Armar placa (${prop.imagenes.length} foto${prop.imagenes.length !== 1 ? 's' : ''})` : 'Abrir generador'}
+              </button>
+              <p className="text-[11px] text-muted text-center">1080×1080 · 9:16 · WA · IG</p>
+            </div>
+
+            {/* Instagram */}
+            <div className="card p-5 space-y-2">
+              <h3 className="font-semibold text-carbon text-sm mb-1">Instagram</h3>
+              <button
+                onClick={() => publicarInstagram(prop)}
+                disabled={publicando === prop.id}
+                className="btn-secondary w-full flex items-center justify-center gap-2"
+              >
+                <Instagram size={15} />
+                {publicando === prop.id ? 'Publicando...' : 'Publicar en Instagram'}
+              </button>
+              <p className="text-[11px] text-muted text-center">
+                {prop.imagenes.length === 0
+                  ? 'Subí fotos primero'
+                  : prop.imagenes.length === 1
+                  ? 'Imagen simple'
+                  : `Carrusel (${prop.imagenes.length} fotos)`}
+              </p>
+              {prop.instagramPostId && (
+                <p className="text-[11px] text-green-600 text-center">✓ Ya publicada</p>
+              )}
+            </div>
+
           </div>
         </div>
 

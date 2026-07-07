@@ -17,7 +17,7 @@ const navAdmin: NavItem[] = [
   { to: '/visitas',      label: 'Visitas',      Icon: CalendarCheck, badge: 'visitas' },
   { to: '/config-agente', label: 'Agente IA',   Icon: Bot },
   { to: '/whatsapp',     label: 'WhatsApp',     Icon: Smartphone },
-  { to: '/tarjetas',     label: 'Tarjetas',     Icon: Sparkles },
+  { to: '/tarjetas',     label: 'Placas',       Icon: Sparkles },
   { to: '/contrato-gen', label: 'Contratos IA', Icon: FilePlus2 },
 ]
 
