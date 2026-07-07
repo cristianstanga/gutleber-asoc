@@ -1,7 +1,7 @@
 """
 Manual de Identidad Visual — Gutleber & Asociados
 PDF generado con reportlab. Formato A4 vertical.
-Marca vigente (2026-07): pin cerrado + casa sólida, petróleo/champagne,
+Marca vigente (2026-07): pin cerrado + casa sólida, azul petróleo/azul acero claro,
 descriptor "Negocios Inmobiliarios". Ver brand/brand.config.json.
 """
 
@@ -17,10 +17,10 @@ import cairosvg
 W, H = A4   # 595.27 x 841.89 pt
 
 # ── COLORES (paleta definitiva) ───────────────────────────────────────────────
-PETROLEO  = HexColor("#0F2233")
-CHAMPAGNE = HexColor("#C8A96B")
-CREMA     = HexColor("#F5EFE3")
-CARBON    = HexColor("#1A1A18")
+PETROLEO  = HexColor("#0D3B4E")
+CHAMPAGNE = HexColor("#7FA1BB")
+CREMA     = HexColor("#F7F7F5")
+CARBON    = HexColor("#E7EBEE")
 BLANCO    = white
 
 # ── PATHS ─────────────────────────────────────────────────────────────────────
@@ -40,6 +40,8 @@ def set_font(c, style, size):
         'serif-italic': 'Times-Italic',
         'sans':         'Helvetica',
         'sans-bold':    'Helvetica-Bold',
+        'mono':         'Courier',
+        'mono-bold':    'Courier-Bold',
     }
     c.setFont(fonts.get(style, 'Helvetica'), size)
 
@@ -117,30 +119,37 @@ c.setFillColor(CREMA)
 c.drawString(20*mm, H - 18*mm, "ÍNDICE")
 
 items = [
-    ("01", "La Firma",                    "03"),
-    ("02", "Pilares y Valores",           "04"),
-    ("03", "Paleta de Colores",           "05"),
-    ("04", "Tipografía",                  "06"),
-    ("05", "El Emblema",                  "07"),
-    ("06", "Variaciones del Ícono",       "08"),
-    ("07", "El Wordmark",                 "09"),
-    ("08", "Uso Correcto e Incorrecto",   "10"),
-    ("09", "Aplicaciones",                "11"),
+    ("01", "La Firma",                        "03"),
+    ("02", "Pilares y Valores",               "04"),
+    ("03", "Paleta de Colores",               "05"),
+    ("04", "Tipografía",                      "06"),
+    ("05", "El Emblema",                      "07"),
+    ("06", "Variaciones del Ícono",           "08"),
+    ("07", "El Wordmark",                     "09"),
+    ("08", "Uso Correcto e Incorrecto",       "10"),
+    ("09", "Aplicaciones",                    "11"),
+    ("10", "Ejemplos de Uso en Contexto",     "12"),
+    ("11", "Instagram",                       "13"),
+    ("12", "WhatsApp Business",               "14"),
+    ("13", "Cartelería — Venta y Alquiler",   "15"),
+    ("14", "Cómo se Conecta con el Sistema",  "16"),
+    ("15", "Cómo Invocar en VS Code",         "17"),
+    ("16", "Pendientes y Próximos Pasos",     "18"),
 ]
 
-y = H - 50*mm
+y = H - 46*mm
 for num, title, pg in items:
     set_font(c, 'sans', 7)
     c.setFillColor(CHAMPAGNE)
     c.drawString(20*mm, y, num)
-    set_font(c, 'serif', 13)
+    set_font(c, 'serif', 11.5)
     c.setFillColor(PETROLEO)
     c.drawString(32*mm, y, title)
     set_font(c, 'sans', 9)
     c.setFillColor(CHAMPAGNE)
     c.drawRightString(W - 20*mm, y, pg)
-    draw_rule(c, 20*mm, y - 5, W - 40*mm, CHAMPAGNE, 0.3)
-    y -= 22
+    draw_rule(c, 20*mm, y - 4.5, W - 40*mm, CHAMPAGNE, 0.3)
+    y -= 19
 
 page_footer(c, 2)
 c.showPage()
@@ -295,10 +304,10 @@ y = section_header(c, 3, "Paleta de Colores", y)
 y -= 20
 
 colores = [
-    ("#0F2233", "Petróleo",  "Color primario. Fondos, textos sobre claro, wordmark."),
-    ("#C8A96B", "Champagne", "Color de acento. Emblema, detalles, descriptores."),
-    ("#F5EFE3", "Crema",     "Fondo claro. Documentos, tarjetas, espacio en blanco."),
-    ("#1A1A18", "Carbón",    "Fondo oscuro alternativo. Redes, stories."),
+    ("#0D3B4E", "Azul Petróleo",    "Color primario. Pin del emblema, wordmark, fondos oscuros."),
+    ("#7FA1BB", "Azul Acero Claro", "Color de acento. Casa del emblema, detalles, descriptores."),
+    ("#E7EBEE", "Gris Claro",       "Fondo neutro. Bordes, separadores, superficies suaves."),
+    ("#F7F7F5", "Blanco Roto",      "Fondo claro. Documentos, tarjetas, espacio en blanco."),
 ]
 
 swatch_w = (W - 40*mm) / 4 - 4
@@ -329,8 +338,9 @@ draw_rule(c, 20*mm, y, W - 40*mm, CHAMPAGNE, 0.4)
 y -= 16
 set_font(c, 'sans', 8)
 c.setFillColor(PETROLEO)
-nota = ("No usar la paleta anterior (navy/cobre, ni la paleta tierra carbón/piedra/arena/crema "
-        "del brief original) — ambas descartadas. La paleta debe mantenerse cerrada a estos 4 colores.")
+nota = ("No usar paletas anteriores (petróleo/champagne, navy/cobre, ni la paleta tierra "
+        "carbón/piedra/arena/crema del brief original) — todas descartadas. El dorado/champagne "
+        "queda retirado por completo. La paleta debe mantenerse cerrada a estos 4 colores.")
 for line in simpleSplit(nota, 'Helvetica', 8, W - 40*mm):
     c.drawString(20*mm, y, line)
     y -= 12
@@ -343,10 +353,10 @@ draw_rule(c, 20*mm, y - 6, W - 40*mm, CHAMPAGNE, 0.3)
 y -= 24
 
 combos = [
-    (PETROLEO, CREMA,     "Petróleo sobre Crema", "Documentos, presentaciones"),
+    (PETROLEO, CREMA,     "Petróleo sobre Blanco Roto", "Documentos, presentaciones"),
     (PETROLEO, BLANCO,    "Petróleo sobre Blanco", "Uso digital general"),
-    (CREMA,    PETROLEO,  "Crema sobre Petróleo",  "Redes sociales, fondo oscuro"),
-    (CHAMPAGNE, PETROLEO, "Champagne sobre Petróleo", "Descriptores en modo oscuro"),
+    (CREMA,    PETROLEO,  "Blanco Roto sobre Petróleo",  "Redes sociales, fondo oscuro"),
+    (CHAMPAGNE, PETROLEO, "Acero Claro sobre Petróleo", "Descriptores en modo oscuro"),
 ]
 bx = 20*mm
 bw = (W - 40*mm) / 4 - 4
@@ -469,7 +479,7 @@ y -= 30
 elementos = [
     ("Pin de ubicación", "Forma contenedora, completamente cerrada. Ubica la propiedad en el territorio."),
     ("Casa sólida",      "Silueta de techo + paredes, opaca y autocontenida — no depende del fondo."),
-    ("Dos versiones",    "Clara (pin petróleo / casa champagne) y oscura (pin champagne / casa petróleo)."),
+    ("Dos versiones",    "Clara (pin petróleo / casa acero claro) y oscura (pin acero claro / casa petróleo)."),
 ]
 
 for title, body in elementos:
@@ -540,9 +550,9 @@ draw_rule(c, 20*mm, y, W - 40*mm, CHAMPAGNE, 0.4)
 y -= 20
 
 usos = [
-    ("Principal",     "Pin champagne + casa petróleo. Uso general sobre fondos claros o fotografía."),
-    ("Negativo",      "Pin petróleo + casa champagne. Uso sobre fondo champagne o crema saturado."),
-    ("Sobre fondo",   "Squircle petróleo sólido con ícono crema adentro. Avatares, íconos de app."),
+    ("Principal",     "Pin acero claro + casa petróleo. Uso general sobre fondos claros o fotografía."),
+    ("Negativo",      "Pin petróleo + casa blanco roto. Uso sobre fondo acero claro o gris saturado."),
+    ("Sobre fondo",   "Squircle petróleo sólido con ícono blanco roto adentro. Avatares, íconos de app."),
     ("Monocromo",      "Solo trazo, un color. Sellos, bordados, grabado, fax/impresión limitada."),
 ]
 for title, body in usos:
@@ -614,7 +624,7 @@ correcto = [
     "Usar las versiones provistas (clara/oscura/monocromo). No recrear el emblema.",
     "Respetar los colores de marca en todos los usos.",
     "Mantener el espacio mínimo equivalente a la altura del pin.",
-    "Sobre fondos oscuros, usar la versión oscura (pin champagne).",
+    "Sobre fondos oscuros, usar la versión oscura (pin acero claro).",
     "Sobre fondos claros, usar la versión clara (pin petróleo).",
 ]
 incorrecto = [
@@ -747,8 +757,394 @@ for item in fis:
 page_footer(c, 11)
 c.showPage()
 
+
 # ══════════════════════════════════════════════════════
-# PÁG 12 — CONTRATAPA
+# PÁG 12 — EJEMPLOS DE USO EN CONTEXTO
+# ══════════════════════════════════════════════════════
+c.setFillColor(BLANCO)
+c.rect(0, 0, W, H, fill=1, stroke=0)
+
+y = H - 28*mm
+y = section_header(c, 10, "Ejemplos de Uso en Contexto", y)
+y -= 10
+
+set_font(c, 'serif', 10.5)
+c.setFillColor(PETROLEO)
+texto_ej = ("Simulaciones fotorrealistas de la marca en soportes reales: cartel de local, "
+            "vinilo en puerta de vidrio, tarjeta personal e ícono de app. Sirven como referencia "
+            "para proveedores de cartelería, imprenta y desarrollo.")
+for line in simpleSplit(texto_ej, 'Times-Roman', 10.5, W - 40*mm):
+    c.drawString(20*mm, y, line)
+    y -= 14
+y -= 14
+
+EJ_D = os.path.join(BASE, "../ejemplos-de-uso")
+grid_path = os.path.join(EJ_D, "grid_completo.png")
+if os.path.exists(grid_path):
+    pil = PILImage.open(grid_path)
+    pw, ph = pil.size
+    max_w = W - 40*mm
+    max_h = 560
+    scale = min(max_w/pw, max_h/ph)
+    rw, rh = pw*scale, ph*scale
+    rx = (W - rw)/2
+    c.drawImage(grid_path, rx, y - rh, width=rw, height=rh, mask='auto')
+    y -= rh + 16
+
+set_font(c, 'sans', 7)
+c.setFillColor(CHAMPAGNE)
+c.drawCentredString(W/2, y, "Cartel de local · vidrio · tarjeta personal · ícono de app  —  brand/ejemplos-de-uso/")
+
+page_footer(c, 12)
+c.showPage()
+
+# ══════════════════════════════════════════════════════
+# PÁG 13 — INSTAGRAM
+# ══════════════════════════════════════════════════════
+c.setFillColor(PETROLEO)
+c.rect(0, 0, W, H, fill=1, stroke=0)
+
+y = H - 28*mm
+y = section_header(c, 11, "Instagram", y, on_dark=True)
+y -= 10
+
+ig_fields = [
+    ("Username",          "@gutleberasociados"),
+    ("Alternativo",       "@gutleber.asoc (si el principal no está disponible)"),
+    ("Nombre visible",    "Gutleber & Asociados"),
+    ("Categoría de cuenta","Agencia inmobiliaria"),
+    ("Foto de perfil",    "Emblema, versión “Sobre fondo” — squircle petróleo con ícono blanco roto"),
+]
+for label, val in ig_fields:
+    set_font(c, 'sans-bold', 8)
+    c.setFillColor(CHAMPAGNE)
+    c.drawString(20*mm, y, label.upper())
+    set_font(c, 'serif', 11)
+    c.setFillColor(CREMA)
+    lines = simpleSplit(val, 'Times-Roman', 11, W - 70*mm)
+    ly = y
+    for line in lines:
+        c.drawString(65*mm, ly, line)
+        ly -= 14
+    y -= max(22, (len(lines))*14 + 8)
+
+y -= 6
+draw_rule(c, 20*mm, y, W - 40*mm, HexColor("#3A4A57"), 0.5)
+y -= 22
+
+set_font(c, 'sans-bold', 8)
+c.setFillColor(CHAMPAGNE)
+c.drawString(20*mm, y, "BIO")
+y -= 16
+set_font(c, 'serif-italic', 10.5)
+c.setFillColor(CREMA)
+bio_ig = ("Gutleber & Asociados — negocios inmobiliarios en Posadas, Misiones. "
+          "Gestión, velocidad y transparencia en cada propiedad. "
+          "El propietario siempre sabe qué pasa con su propiedad.")
+for line in simpleSplit(bio_ig, 'Times-Italic', 10.5, W - 40*mm):
+    c.drawString(20*mm, y, line)
+    y -= 14
+
+y -= 16
+draw_rule(c, 20*mm, y, W - 40*mm, HexColor("#3A4A57"), 0.5)
+y -= 22
+
+set_font(c, 'sans-bold', 8)
+c.setFillColor(CHAMPAGNE)
+c.drawString(20*mm, y, "ESTRATEGIA DE LANZAMIENTO")
+y -= 16
+lanzamiento = [
+    "Crear la cuenta en modo privado y cargar las primeras propiedades sin hacerla pública.",
+    "Usar la función nativa de Borradores de Instagram para preparar el contenido en paralelo.",
+    "No compartir el @ hasta el lanzamiento — evita que la cuenta se descubra antes de tiempo.",
+    "Habilitar la cuenta (pasarla a pública) cuando el catálogo inicial esté listo.",
+]
+for item in lanzamiento:
+    set_font(c, 'serif', 10)
+    c.setFillColor(CREMA)
+    lines = simpleSplit(f"— {item}", 'Times-Roman', 10, W - 44*mm)
+    for line in lines:
+        c.drawString(22*mm, y, line)
+        y -= 13
+    y -= 4
+
+page_footer(c, 13)
+c.showPage()
+
+# ══════════════════════════════════════════════════════
+# PÁG 14 — WHATSAPP BUSINESS
+# ══════════════════════════════════════════════════════
+c.setFillColor(BLANCO)
+c.rect(0, 0, W, H, fill=1, stroke=0)
+
+y = H - 28*mm
+y = section_header(c, 12, "WhatsApp Business", y)
+y -= 10
+
+wa_fields = [
+    ("Número oficial",   "+54 9 3765 41-0765"),
+    ("Nombre de perfil", "Gutleber & Asociados"),
+    ("Foto de perfil",   "Emblema, versión “Sobre fondo” (misma que Instagram)"),
+    ("Integración",      "Conectado vía API oficial de Meta Cloud — apps/api/src/services/whatsapp-meta.ts"),
+]
+for label, val in wa_fields:
+    set_font(c, 'sans-bold', 8)
+    c.setFillColor(CHAMPAGNE)
+    c.drawString(20*mm, y, label.upper())
+    set_font(c, 'serif', 10.5)
+    c.setFillColor(PETROLEO)
+    lines = simpleSplit(val, 'Times-Roman', 10.5, W - 70*mm)
+    ly = y
+    for line in lines:
+        c.drawString(65*mm, ly, line)
+        ly -= 14
+    y -= max(22, (len(lines))*14 + 8)
+
+y -= 6
+draw_rule(c, 20*mm, y, W - 40*mm, CHAMPAGNE, 0.4)
+y -= 22
+
+set_font(c, 'sans-bold', 8)
+c.setFillColor(CHAMPAGNE)
+c.drawString(20*mm, y, "DESCRIPCIÓN DE PERFIL")
+y -= 16
+desc_wa = ("Gutleber & Asociados — negocios inmobiliarios en Posadas, Misiones. "
+           "Compra-venta, alquileres y administración de propiedades. "
+           "Respondemos a la brevedad.")
+set_font(c, 'serif-italic', 10.5)
+c.setFillColor(PETROLEO)
+for line in simpleSplit(desc_wa, 'Times-Italic', 10.5, W - 40*mm):
+    c.drawString(20*mm, y, line)
+    y -= 14
+
+y -= 16
+draw_rule(c, 20*mm, y, W - 40*mm, CHAMPAGNE, 0.4)
+y -= 22
+
+set_font(c, 'sans-bold', 8)
+c.setFillColor(CHAMPAGNE)
+c.drawString(20*mm, y, "NOTA TÉCNICA")
+y -= 16
+nota_wa = ("La integración activa es whatsapp-meta.ts (API oficial de Meta Cloud). "
+           "La carpeta apps/api/baileys_auth_info es un remanente de una integración anterior "
+           "y no está conectada a ningún endpoint activo — no usar como referencia.")
+set_font(c, 'serif', 10)
+c.setFillColor(PETROLEO)
+for line in simpleSplit(nota_wa, 'Times-Roman', 10, W - 40*mm):
+    c.drawString(20*mm, y, line)
+    y -= 13
+
+page_footer(c, 14)
+c.showPage()
+
+# ══════════════════════════════════════════════════════
+# PÁG 15 — CARTELERÍA: VENTA Y ALQUILER
+# ══════════════════════════════════════════════════════
+c.setFillColor(BLANCO)
+c.rect(0, 0, W, H, fill=1, stroke=0)
+
+y = H - 28*mm
+y = section_header(c, 13, "Cartelería — Venta y Alquiler", y)
+y -= 16
+
+venta_path = os.path.join(CARTEL_D, "cartel_venta_preview.png")
+alquiler_path = os.path.join(CARTEL_D, "cartel_alquiler_preview.png")
+
+max_h_cartel = 460
+col_w_cartel = (W - 40*mm - 10*mm) / 2
+rh_used = 0
+if os.path.exists(venta_path):
+    pil = PILImage.open(venta_path)
+    pw, ph = pil.size
+    scale = min(col_w_cartel / pw, max_h_cartel / ph)
+    rw, rh = pw * scale, ph * scale
+    rx = 20*mm
+    c.drawImage(venta_path, rx, y - rh, width=rw, height=rh)
+    set_font(c, 'sans', 7)
+    c.setFillColor(CHAMPAGNE)
+    c.drawString(rx, y - rh - 14, "Cartel — En Venta")
+    rh_used = max(rh_used, rh)
+
+if os.path.exists(alquiler_path):
+    pil = PILImage.open(alquiler_path)
+    pw, ph = pil.size
+    scale = min(col_w_cartel / pw, max_h_cartel / ph)
+    rw, rh = pw * scale, ph * scale
+    rx2 = 20*mm + col_w_cartel + 10*mm
+    c.drawImage(alquiler_path, rx2, y - rh, width=rw, height=rh)
+    set_font(c, 'sans', 7)
+    c.setFillColor(CHAMPAGNE)
+    c.drawString(rx2, y - rh - 14, "Cartel — En Alquiler")
+    rh_used = max(rh_used, rh)
+
+y -= rh_used + 34
+draw_rule(c, 20*mm, y, W - 40*mm, CHAMPAGNE, 0.4)
+y -= 18
+
+especificaciones = [
+    "Foto de la propiedad a página completa (full-bleed), sin marquesina superior.",
+    "Panel de datos flotante, alineado a la derecha, con altura ajustada al contenido.",
+    "Código QR con link directo a WhatsApp (wa.me) precargado con mensaje de consulta.",
+    "Misma estructura para Venta y Alquiler — cambia solo el rótulo y el precio.",
+]
+for item in especificaciones:
+    set_font(c, 'serif', 10)
+    c.setFillColor(PETROLEO)
+    lines = simpleSplit(f"— {item}", 'Times-Roman', 10, W - 44*mm)
+    for line in lines:
+        c.drawString(22*mm, y, line)
+        y -= 13
+    y -= 4
+
+page_footer(c, 15)
+c.showPage()
+
+# ══════════════════════════════════════════════════════
+# PÁG 16 — CÓMO SE CONECTA CON EL SISTEMA
+# ══════════════════════════════════════════════════════
+c.setFillColor(PETROLEO)
+c.rect(0, 0, W, H, fill=1, stroke=0)
+
+y = H - 28*mm
+y = section_header(c, 14, "Cómo se Conecta con el Sistema", y, on_dark=True)
+y -= 10
+
+set_font(c, 'serif', 10.5)
+c.setFillColor(CREMA)
+texto_sis = ("Este manual es la fuente de verdad visual para el CRM (apps/api, apps/web), "
+             "desarrollado por separado en VS Code / Claude Code. Los cambios de marca se "
+             "reflejan en el sistema a partir de estos puntos de conexión:")
+for line in simpleSplit(texto_sis, 'Times-Roman', 10.5, W - 40*mm):
+    c.drawString(20*mm, y, line)
+    y -= 14
+y -= 30
+
+conexiones = [
+    ("brand/brand.config.json",       "Tokens de marca machine-readable — colores, tipografía, logo, contacto. Fuente de verdad para estilos del frontend."),
+    ("Modelo Propiedad (Prisma)",     "Campos dirección, tipo, superficie, dormitorios, imágenes, etc. alimentan las placas y tarjetas generadas automáticamente."),
+    ("apps/api/src/services/tarjeta.ts", "Genera tarjetas de propiedad dinámicas con @napi-rs/canvas, siguiendo la paleta y tipografía de este manual."),
+    ("apps/api/src/routes/tarjeta-publica.ts", "Expone la tarjeta pública generada — base para el diseño de placas automáticas."),
+]
+for title, body in conexiones:
+    c.setFillColor(CHAMPAGNE)
+    c.rect(20*mm, y - 2, 3, 30, fill=1, stroke=0)
+    set_font(c, 'mono-bold', 9.5)
+    c.setFillColor(CREMA)
+    c.drawString(28*mm, y + 14, title)
+    lines = simpleSplit(body, 'Times-Roman', 9.5, W - 48*mm)
+    ly = y
+    for line in lines:
+        set_font(c, 'serif', 9.5)
+        c.setFillColor(CHAMPAGNE)
+        c.drawString(28*mm, ly, line)
+        ly -= 12
+    y -= max(46, 20 + len(lines)*12 + 10)
+
+y -= 10
+draw_rule(c, 20*mm, y, W - 40*mm, HexColor("#3A4A57"), 0.5)
+y -= 20
+set_font(c, 'serif-italic', 9.5)
+c.setFillColor(CHAMPAGNE)
+nota_sis = ("La automatización de placas (foto principal + datos de la propiedad) está "
+            "especificada por separado para su implementación en VS Code.")
+for line in simpleSplit(nota_sis, 'Times-Italic', 9.5, W - 40*mm):
+    c.drawString(20*mm, y, line)
+    y -= 13
+
+page_footer(c, 16)
+c.showPage()
+
+# ══════════════════════════════════════════════════════
+# PÁG 17 — CÓMO INVOCAR EN VS CODE
+# ══════════════════════════════════════════════════════
+c.setFillColor(BLANCO)
+c.rect(0, 0, W, H, fill=1, stroke=0)
+
+y = H - 28*mm
+y = section_header(c, 15, "Cómo Invocar en VS Code", y)
+y -= 10
+
+set_font(c, 'serif', 10.5)
+c.setFillColor(PETROLEO)
+texto_vsc = ("Al pedirle a Claude Code que trabaje sobre estilos, colores o componentes visuales "
+             "de apps/web, indicarle que revise este manual y brand.config.json como fuente de verdad:")
+for line in simpleSplit(texto_vsc, 'Times-Roman', 10.5, W - 40*mm):
+    c.drawString(20*mm, y, line)
+    y -= 14
+y -= 14
+
+code_lines = [
+    "Antes de tocar estilos, leé brand/brand.config.json y",
+    "brand/manual/Gutleber_Manual_Identidad_Visual.pdf.",
+    "Usá esos colores y tipografías como única fuente de verdad.",
+    "No reintroduzcas la paleta petróleo/champagne anterior.",
+    "Confirmá conmigo antes de aplicar cambios visuales grandes.",
+]
+box_h = len(code_lines) * 15 + 24
+c.setFillColor(HexColor("#0A1F29"))
+c.roundRect(20*mm, y - box_h, W - 40*mm, box_h, 4, fill=1, stroke=0)
+cy = y - 18
+for line in code_lines:
+    set_font(c, 'mono', 9.5)
+    c.setFillColor(CHAMPAGNE)
+    c.drawString(24*mm, cy, line)
+    cy -= 15
+y -= box_h + 20
+
+draw_rule(c, 20*mm, y, W - 40*mm, CHAMPAGNE, 0.4)
+y -= 20
+
+set_font(c, 'sans-bold', 8)
+c.setFillColor(CHAMPAGNE)
+c.drawString(20*mm, y, "REGLA DE FRONTERA")
+y -= 16
+regla_frontera = ("El trabajo de marca (Cowork) y el desarrollo del sistema (VS Code / Claude Code) "
+                   "se mantienen separados. Cowork no modifica apps/api ni apps/web directamente — "
+                   "produce especificaciones y assets para que Claude Code los implemente.")
+set_font(c, 'serif', 10)
+c.setFillColor(PETROLEO)
+for line in simpleSplit(regla_frontera, 'Times-Roman', 10, W - 40*mm):
+    c.drawString(20*mm, y, line)
+    y -= 13
+
+page_footer(c, 17)
+c.showPage()
+
+# ══════════════════════════════════════════════════════
+# PÁG 18 — PENDIENTES Y PRÓXIMOS PASOS
+# ══════════════════════════════════════════════════════
+c.setFillColor(PETROLEO)
+c.rect(0, 0, W, H, fill=1, stroke=0)
+
+y = H - 28*mm
+y = section_header(c, 16, "Pendientes y Próximos Pasos", y, on_dark=True)
+y -= 14
+
+pendientes = [
+    "Cargar fotos reales de propiedades en los carteles (hoy usan foto placeholder).",
+    "Crear la cuenta de Instagram en modo privado y cargar el catálogo inicial.",
+    "Configurar el perfil de WhatsApp Business (foto, nombre, descripción, mensajes automáticos).",
+    "Diseñar contenido real de Instagram apenas haya datos de propiedades disponibles.",
+    "Implementar en el sistema el blanqueo de propiedades y la generación automática de placas (spec entregada a VS Code / Claude Code).",
+    "Actualizar apps/web a la paleta vigente — requiere confirmación previa del cliente por ser un cambio visual grande.",
+]
+for item in pendientes:
+    c.setFillColor(CHAMPAGNE)
+    c.circle(20*mm + 3, y - 2, 3, fill=1, stroke=0)
+    set_font(c, 'serif', 10.5)
+    c.setFillColor(CREMA)
+    lines = simpleSplit(item, 'Times-Roman', 10.5, W - 50*mm)
+    ly = y
+    for line in lines:
+        c.drawString(28*mm, ly, line)
+        ly -= 14
+    y -= max(26, len(lines)*14 + 10)
+
+page_footer(c, 18)
+c.showPage()
+
+# ══════════════════════════════════════════════════════
+# PÁG 19 — CONTRATAPA
 # ══════════════════════════════════════════════════════
 c.setFillColor(PETROLEO)
 c.rect(0, 0, W, H, fill=1, stroke=0)

@@ -10,10 +10,10 @@ from PIL import Image, ImageDraw, ImageFont, ImageFilter
 import qrcode
 import cairosvg
 
-PETROLEO  = (15, 34, 51)
-CHAMPAGNE = (200, 169, 107)
-CREMA     = (245, 239, 227)
-CARBON    = (26, 26, 24)
+PETROLEO  = (13, 59, 78)
+CHAMPAGNE = (127, 161, 187)
+CREMA     = (247, 247, 245)
+CARBON    = (231, 235, 238)
 
 WHATSAPP_NUMBER  = "+54 9 3765 41-0765"
 WHATSAPP_WA_ME   = "5493765410765"
@@ -60,7 +60,7 @@ def placeholder_photo(w, h):
     for i in range(3):
         wx = fx0 + int((fx1-fx0)*0.15) + i*int((fx1-fx0)*0.28)
         wy = fy0 + int((fy1-fy0)*0.30)
-        draw.rectangle([wx, wy, wx+win_w, wy+win_h], fill=(210,175,110))
+        draw.rectangle([wx, wy, wx+win_w, wy+win_h], fill=CHAMPAGNE)
     for i in range(6):
         tx = int(w*0.68) + i*70
         ty = sky_h - 10

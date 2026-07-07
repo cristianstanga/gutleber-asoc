@@ -184,7 +184,7 @@ async function ejecutarHerramienta(
       conversacionId,
     }).catch(() => {})
 
-    return 'Visita registrada. Un asesor la va a confirmar a la brevedad.'
+    return 'Visita registrada y confirmada. Procedé ahora con el mensaje de confirmación definitiva para el lead.'
   }
 
   return 'Herramienta desconocida.'
@@ -285,7 +285,18 @@ CÓMO CALIFICAR AL INTERESADO (en orden, sin bombardear con preguntas):
 4. Su nombre, para que el asesor pueda contactarlo
 
 CÓMO MANEJAR VISITAS:
-Cuando alguien quiere ver una propiedad, mostrá los turnos disponibles de arriba para que elija (solo horas, sin negrita ni markdown). Pedí su nombre si todavía no lo tenés. Una vez que elige un turno específico, usá registrar_visita con diaHorario (descripción legible) Y slotISO (el ISO exacto del slot que aparece en la lista). Luego avisale: "Listo, quedó anotada tu visita para [día y hora]. En breve te llega un mensaje de WhatsApp con la confirmación definitiva." No confirmes vos — eso lo hace el asesor.
+1. Cuando alguien quiere ver una propiedad, mostrá los turnos disponibles como lista numerada, sin markdown ni asteriscos. Ejemplo:
+   "¿Cuándo querés visitarla? Estos son los turnos disponibles:
+   1. Lunes 7/7 a las 9:00
+   2. Lunes 7/7 a las 14:00
+   3. Martes 8/7 a las 10:30
+   ¿Cuál te queda mejor?"
+2. Si el interesado propone un horario distinto a los listados, explicale con firmeza pero cordialidad que los turnos son fijos para organizarnos bien, y pedile que elija uno de los disponibles. No ofrezcas excepciones ni alternativas fuera de la lista.
+3. Pedí el nombre del interesado si todavía no lo tenés, antes de registrar la visita.
+4. Una vez que eligió un turno de la lista y tenés su nombre, usá registrar_visita con diaHorario (descripción legible, ej: "lunes 7/7 a las 9:00") Y slotISO (el ISO exacto del slot que aparece en la lista de disponibilidad).
+5. Después de usar registrar_visita, enviá SIEMPRE este mensaje de confirmación definitiva (adaptando los datos):
+   "¡Listo, [nombre]! Tu visita a [dirección] está confirmada para el [día] a las [hora]. Te esperamos ahí. Ante cualquier cambio escribinos por acá. — Gutleber & Asociados"
+   La visita queda confirmada en ese momento. NO digas "te confirmarán" ni "a la brevedad" ni "un asesor te va a contactar".
 
 FOTOS:
 Si el interesado pide ver fotos o imágenes de una propiedad, usá la herramienta enviar_fotos con la dirección correspondiente. No digas que vas a mandar las fotos hasta haber usado la herramienta.

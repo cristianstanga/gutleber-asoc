@@ -2,12 +2,12 @@
   "$schema": "brand config — Gutleber & Asociados",
   "nombre": "Gutleber & Asociados",
   "descriptor": "Negocios Inmobiliarios",
-  "tagline": "gestión · inversión · patrimonio",
+  "tagline": "gestión · velocidad · transparencia",
   "colores": {
-    "petroleo": "#0F2233",
-    "champagne": "#C8A96B",
-    "crema": "#F5EFE3",
-    "carbon": "#1A1A18"
+    "petroleo": "#0D3B4E",
+    "acero_claro": "#7FA1BB",
+    "gris_claro": "#E7EBEE",
+    "blanco_roto": "#F7F7F5"
   },
   "tipografia": {
     "display": "Georgia",
@@ -31,10 +31,10 @@
     "username_alternativo": "gutleber.asoc",
     "nombre_visible": "Gutleber & Asociados",
     "categoria_cuenta": "Agencia inmobiliaria",
-    "bio": "Gutleber & Asociados — gestión, inversión y patrimonio inmobiliario. Posadas, Misiones. El propietario siempre sabe qué pasa con su propiedad."
+    "bio": "Gutleber & Asociados — negocios inmobiliarios en Posadas, Misiones. Gestión, velocidad y transparencia en cada propiedad. El propietario siempre sabe qué pasa con su propiedad."
   },
   "notas": {
-    "no_usar": "Paleta anterior navy #0F172A / copper #B45309, y paleta tierra Carbón/Piedra/Arena/Crema del brief original — ambas descartadas.",
-    "documento_referencia": "Gutleber_Ecosistema_Marca.docx (raíz del proyecto)"
+    "no_usar": "Paleta anterior petróleo #0F2233 / champagne #C8A96B (y antes de esa, navy #0F172A / copper #B45309, y la paleta tierra Carbón/Piedra/Arena/Crema del brief original) — todas descartadas. El champagne/dorado queda retirado por completo de la marca desde 2026-07-06.",
+    "documento_referencia": "brand/manual/Gutleber_Manual_Identidad_Visual.pdf (documento madre único; Gutleber_Ecosistema_Marca.docx fue eliminado el 2026-07-06 tras fusionarse en el manual)"
   }
 }
