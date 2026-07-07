@@ -42,8 +42,9 @@ services:
       JWT_EXPIRES_IN: 7d
       NODE_ENV: production
       PORT: 3001
-      CORS_ORIGIN: https://app.automatizapp.pro
-      PUBLIC_URL: https://app.automatizapp.pro
+      CORS_ORIGIN: ${CORS_ORIGIN:-https://gutleberyasociados.com}
+      PUBLIC_URL: ${APP_URL:-https://gutleberyasociados.com}
+      APP_URL: ${APP_URL:-https://gutleberyasociados.com}
       ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY}
       INSTAGRAM_ACCESS_TOKEN: ${INSTAGRAM_ACCESS_TOKEN:-}
       INSTAGRAM_ACCOUNT_ID: ${INSTAGRAM_ACCOUNT_ID:-}
@@ -52,10 +53,11 @@ services:
       WHATSAPP_BUSINESS_ACCOUNT_ID: ${WHATSAPP_BUSINESS_ACCOUNT_ID}
       WHATSAPP_ACCESS_TOKEN: ${WHATSAPP_ACCESS_TOKEN}
       WHATSAPP_VERIFY_TOKEN: gutleber_webhook_2026
+      NOTIF_OPERADORES: ${NOTIF_OPERADORES:-}
       SMTP_PASS: ${SMTP_PASS}
-      APP_URL: https://app.automatizapp.pro
     volumes:
       - gutleber-uploads:/app/apps/api/uploads
+      - /root/gutleber-backups:/app/apps/api/backups
     depends_on:
       gutleber-postgres:
         condition: service_healthy
