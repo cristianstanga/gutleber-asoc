@@ -2,9 +2,9 @@ import Anthropic from '@anthropic-ai/sdk'
 import { prisma, logger } from '../index'
 import { sendText, sendImageUrl } from './whatsapp-meta'
 import { EtapaConversacion } from '@prisma/client'
-import { turnosDisponibles, proximosDiasHabiles, labelDia, formatearHoras } from './disponibilidad'
+import { turnosDisponibles, proximosDiasHabiles, labelDia } from './disponibilidad'
 import { alertarVisita, alertarRedFlag } from './alertas-operador'
-import { crearEventoVisita } from './google-calendar'
+import { crearEventoVisita, cancelarEventoVisita } from './google-calendar'
 import { CLAVES_CONFIG } from '../routes/config'
 
 const DEFAULT_REQUISITOS =
@@ -87,6 +87,18 @@ const TOOLS: Anthropic.Tool[] = [
     },
   },
   {
+    name: 'reprogramar_visita',
+    description: 'Reprograma una visita existente a un nuevo slot. Usala cuando el interesado ya tiene una visita registrada y pide cambiarla a otro horario.',
+    input_schema: {
+      type: 'object',
+      properties: {
+        diaHorario: { type: 'string', description: 'Descripción del nuevo turno, ej: "viernes 10/7 a las 9:00"' },
+        slotISO: { type: 'string', description: 'ISO 8601 del nuevo slot exacto' },
+      },
+      required: ['diaHorario', 'slotISO'],
+    },
+  },
+  {
     name: 'registrar_visita',
     description: 'Registra un pedido de visita a una propiedad. Usala cuando el interesado eligió un slot del listado de disponibilidad y dio su nombre.',
     input_schema: {
@@ -154,6 +166,50 @@ async function ejecutarHerramienta(
     return `Interés registrado: ${prop.direccion}.`
   }
 
+  if (nombre === 'reprogramar_visita') {
+    const slotISO = input.slotISO ? String(input.slotISO) : null
+    const nuevaFecha = slotISO ? new Date(slotISO) : null
+    if (!nuevaFecha) return 'slotISO inválido, no se pudo reprogramar.'
+
+    // Buscar la visita más reciente de esta conversación
+    const visita = await prisma.visita.findFirst({
+      where: { conversacionId },
+      orderBy: { createdAt: 'desc' },
+      include: { propiedad: { select: { direccion: true } } },
+    })
+    if (!visita) return 'No encontré una visita registrada para esta conversación.'
+
+    // Cancelar evento de Google Calendar anterior si existe
+    if (visita.googleEventId) {
+      cancelarEventoVisita(visita.googleEventId).catch(() => {})
+    }
+
+    // Actualizar la visita con el nuevo horario
+    const visitaActualizada = await prisma.visita.update({
+      where: { id: visita.id },
+      data: {
+        fechaPropuesta: String(input.diaHorario || ''),
+        fechaSolicitada: nuevaFecha,
+        googleEventId: null,
+      },
+    })
+
+    // Vuelve a PENDIENTE_CONFIRMACION hasta que el operador confirme el nuevo horario
+    await prisma.visita.update({
+      where: { id: visitaActualizada.id },
+      data: { estado: 'PENDIENTE_CONFIRMACION' },
+    })
+
+    // Aviso de recepción — la confirmación definitiva la manda el operador desde el CRM
+    const diaHorario = String(input.diaHorario || '')
+    sendText(
+      numeroDestino,
+      `Hola, ${visita.nombreContacto}. Recibimos tu pedido de cambio para el ${diaHorario}. Nuestro equipo lo va a confirmar en breve. — Gutleber & Asociados`,
+    ).catch(() => {})
+
+    return 'Pedido de reprogramación registrado. El sistema mandó aviso de recepción. La confirmación definitiva la envía el operador desde el CRM. Cerrá con una frase muy corta, ej: "¡Listo, [nombre]! Te confirmamos el cambio en breve."'
+  }
+
   if (nombre === 'registrar_visita') {
     const direccionBuscada = String(input.direccion || '').toLowerCase()
     const prop = propiedades.find(p => p.direccion.toLowerCase().includes(direccionBuscada))
@@ -173,21 +229,6 @@ async function ejecutarHerramienta(
       },
     })
 
-    // Crear evento en Google Calendar si hay fecha exacta del slot
-    if (fechaSolicitada) {
-      crearEventoVisita({
-        id: visita.id,
-        nombreContacto: String(input.nombre || ''),
-        numeroContacto: numeroDestino,
-        fechaConfirmada: fechaSolicitada,
-        propiedadDireccion: prop?.direccion || String(input.direccion || ''),
-      }).then(googleEventId => {
-        if (googleEventId) {
-          prisma.visita.update({ where: { id: visita.id }, data: { googleEventId } }).catch(() => {})
-        }
-      }).catch(() => {})
-    }
-
     await prisma.conversacion.update({
       where: { id: conversacionId },
       data: { etapa: EtapaConversacion.VISITA_PENDIENTE },
@@ -200,16 +241,15 @@ async function ejecutarHerramienta(
       conversacionId,
     }).catch(() => {})
 
-    // El código manda la confirmación — no el LLM
-    const nombreConfirm = String(input.nombre || 'cliente')
-    const dirConfirm = prop?.direccion || String(input.direccion || 'la propiedad')
-    const diaConfirm = String(input.diaHorario || '')
-    const msgConfirm =
-      `¡Listo, ${nombreConfirm}! Tu visita a ${dirConfirm} está confirmada para el ${diaConfirm}. ` +
-      `Te esperamos ahí. Ante cualquier cambio escribinos por acá. — Gutleber & Asociados`
-    sendText(numeroDestino, msgConfirm).catch(() => {})
+    // Aviso de recepción — la confirmación definitiva la manda el operador desde el CRM
+    const nombreRecib = String(input.nombre || 'cliente')
+    const diaRecib = String(input.diaHorario || '')
+    sendText(
+      numeroDestino,
+      `Hola, ${nombreRecib}. Recibimos tu solicitud de visita para el ${diaRecib}. Nuestro equipo la va a confirmar en breve. — Gutleber & Asociados`,
+    ).catch(() => {})
 
-    return 'Visita registrada. La confirmación ya fue enviada automáticamente al lead. Solo avisale brevemente que quedó todo listo.'
+    return 'Solicitud registrada. El sistema mandó aviso de recepción. La confirmación definitiva (con fecha, hora y Calendar) la envía el operador desde el CRM. Cerrá con una frase muy corta, ej: "¡Listo, [nombre]! Te avisamos en cuanto confirmemos."'
   }
 
   return 'Herramienta desconocida.'
@@ -325,7 +365,10 @@ CÓMO MANEJAR VISITAS:
 2. Si propone un horario distinto, explicale con firmeza pero cordialidad que los turnos son fijos para organizarnos bien, y pedile que elija uno de la lista.
 3. Pedí el nombre si todavía no lo tenés, antes de registrar.
 4. Una vez que eligió y tenés su nombre, usá registrar_visita: diaHorario = texto del turno (ej: "martes 8/7 a las 9:00"), slotISO = el [slotISO:...] del turno elegido.
-5. Después de registrar_visita el sistema ya mandó la confirmación. Tu respuesta debe ser UNA sola frase corta sin mencionar dirección, fecha ni hora. Por ejemplo: "¡Todo listo, [nombre]! Nos vemos." Nada más.
+5. Después de registrar_visita el sistema mandó un aviso de recepción al lead. La confirmación definitiva (con fecha y hora exacta) la envía el equipo de Gutleber desde el sistema. Tu respuesta debe ser UNA sola frase corta aclarando eso. Ejemplo: "¡Listo, [nombre]! Tomamos el pedido, te confirmamos en breve." Nada más.
+
+REPROGRAMAR VISITA:
+Si el interesado pide cambiar el horario de una visita ya registrada, mostrá los turnos disponibles igual que en el paso 1, pero usá reprogramar_visita (no registrar_visita). Pasá diaHorario y slotISO del nuevo turno elegido. Después de llamar a reprogramar_visita, respondé con UNA sola frase corta aclarando que el equipo va a confirmar el cambio. Ejemplo: "¡Listo, [nombre]! Pedido de cambio registrado, te confirmamos en breve."
 
 FOTOS:
 Si el interesado pide ver fotos o imágenes de una propiedad, usá la herramienta enviar_fotos con la dirección correspondiente. No digas que vas a mandar las fotos hasta haber usado la herramienta.

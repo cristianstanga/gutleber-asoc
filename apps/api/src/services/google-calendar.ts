@@ -12,7 +12,7 @@ function getCalendarClient() {
     throw new Error('Google Calendar no configurado (faltan GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET o GOOGLE_REFRESH_TOKEN)')
   }
 
-  const auth = new google.auth.OAuth2(clientId, clientSecret, 'urn:ietf:wg:oauth:2.0:oob')
+  const auth = new google.auth.OAuth2(clientId, clientSecret, 'https://developers.google.com/oauthplayground')
   auth.setCredentials({ refresh_token: refreshToken })
   return google.calendar({ version: 'v3', auth })
 }
