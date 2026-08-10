@@ -17,8 +17,8 @@ router.post('/', async (_req, res) => {
   // ─── Persona propietario ──────────────────────────────────────────────────
   const propietarioPersona = await prisma.persona.create({
     data: {
-      nombre: 'Roberto',
-      apellido: 'Figueroa',
+      nombre: 'Cristian',
+      apellido: 'Stanga',
       dni: '20345678',
       whatsapp: '3764900001',
       email: EMAIL_DEMO,
@@ -31,7 +31,7 @@ router.post('/', async (_req, res) => {
   const hash = await bcrypt.hash('Demo2026!', 10)
   await prisma.usuario.create({
     data: {
-      nombre: 'Roberto Figueroa',
+      nombre: 'Cristian Stanga',
       email: EMAIL_DEMO,
       password: hash,
       rol: 'PROPIETARIO',
@@ -230,7 +230,7 @@ router.post('/', async (_req, res) => {
       email: EMAIL_DEMO,
       password: 'Demo2026!',
       rol: 'PROPIETARIO',
-      propietario: 'Roberto Figueroa',
+      propietario: 'Cristian Stanga',
       propiedades: propiedades.length,
     },
   })
