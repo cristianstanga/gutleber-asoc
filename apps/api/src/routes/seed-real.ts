@@ -64,90 +64,18 @@ router.post('/', async (_req, res) => {
     // ── 8 Propiedades reales ─────────────────────────────────────────────────
     // Datos exactos de la planilla de administración
     const propsData = [
-      {
-        direccion: 'Herrera 4090',
-        tipo: 'CASA' as const,
-        dormitorios: 3, banos: 2, superficie: 120,
-        alquilerBase: 800000, indiceActual: 'ICL' as const,
-        inicio: new Date('2026-08-01'), fin: new Date('2028-07-31'),
-        proximaActualizacion: new Date('2026-12-01'),
-        inquilino: { apellido: 'Herrera', nombre: 'Inquilino', dni: '41001001' },
-        pagos: [], // contrato nuevo — solo agosto pendiente
-      },
-      {
-        direccion: 'Calle 34a N°6488',
-        tipo: 'CASA' as const,
-        dormitorios: 3, banos: 1, superficie: 110,
-        alquilerBase: 1095200, indiceActual: 'ICL' as const,
-        inicio: new Date('2025-12-01'), fin: new Date('2027-11-30'),
-        proximaActualizacion: new Date('2026-12-01'),
-        inquilino: { apellido: 'Jauretche', nombre: 'Inquilino', dni: '41001002' },
-        pagos: ['2026-05','2026-06','2026-07'],
-      },
-      {
-        direccion: 'Morcillo N°1243',
-        tipo: 'CASA' as const,
-        dormitorios: 3, banos: 2, superficie: 130,
-        alquilerBase: 900000, indiceActual: 'ICL' as const,
-        inicio: new Date('2025-02-01'), fin: new Date('2027-01-31'),
-        proximaActualizacion: new Date('2026-10-01'),
-        inquilino: { apellido: 'Morcillo', nombre: 'Inquilino', dni: '41001003' },
-        pagos: ['2026-05','2026-06','2026-07'],
-      },
-      {
-        direccion: 'Bolívar N°1212, Depto 4B',
-        tipo: 'DEPARTAMENTO' as const,
-        dormitorios: 2, banos: 1, superficie: 65,
-        alquilerBase: 800000, indiceActual: 'ICL' as const,
-        inicio: new Date('2026-07-01'), fin: new Date('2028-06-30'),
-        proximaActualizacion: new Date('2026-11-01'),
-        inquilino: { apellido: 'Alto Bolívar', nombre: 'Inquilino', dni: '41001004' },
-        pagos: ['2026-07'],
-      },
-      {
-        direccion: 'Troazzi N°1011, Depto 1 dorm',
-        tipo: 'DEPARTAMENTO' as const,
-        dormitorios: 1, banos: 1, superficie: 42,
-        alquilerBase: 445000, indiceActual: 'IPC' as const,
-        inicio: new Date('2025-02-01'), fin: new Date('2027-01-31'),
-        proximaActualizacion: new Date('2026-10-01'),
-        inquilino: { apellido: 'García', nombre: 'Ana Laura', dni: '41001005' },
-        pagos: ['2026-05','2026-06','2026-07'],
-      },
-      {
-        direccion: 'Moritan N°1787, Depto 1 dorm',
-        tipo: 'DEPARTAMENTO' as const,
-        dormitorios: 1, banos: 1, superficie: 40,
-        alquilerBase: 475200, indiceActual: 'IPC' as const,
-        inicio: new Date('2026-01-01'), fin: new Date('2027-12-31'),
-        proximaActualizacion: new Date('2026-09-01'), // ⚠️ ajuste en 3 semanas
-        inquilino: { apellido: 'Brizueña', nombre: 'Malka', dni: '41001006' },
-        pagos: ['2026-05','2026-06','2026-07'],
-      },
-      {
-        direccion: 'Moritan N°1781, Depto 2 dorm',
-        tipo: 'DEPARTAMENTO' as const,
-        dormitorios: 2, banos: 1, superficie: 55,
-        alquilerBase: 595140, indiceActual: 'IPC' as const,
-        inicio: new Date('2024-12-01'), fin: new Date('2026-11-30'),
-        proximaActualizacion: new Date('2026-12-01'),
-        inquilino: { apellido: 'Yacopino', nombre: 'María Laura', dni: '41001007' },
-        pagos: ['2026-05','2026-06','2026-07'],
-      },
-      {
-        direccion: 'Moritan N°1799, Depto 2 dorm',
-        tipo: 'DEPARTAMENTO' as const,
-        dormitorios: 2, banos: 1, superficie: 58,
-        alquilerBase: 600000, indiceActual: 'ICL' as const,
-        inicio: new Date('2026-06-01'), fin: new Date('2028-05-31'),
-        proximaActualizacion: new Date('2026-10-01'),
-        inquilino: { apellido: 'Quintana', nombre: 'Natalia', dni: '41001008' },
-        pagos: ['2026-06','2026-07'],
-      },
+      { direccion: 'Herrera 4090',                  tipo: 'CASA'         as const, dormitorios: 3, banos: 2, superficie: 120, alquilerBase: 800000,  indiceActual: 'ICL' as const, inicio: new Date('2026-08-01'), fin: new Date('2028-07-31'), proximaActualizacion: new Date('2026-12-01'), inquilino: { apellido: 'Herrera',    nombre: 'Inquilino',    dni: '41001001' } },
+      { direccion: 'Calle 34a N°6488',            tipo: 'CASA'         as const, dormitorios: 3, banos: 1, superficie: 110, alquilerBase: 1095200, indiceActual: 'ICL' as const, inicio: new Date('2025-12-01'), fin: new Date('2027-11-30'), proximaActualizacion: new Date('2026-12-01'), inquilino: { apellido: 'Jauretche',  nombre: 'Inquilino',    dni: '41001002' } },
+      { direccion: 'Morcillo N°1243',              tipo: 'CASA'         as const, dormitorios: 3, banos: 2, superficie: 130, alquilerBase: 900000,  indiceActual: 'ICL' as const, inicio: new Date('2025-02-01'), fin: new Date('2027-01-31'), proximaActualizacion: new Date('2026-10-01'), inquilino: { apellido: 'Morcillo',   nombre: 'Inquilino',    dni: '41001003' } },
+      { direccion: 'Bolívar N°1212, Depto 4B',    tipo: 'DEPARTAMENTO' as const, dormitorios: 2, banos: 1, superficie: 65,  alquilerBase: 800000,  indiceActual: 'ICL' as const, inicio: new Date('2026-07-01'), fin: new Date('2028-06-30'), proximaActualizacion: new Date('2026-11-01'), inquilino: { apellido: 'Alto Bolívar', nombre: 'Inquilino',  dni: '41001004' } },
+      { direccion: 'Troazzi N°1011, Depto 1 dorm', tipo: 'DEPARTAMENTO' as const, dormitorios: 1, banos: 1, superficie: 42, alquilerBase: 445000,  indiceActual: 'IPC' as const, inicio: new Date('2025-02-01'), fin: new Date('2027-01-31'), proximaActualizacion: new Date('2026-10-01'), inquilino: { apellido: 'García',     nombre: 'Ana Laura',    dni: '41001005' } },
+      { direccion: 'Moritan N°1787, Depto 1 dorm', tipo: 'DEPARTAMENTO' as const, dormitorios: 1, banos: 1, superficie: 40, alquilerBase: 475200,  indiceActual: 'IPC' as const, inicio: new Date('2026-01-01'), fin: new Date('2027-12-31'), proximaActualizacion: new Date('2026-09-01'), inquilino: { apellido: 'Brizueña',   nombre: 'Malka',        dni: '41001006' } },
+      { direccion: 'Moritan N°1781, Depto 2 dorm', tipo: 'DEPARTAMENTO' as const, dormitorios: 2, banos: 1, superficie: 55, alquilerBase: 595140,  indiceActual: 'IPC' as const, inicio: new Date('2024-12-01'), fin: new Date('2026-11-30'), proximaActualizacion: new Date('2026-12-01'), inquilino: { apellido: 'Yacopino',   nombre: 'María Laura',  dni: '41001007' } },
+      { direccion: 'Moritan N°1799, Depto 2 dorm', tipo: 'DEPARTAMENTO' as const, dormitorios: 2, banos: 1, superficie: 58, alquilerBase: 600000,  indiceActual: 'ICL' as const, inicio: new Date('2026-06-01'), fin: new Date('2028-05-31'), proximaActualizacion: new Date('2026-10-01'), inquilino: { apellido: 'Quintana',   nombre: 'Natalia',      dni: '41001008' } },
     ]
 
     for (const p of propsData) {
-      const { inicio, fin, proximaActualizacion, inquilino, pagos: mesesPagados, ...propFields } = p
+      const { inicio, fin, proximaActualizacion, inquilino, ...propFields } = p
 
       const prop = await prisma.propiedad.create({
         data: {
@@ -155,7 +83,6 @@ router.post('/', async (_req, res) => {
           enAlquiler: true,
           administrada: true,
           propietarioId: personaProp.id,
-          vistas: Math.floor(Math.random() * 60) + 10,
         },
       })
 
@@ -181,38 +108,7 @@ router.post('/', async (_req, res) => {
         },
       })
 
-      // Meses pagados (historial)
-      for (const mes of mesesPagados) {
-        const [y, m] = mes.split('-').map(Number)
-        const venc = new Date(y, m - 1, 10)
-        const pagado = new Date(y, m - 1, 8)
-        const monto = prop.alquilerBase!
-        const honorarios = monto * 0.08
-        await prisma.pago.create({
-          data: {
-            tipo: 'ALQUILER',
-            concepto: `Alquiler ${mes}`,
-            monto,
-            periodo: mes,
-            estado: 'PAGADO',
-            fechaVencimiento: venc,
-            fechaPago: pagado,
-            formaPago: 'Transferencia',
-            totalConExtras: monto,
-            pagadoAlPropietario: true,
-            fechaPagoPropietario: new Date(pagado.getTime() + 2 * 86400000),
-            montoPropietario: monto - honorarios,
-            honorariosAplicados: honorarios,
-            gastosAplicados: 0,
-            comprobanteEnviado: true,
-            propiedadId: prop.id,
-            personaId: inq.id,
-            vinculoId: vinculo.id,
-          },
-        })
-      }
-
-      // Agosto 2026 — pendiente para todas
+      // Solo agosto 2026 pendiente — el sistema arranca hoy, sin historial anterior
       await prisma.pago.create({
         data: {
           tipo: 'ALQUILER',
