@@ -24,6 +24,7 @@ import configRouter from './routes/config'
 import visitasRouter from './routes/visitas'
 import statsRouter from './routes/stats'
 import seedDemoRouter from './routes/seed-demo'
+import seedRealRouter from './routes/seed-real'
 import webhookWhatsappRouter from './routes/webhook-whatsapp'
 import { initCron } from './services/cron'
 import { sendHelloWorld, getStatus as getWAStatus } from './services/whatsapp-meta'
@@ -132,6 +133,7 @@ app.use('/api/config', authMiddleware, requireAdminOrOperador, configRouter)
 app.use('/api/visitas', authMiddleware, requireAdminOrOperador, visitasRouter)
 app.use('/api/stats', authMiddleware, requireAdminOrOperador, statsRouter)
 app.use('/api/seed-demo', authMiddleware, seedDemoRouter)
+app.use('/api/seed-real', authMiddleware, seedRealRouter)
 
 async function fixImageUrls() {
   // Reemplaza URLs viejas (https://automatizapp.pro/uploads/) por la URL correcta (https://app.automatizapp.pro/uploads/)

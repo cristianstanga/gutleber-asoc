@@ -64,11 +64,22 @@ export default function Usuarios() {
     mutationFn: () => api.post('/seed-demo').then(r => r.data),
     onSuccess: (data) => {
       setSeedMsg(data.ok
-        ? `✅ Datos demo creados. Email: ${data.acceso.email} / Contraseña: ${data.acceso.password}`
+        ? `✅ Demo creado. ${data.acceso.email} / ${data.acceso.password}`
         : `ℹ️ ${data.mensaje}`)
       qc.invalidateQueries({ queryKey: ['usuarios'] })
     },
     onError: () => setSeedMsg('❌ Error al crear datos demo'),
+  })
+
+  const seedReal = useMutation({
+    mutationFn: () => api.post('/seed-real').then(r => r.data),
+    onSuccess: (data) => {
+      setSeedMsg(data.ok
+        ? `✅ Creados: Cintia (${data.usuarios.admin.email} / ${data.usuarios.admin.password}) · Cristian (${data.usuarios.propietario.email} / ${data.usuarios.propietario.password}) · ${data.propiedades} propiedades · $${data.totalAlquiler}/mes`
+        : `❌ ${data.error}`)
+      qc.invalidateQueries({ queryKey: ['usuarios'] })
+    },
+    onError: () => setSeedMsg('❌ Error al crear datos reales'),
   })
 
   function abrir(target: 'create' | Usuario) {
@@ -106,6 +117,14 @@ export default function Usuarios() {
           <p className="text-piedra text-sm mt-0.5">Accesos al sistema · {usuarios.length} usuarios</p>
         </div>
         <div className="flex gap-2">
+          <button
+            onClick={() => seedReal.mutate()}
+            disabled={seedReal.isPending}
+            className="flex items-center gap-2 px-3 py-2 rounded text-xs font-semibold bg-petroleo text-white hover:bg-petroleo/90 transition-colors"
+          >
+            <FlaskConical size={14} />
+            {seedReal.isPending ? 'Creando...' : 'Cargar datos reales'}
+          </button>
           <button
             onClick={() => seedDemo.mutate()}
             disabled={seedDemo.isPending}
