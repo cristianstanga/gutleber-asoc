@@ -31,14 +31,13 @@ router.post('/', async (_req, res) => {
     if (propExistente) await prisma.usuario.delete({ where: { email: EMAIL_PROP } })
     if (propExistente?.personaId) await prisma.persona.delete({ where: { id: propExistente.personaId } }).catch(() => {})
 
-    // ── Cintia Gutleber — ADMIN ──────────────────────────────────────────────
-    const yaAdmin = await prisma.usuario.findUnique({ where: { email: EMAIL_ADMIN } })
-    if (!yaAdmin) {
-      const hashAdmin = await bcrypt.hash('Gutleber2026!', 10)
-      await prisma.usuario.create({
-        data: { nombre: 'Cintia Gutleber', email: EMAIL_ADMIN, password: hashAdmin, rol: 'ADMIN' },
-      })
-    }
+    // ── Cintia Gutleber — ADMIN (siempre resetea contraseña) ────────────────
+    const hashAdmin = await bcrypt.hash('Gutleber2026!', 10)
+    await prisma.usuario.upsert({
+      where: { email: EMAIL_ADMIN },
+      update: { password: hashAdmin, rol: 'ADMIN', nombre: 'Cintia Gutleber', activo: true },
+      create: { nombre: 'Cintia Gutleber', email: EMAIL_ADMIN, password: hashAdmin, rol: 'ADMIN' },
+    })
 
     // ── Cristian Stanganelli — PROPIETARIO ───────────────────────────────────
     const hashProp = await bcrypt.hash('Stanga2026!', 10)
