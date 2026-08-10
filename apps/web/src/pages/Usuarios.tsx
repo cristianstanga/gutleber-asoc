@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { UserPlus, Pencil, ShieldCheck, ShieldOff, X, Eye, EyeOff } from 'lucide-react'
+import { UserPlus, Pencil, ShieldCheck, ShieldOff, X, Eye, EyeOff, FlaskConical } from 'lucide-react'
 import { api } from '../lib/api'
 
 type Rol = 'ADMIN' | 'OPERADOR' | 'PROPIETARIO' | 'INQUILINO'
@@ -59,6 +59,18 @@ export default function Usuarios() {
     onSuccess: () => qc.invalidateQueries({ queryKey: ['usuarios'] }),
   })
 
+  const [seedMsg, setSeedMsg] = useState<string | null>(null)
+  const seedDemo = useMutation({
+    mutationFn: () => api.post('/seed-demo').then(r => r.data),
+    onSuccess: (data) => {
+      setSeedMsg(data.ok
+        ? `✅ Datos demo creados. Email: ${data.acceso.email} / Contraseña: ${data.acceso.password}`
+        : `ℹ️ ${data.mensaje}`)
+      qc.invalidateQueries({ queryKey: ['usuarios'] })
+    },
+    onError: () => setSeedMsg('❌ Error al crear datos demo'),
+  })
+
   function abrir(target: 'create' | Usuario) {
     setModal(target)
     setShowPass(false)
@@ -93,10 +105,27 @@ export default function Usuarios() {
           <h1 className="font-display text-carbon text-2xl">Usuarios</h1>
           <p className="text-piedra text-sm mt-0.5">Accesos al sistema · {usuarios.length} usuarios</p>
         </div>
-        <button onClick={() => abrir('create')} className="btn-primary flex items-center gap-2">
-          <UserPlus size={16} /> Nuevo usuario
-        </button>
+        <div className="flex gap-2">
+          <button
+            onClick={() => seedDemo.mutate()}
+            disabled={seedDemo.isPending}
+            className="flex items-center gap-2 px-3 py-2 rounded text-xs font-semibold bg-crema text-piedra hover:bg-arena/30 transition-colors border border-arena/40"
+          >
+            <FlaskConical size={14} />
+            {seedDemo.isPending ? 'Creando...' : 'Datos demo'}
+          </button>
+          <button onClick={() => abrir('create')} className="btn-primary flex items-center gap-2">
+            <UserPlus size={16} /> Nuevo usuario
+          </button>
+        </div>
       </div>
+
+      {seedMsg && (
+        <div className="mb-4 p-3 rounded-lg bg-crema border border-arena text-sm text-carbon">
+          {seedMsg}
+        </div>
+      )}
+
 
       <div className="card overflow-hidden">
         <table className="w-full text-sm">
