@@ -11,7 +11,24 @@ const EMAIL_PROP    = 'cristianstanga@gmail.com'
 // Idempotente: limpia y recrea si ya existen.
 router.post('/', async (_req, res) => {
   try {
-    // ── Limpiar datos previos ────────────────────────────────────────────────
+    // ── Limpiar datos demo (si existen) ─────────────────────────────────────
+    const EMAIL_DEMO = 'demo.propietario@gutleberyasociados.com'
+    const demoUser = await prisma.usuario.findUnique({ where: { email: EMAIL_DEMO }, include: { persona: true } })
+    if (demoUser?.personaId) {
+      const demoProps = await prisma.propiedad.findMany({ where: { propietarioId: demoUser.personaId } })
+      const demoPropIds = demoProps.map(p => p.id)
+      await prisma.visita.deleteMany({ where: { propiedadId: { in: demoPropIds } } })
+      await prisma.gasto.deleteMany({ where: { propiedadId: { in: demoPropIds } } })
+      await prisma.pago.deleteMany({ where: { propiedadId: { in: demoPropIds } } })
+      await prisma.vinculo.deleteMany({ where: { propiedadId: { in: demoPropIds } } })
+      await prisma.propiedad.deleteMany({ where: { propietarioId: demoUser.personaId } })
+      const dnisDemo = ['30111001','31222002','28333003','33444004','29555005','34666006','27777007']
+      await prisma.persona.deleteMany({ where: { dni: { in: dnisDemo } } })
+    }
+    if (demoUser) await prisma.usuario.delete({ where: { email: EMAIL_DEMO } })
+    if (demoUser?.personaId) await prisma.persona.delete({ where: { id: demoUser.personaId } }).catch(() => {})
+
+    // ── Limpiar datos reales previos ─────────────────────────────────────────
     const propExistente = await prisma.usuario.findUnique({
       where: { email: EMAIL_PROP },
       include: { persona: true },
@@ -115,7 +132,7 @@ router.post('/', async (_req, res) => {
           monto: prop.alquilerBase!,
           periodo: '2026-08',
           estado: 'PENDIENTE',
-          fechaVencimiento: new Date('2026-08-10'),
+          fechaVencimiento: new Date('2026-08-31'),
           totalConExtras: prop.alquilerBase!,
           pagadoAlPropietario: false,
           propiedadId: prop.id,
