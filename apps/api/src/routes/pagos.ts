@@ -238,7 +238,7 @@ router.post('/', async (req, res) => {
 
 // Marcar como pagado (con forma de pago y extras si no se cargaron antes)
 router.patch('/:id/marcar-pagado', async (req, res) => {
-  const { formaPago, conceptosExtra, totalConExtras } = req.body
+  const { formaPago, conceptosExtra, totalConExtras, moraMontoFinal, moraParaInmobiliaria } = req.body
   const data: Record<string, unknown> = {
     estado: EstadoPago.PAGADO,
     fechaPago: new Date(),
@@ -246,10 +246,15 @@ router.patch('/:id/marcar-pagado', async (req, res) => {
   if (formaPago) data.formaPago = formaPago
   if (conceptosExtra) data.conceptosExtra = conceptosExtra
   if (totalConExtras) data.totalConExtras = totalConExtras
+  if (moraMontoFinal != null) data.moraMontoFinal = moraMontoFinal
+  if (moraParaInmobiliaria != null) data.moraParaInmobiliaria = !!moraParaInmobiliaria
+
+  // Si el pago fue anticipado al propietario → la mora es automáticamente de la inmobiliaria
+  const currentPago = await prisma.pago.findUnique({ where: { id: req.params.id }, select: { anticipadoAlPropietario: true, nroRecibo: true } })
+  if (currentPago?.anticipadoAlPropietario) data.moraParaInmobiliaria = true
 
   // Asignar nroRecibo si no tiene
-  const current = await prisma.pago.findUnique({ where: { id: req.params.id } })
-  if (current && !current.nroRecibo) {
+  if (currentPago && !currentPago.nroRecibo) {
     const total = await contarRecibos()
     data.nroRecibo = total + 1001
   }
@@ -403,6 +408,36 @@ router.patch('/:id/revertir-pago-propietario', async (req, res) => {
   const pago = await prisma.pago.update({
     where: { id: req.params.id },
     data: { pagadoAlPropietario: false, fechaPagoPropietario: null },
+  })
+  res.json(pago)
+})
+
+// Anticipar al propietario — la inmobiliaria adelanta el alquiler antes de que pague el inquilino
+router.patch('/:id/anticipar', async (req, res) => {
+  const pagoActual = await prisma.pago.findUnique({
+    where: { id: req.params.id },
+    include: { vinculo: { select: { honorariosPct: true } } },
+  })
+  if (!pagoActual) return res.status(404).json({ error: 'Pago no encontrado' })
+  if (pagoActual.anticipadoAlPropietario) return res.status(400).json({ error: 'Ya fue anticipado' })
+
+  const honorariosPct = pagoActual.vinculo?.honorariosPct ?? 8
+  const honorarios = Math.round(pagoActual.monto * honorariosPct / 100)
+  type ConceptoExtra = { descripcion: string; monto: number; esInmobiliaria?: boolean }
+  const conceptos = (pagoActual.conceptosExtra as ConceptoExtra[] | null) ?? []
+  const extrasParaProp = conceptos.filter(c => !c.esInmobiliaria).reduce((s, c) => s + (Number(c.monto) || 0), 0)
+  const montoPropietario = (pagoActual.monto - honorarios) + extrasParaProp
+
+  const pago = await prisma.pago.update({
+    where: { id: req.params.id },
+    data: {
+      anticipadoAlPropietario: true,
+      fechaAnticipo: new Date(),
+      pagadoAlPropietario: true,
+      fechaPagoPropietario: new Date(),
+      montoPropietario,
+      honorariosAplicados: honorarios,
+    },
   })
   res.json(pago)
 })

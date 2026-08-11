@@ -4,7 +4,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import {
   CreditCard, Send, CheckCircle, ChevronRight,
   Plus, Minus, Trash2, FileText, X, Building2, User, Calendar,
-  Home, Receipt, Wrench, Percent, RotateCcw, FileDown, AlertTriangle
+  Home, Receipt, Wrench, Percent, RotateCcw, FileDown, AlertTriangle, ArrowUpCircle
 } from 'lucide-react'
 import { api, formatARS, formatFecha } from '../lib/api'
 import { useAuthStore } from '../store/auth'
@@ -68,6 +68,10 @@ interface Pago {
   montoPropietario?: number
   honorariosAplicados?: number
   gastosAplicados?: number
+  moraMontoFinal?: number
+  moraParaInmobiliaria?: boolean
+  anticipadoAlPropietario?: boolean
+  fechaAnticipo?: string
   persona?: Persona
   propiedad?: { direccion: string; propietario?: { nombre: string; apellido: string } }
 }
@@ -118,9 +122,8 @@ interface ModalCobroProps {
 
 function calcularMora(pago: Pago): { dias: number; monto: number } | null {
   if (pago.estado !== 'MORA') return null
-  const venc = new Date(pago.fechaVencimiento)
-  // Día 1 de mora = día siguiente al vencimiento (ej. vence el 10, mora desde el 11)
-  const dias = Math.max(1, Math.floor((Date.now() - venc.getTime()) / 86400000))
+  // Mora = día del mes × 1% (ej: día 11 → 11 días × 1% = 11% del alquiler)
+  const dias = new Date().getDate()
   return { dias, monto: Math.round(pago.monto * dias / 100) }
 }
 
@@ -128,19 +131,25 @@ function ModalCobro({ pago, vinculo, onClose, onCobrado }: ModalCobroProps) {
   const [formaPago, setFormaPago] = useState(pago.formaPago || 'Efectivo')
   const [conceptos, setConceptos] = useState<ConceptoExtra[]>(() => {
     if (pago.conceptosExtra && pago.conceptosExtra.length > 0) return pago.conceptosExtra
-    const mora = calcularMora(pago)
-    if (mora) return [{ descripcion: `Mora por retraso (${mora.dias} días — ${mora.dias}%)`, monto: mora.monto }]
     return []
   })
   const [toast, setToast] = useState('')
 
-  const total = pago.monto + conceptos.reduce((s, c) => s + (Number(c.monto) || 0), 0)
+  // Mora — separada de conceptos, editable
+  const moraSugerida = calcularMora(pago)
+  const [moraMonto, setMoraMonto] = useState(moraSugerida?.monto ?? 0)
+  const [moraParaInmobiliaria, setMoraParaInmobiliaria] = useState(false)
+  const conMora = pago.estado === 'MORA' && moraMonto > 0
+
+  const subtotal = pago.monto + conceptos.reduce((s, c) => s + (Number(c.monto) || 0), 0)
+  const total = subtotal + (conMora ? moraMonto : 0)
 
   const cobrar = useMutation({
     mutationFn: () => api.patch(`/pagos/${pago.id}/marcar-pagado`, {
       formaPago,
       conceptosExtra: conceptos.filter(c => c.descripcion.trim()),
       totalConExtras: total,
+      ...(pago.estado === 'MORA' && { moraMontoFinal: moraMonto, moraParaInmobiliaria }),
     }),
     onSuccess: () => { onCobrado(); onClose() },
     onError: () => { setToast('Error al registrar el cobro'); setTimeout(() => setToast(''), 3000) },
@@ -192,19 +201,44 @@ function ModalCobro({ pago, vinculo, onClose, onCobrado }: ModalCobroProps) {
         <div className="px-6 py-5 space-y-5">
           {toast && <div className="text-red-600 text-sm bg-red-50 px-3 py-2 rounded-lg">{toast}</div>}
 
-          {/* Banner mora */}
-          {pago.estado === 'MORA' && (() => {
-            const mora = calcularMora(pago)!
-            return (
-              <div className="bg-red-50 border border-red-200 rounded-xl px-4 py-3 flex items-start gap-3">
-                <AlertTriangle size={16} className="text-red-500 flex-shrink-0 mt-0.5" />
-                <div className="text-xs text-red-700">
-                  <p className="font-semibold">Pago en mora — {mora.dias} día{mora.dias !== 1 ? 's' : ''} desde el vencimiento ({mora.dias}%)</p>
-                  <p className="text-red-500 mt-0.5">La mora sugerida es {formatARS(mora.monto)}. Podés ajustarla en "Conceptos adicionales".</p>
-                </div>
+          {/* Sección mora */}
+          {pago.estado === 'MORA' && moraSugerida && (
+            <div className="bg-red-50 border border-red-200 rounded-xl px-4 py-4 space-y-3">
+              <div className="flex items-center gap-2">
+                <AlertTriangle size={15} className="text-red-500 flex-shrink-0" />
+                <p className="text-sm font-semibold text-red-700">
+                  Pago en mora — día {moraSugerida.dias} ({moraSugerida.dias}% del alquiler)
+                </p>
               </div>
-            )
-          })()}
+              <div className="flex items-center gap-3">
+                <label className="text-xs text-red-600 font-medium w-28 flex-shrink-0">Monto mora ($)</label>
+                <input
+                  type="number" min={0}
+                  className="form-input flex-1 text-sm py-1.5 bg-white border-red-200"
+                  value={moraMonto || ''}
+                  onChange={e => setMoraMonto(Number(e.target.value) || 0)}
+                />
+              </div>
+              <div className="flex items-center gap-3">
+                <label className="text-xs text-red-600 font-medium w-28 flex-shrink-0">Mora para</label>
+                <div className="flex rounded-lg overflow-hidden border border-red-200 text-xs font-semibold">
+                  <button type="button"
+                    onClick={() => setMoraParaInmobiliaria(false)}
+                    className={`px-3 py-1.5 transition-colors ${!moraParaInmobiliaria ? 'bg-red-500 text-white' : 'bg-white text-red-700 hover:bg-red-50'}`}>
+                    Propietario
+                  </button>
+                  <button type="button"
+                    onClick={() => setMoraParaInmobiliaria(true)}
+                    className={`px-3 py-1.5 transition-colors ${moraParaInmobiliaria ? 'bg-amber-500 text-white' : 'bg-white text-amber-700 hover:bg-amber-50'}`}>
+                    Inmobiliaria
+                  </button>
+                </div>
+                {moraParaInmobiliaria && (
+                  <span className="text-[10px] text-amber-600 italic">queda en la inmobiliaria</span>
+                )}
+              </div>
+            </div>
+          )}
 
           {/* Datos base readonly */}
           <div className="bg-crema rounded-xl px-4 py-3 space-y-1.5">
@@ -314,6 +348,19 @@ function ModalCobro({ pago, vinculo, onClose, onCobrado }: ModalCobroProps) {
                   </div>
                 )
               })}
+              {/* Mora separada */}
+              {conMora && (
+                <div className={`flex justify-between items-center px-4 py-3 ${moraParaInmobiliaria ? 'bg-amber-50' : 'bg-red-50'}`}>
+                  <div className="flex items-center gap-2">
+                    <span className={`w-5 h-5 rounded-full flex items-center justify-center text-xs font-bold flex-shrink-0 ${moraParaInmobiliaria ? 'bg-amber-200 text-amber-700' : 'bg-red-200 text-red-700'}`}>!</span>
+                    <span className="text-sm text-carbon">Mora ({moraSugerida?.dias ?? 0} días)</span>
+                    {moraParaInmobiliaria && <span className="text-[9px] text-amber-600 bg-amber-100 px-1.5 py-0.5 rounded-full font-semibold">inmob.</span>}
+                  </div>
+                  <span className={`text-sm font-bold ${moraParaInmobiliaria ? 'text-amber-600' : 'text-red-600'}`}>
+                    + {formatARS(moraMonto)}
+                  </span>
+                </div>
+              )}
               {/* Total */}
               <div className="flex justify-between items-center px-4 py-3 bg-carbon">
                 <span className="text-sm font-bold text-white">Total cobrado</span>
@@ -988,6 +1035,18 @@ function PanelPagos({ vinculo, onBack }: PanelPagosProps) {
     },
   })
 
+  const anticiparPropietario = useMutation({
+    mutationFn: (id: string) => api.patch(`/pagos/${id}/anticipar`),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['pagos', vinculo.id] })
+      toast2('Adelanto al propietario registrado ✓')
+    },
+    onError: (e: unknown) => {
+      const msg = (e as { response?: { data?: { error?: string } } })?.response?.data?.error ?? 'Error al anticipar'
+      toast2(msg)
+    },
+  })
+
   const eliminarPago = useMutation({
     mutationFn: (id: string) => api.delete(`/pagos/${id}`),
     onSuccess: () => {
@@ -1182,12 +1241,28 @@ function PanelPagos({ vinculo, onBack }: PanelPagosProps) {
                   <td className="px-4 py-3">
                     <div className="flex flex-col gap-1">
                       {p.estado !== 'PAGADO' && p.estado !== 'ANULADO' && (
-                        <button
-                          onClick={() => setPagoACobrar(p)}
-                          className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-green-600 hover:bg-green-700 text-white text-xs font-semibold transition-colors whitespace-nowrap"
-                        >
-                          <CheckCircle size={13} /> Cobrar
-                        </button>
+                        <>
+                          <button
+                            onClick={() => setPagoACobrar(p)}
+                            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-green-600 hover:bg-green-700 text-white text-xs font-semibold transition-colors whitespace-nowrap"
+                          >
+                            <CheckCircle size={13} /> Cobrar
+                          </button>
+                          {!p.anticipadoAlPropietario && esAdmin && (
+                            <button
+                              onClick={() => { if (confirm('¿Adelantar el alquiler al propietario antes de cobrar al inquilino?')) anticiparPropietario.mutate(p.id) }}
+                              disabled={anticiparPropietario.isPending}
+                              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-amber-50 hover:bg-amber-100 text-amber-700 text-xs font-medium transition-colors whitespace-nowrap border border-amber-200"
+                            >
+                              <ArrowUpCircle size={12} /> Anticipar prop.
+                            </button>
+                          )}
+                          {p.anticipadoAlPropietario && (
+                            <span className="text-[10px] text-amber-600 font-semibold flex items-center gap-1">
+                              <ArrowUpCircle size={10} /> Anticipado {p.fechaAnticipo ? new Date(p.fechaAnticipo).toLocaleDateString('es-AR') : ''}
+                            </span>
+                          )}
+                        </>
                       )}
                       {p.estado === 'PAGADO' && (
                         <>

@@ -225,9 +225,13 @@ model Pago {
   pagadoAlPropietario  Boolean    @default(false)
   fechaPagoPropietario DateTime?
   nroRecibo            Int?       // número secuencial del recibo
-  montoPropietario     Float?     // monto final a transferir (se guarda al generar liquidación)
-  honorariosAplicados  Float?     // honorarios descontados en la liquidación
-  gastosAplicados      Float?     // total de gastos descontados
+  montoPropietario        Float?     // monto final a transferir (se guarda al generar liquidación)
+  honorariosAplicados     Float?     // honorarios descontados en la liquidación
+  gastosAplicados         Float?     // total de gastos descontados
+  moraMontoFinal          Float?     // mora negociada y cobrada (null = sin mora)
+  moraParaInmobiliaria    Boolean    @default(false) // true = mora queda en inmobiliaria
+  anticipadoAlPropietario Boolean    @default(false) // inmobiliaria adelantó al propietario antes del cobro
+  fechaAnticipo           DateTime?  // cuándo se hizo el adelanto
   propiedadId          String?
   personaId            String?
   vinculoId            String?
