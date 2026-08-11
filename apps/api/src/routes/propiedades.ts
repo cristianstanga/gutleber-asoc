@@ -31,6 +31,11 @@ router.get('/mis', async (req: AuthRequest, res) => {
         where: { tipo: 'ALQUILER' },
         orderBy: { fechaVencimiento: 'desc' },
         take: 6,
+        select: {
+          id: true, monto: true, totalConExtras: true, montoPropietario: true,
+          estado: true, fechaVencimiento: true, pagadoAlPropietario: true,
+          fechaPago: true, periodo: true, concepto: true,
+        },
       },
       propietario: true,
     },
@@ -58,12 +63,6 @@ router.get('/:id/analytics', async (req: AuthRequest, res) => {
   const pagos = await prisma.pago.findMany({
     where: { propiedadId, tipo: 'ALQUILER' },
     orderBy: { fechaVencimiento: 'asc' },
-  })
-
-  // Gastos de esta propiedad (no anulados) — para descontar del neto
-  const gastosPropiedad = await prisma.gasto.findMany({
-    where: { propiedadId, estado: { not: 'ANULADO' } },
-    select: { monto: true, fecha: true },
   })
 
   // Demora por mes del inquilino actual
@@ -133,17 +132,13 @@ router.get('/:id/analytics', async (req: AuthRequest, res) => {
       const pv = new Date(p.fechaVencimiento)
       return `${pv.getFullYear()}-${String(pv.getMonth() + 1).padStart(2, '0')}` === mesKey
     })
-    const cobrado = pagosMes.filter((p) => p.estado === 'PAGADO').reduce((a, p) => a + p.monto, 0)
+    // cobrado incluye conceptos extra cobrados al inquilino (totalConExtras)
+    const cobrado = pagosMes.filter((p) => p.estado === 'PAGADO').reduce((a, p) => a + (p.totalConExtras ?? p.monto), 0)
     const honorariosPct = vinculo?.honorariosPct ?? 8
-    const gastosDelMes = gastosPropiedad
-      .filter((g) => {
-        const fg = new Date(g.fecha)
-        return `${fg.getFullYear()}-${String(fg.getMonth() + 1).padStart(2, '0')}` === mesKey
-      })
-      .reduce((a, g) => a + g.monto, 0)
-    const neto = +(cobrado * (1 - honorariosPct / 100) - gastosDelMes).toFixed(0)
+    const neto = +(cobrado * (1 - honorariosPct / 100)).toFixed(0)
+    // transferido usa montoPropietario guardado (incluye extras del propietario)
     const transferido = pagosMes.filter((p) => p.pagadoAlPropietario).reduce((a, p) => a + (p.montoPropietario ?? (p.monto * (1 - honorariosPct / 100))), 0)
-    return { mes: label, cobrado, neto, gastosDelMes: +gastosDelMes.toFixed(0), transferido: +transferido.toFixed(0) }
+    return { mes: label, cobrado, neto, transferido: +transferido.toFixed(0) }
   })
 
   // Próximo ajuste
@@ -183,11 +178,6 @@ router.get('/:id/resumen-pdf', async (req: AuthRequest, res) => {
     orderBy: { fechaVencimiento: 'asc' },
   })
 
-  const gastosResumen = await prisma.gasto.findMany({
-    where: { propiedadId, estado: { not: 'ANULADO' } },
-    select: { monto: true, fecha: true },
-  })
-
   const hoy = new Date()
   const flujoCaja = Array.from({ length: 8 }, (_, i) => {
     const d = new Date(hoy)
@@ -199,16 +189,10 @@ router.get('/:id/resumen-pdf', async (req: AuthRequest, res) => {
       return `${pv.getFullYear()}-${String(pv.getMonth() + 1).padStart(2, '0')}` === mesKey
     })
     const honorariosPct = vinculo?.honorariosPct ?? 8
-    const cobrado = pagosMes.filter((p) => p.estado === 'PAGADO').reduce((a, p) => a + p.monto, 0)
-    const gastosDelMes = gastosResumen
-      .filter((g) => {
-        const fg = new Date(g.fecha)
-        return `${fg.getFullYear()}-${String(fg.getMonth() + 1).padStart(2, '0')}` === mesKey
-      })
-      .reduce((a, g) => a + g.monto, 0)
-    const neto = +(cobrado * (1 - honorariosPct / 100) - gastosDelMes).toFixed(0)
+    const cobrado = pagosMes.filter((p) => p.estado === 'PAGADO').reduce((a, p) => a + (p.totalConExtras ?? p.monto), 0)
+    const neto = +(cobrado * (1 - honorariosPct / 100)).toFixed(0)
     const transferido = pagosMes.filter((p) => p.pagadoAlPropietario).reduce((a, p) => a + (p.montoPropietario ?? (p.monto * (1 - honorariosPct / 100))), 0)
-    return { mes: label, cobrado, neto, gastosDelMes: +gastosDelMes.toFixed(0), transferido: +transferido.toFixed(0) }
+    return { mes: label, cobrado, neto, transferido: +transferido.toFixed(0) }
   })
 
   const pagadosConFecha = pagos.filter((p) => p.estado === 'PAGADO' && p.fechaPago)

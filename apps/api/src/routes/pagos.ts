@@ -303,9 +303,21 @@ router.patch('/:id/marcar-pagado', async (req, res) => {
 
 // Marcar pagado al propietario (liquidación enviada)
 router.patch('/:id/pagar-propietario', async (req, res) => {
+  // Leer el pago primero para calcular montoPropietario correcto
+  const pagoActual = await prisma.pago.findUnique({
+    where: { id: req.params.id },
+    include: { vinculo: { select: { honorariosPct: true } } },
+  })
+  const honorariosPct = pagoActual?.vinculo?.honorariosPct ?? 8
+  const honorarios = pagoActual?.honorariosAplicados ?? Math.round((pagoActual?.monto ?? 0) * honorariosPct / 100)
+  type ConceptoExtra = { descripcion: string; monto: number; esInmobiliaria?: boolean }
+  const conceptos = (pagoActual?.conceptosExtra as ConceptoExtra[] | null) ?? []
+  const extrasParaProp = conceptos.filter(c => !c.esInmobiliaria).reduce((s, c) => s + (Number(c.monto) || 0), 0)
+  const montoPropietario = ((pagoActual?.monto ?? 0) - honorarios) + extrasParaProp
+
   const pago = await prisma.pago.update({
     where: { id: req.params.id },
-    data: { pagadoAlPropietario: true, fechaPagoPropietario: new Date() },
+    data: { pagadoAlPropietario: true, fechaPagoPropietario: new Date(), montoPropietario },
     include: {
       propiedad: true,
       vinculo: { select: { honorariosPct: true } },

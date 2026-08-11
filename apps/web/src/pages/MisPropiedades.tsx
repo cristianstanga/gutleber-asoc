@@ -11,7 +11,7 @@ import {
 import { api, formatARS, formatFecha } from '../lib/api'
 import { useAuthStore } from '../store/auth'
 
-interface Pago { id: string; monto: number; estado: string; fechaVencimiento: string; pagadoAlPropietario: boolean }
+interface Pago { id: string; monto: number; totalConExtras?: number | null; montoPropietario?: number | null; estado: string; fechaVencimiento: string; pagadoAlPropietario: boolean }
 interface Persona { nombre: string; apellido: string }
 interface Vinculo { tipo: string; alquilerActual: number; fechaInicio: string; fechaFin?: string; persona: Persona }
 interface Propiedad {
@@ -216,8 +216,9 @@ export default function MisPropiedades() {
     const v = p.vinculos.find((v) => v.tipo === 'ALQUILER')
     return acc + (v?.alquilerActual ?? 0)
   }, 0)
-  const pagosDisponibles = propiedades.flatMap((p) => p.pagos.filter((pg) => pg.estado === 'PAGADO' && !pg.pagadoAlPropietario))
-  const montoDisponible = pagosDisponibles.reduce((acc, p) => acc + p.monto, 0)
+  // Solo muestra lo ya transferido por la inmobiliaria (post-liquidación)
+  const pagosLiquidados = propiedades.flatMap((p) => p.pagos.filter((pg) => pg.pagadoAlPropietario))
+  const montoDisponible = pagosLiquidados.reduce((acc, p) => acc + (p.montoPropietario ?? p.monto), 0)
   const alquiladas = propiedades.filter((p) => p.vinculos.length > 0).length
 
   return (
@@ -240,9 +241,9 @@ export default function MisPropiedades() {
           <p className="text-xs text-piedra mt-1">contratos activos</p>
         </div>
         <div className="card p-4 border-l-4 border-green-400">
-          <p className="text-xs text-piedra uppercase tracking-wide mb-1">Disponible hoy</p>
+          <p className="text-xs text-piedra uppercase tracking-wide mb-1">Transferido este mes</p>
           <p className="font-display text-2xl text-green-600">{formatARS(montoDisponible)}</p>
-          <p className="text-xs text-piedra mt-1">{pagosDisponibles.length} pago{pagosDisponibles.length !== 1 ? 's' : ''} por transferir</p>
+          <p className="text-xs text-piedra mt-1">{pagosLiquidados.length} pago{pagosLiquidados.length !== 1 ? 's' : ''} liquidado{pagosLiquidados.length !== 1 ? 's' : ''}</p>
         </div>
       </div>
 
