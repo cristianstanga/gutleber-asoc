@@ -495,7 +495,7 @@ router.post('/:id/liquidacion', async (req, res) => {
 
   await prisma.pago.update({
     where: { id: req.params.id },
-    data: { montoPropietario, honorariosAplicados, gastosAplicados: totalGastosAplicados },
+    data: { montoPropietario, honorariosAplicados, gastosAplicados: totalGastosAplicados, pagadoAlPropietario: true, fechaPagoPropietario: new Date() },
   })
 
   try {
