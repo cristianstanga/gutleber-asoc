@@ -1,12 +1,12 @@
 import { useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import {
-  BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer,
-  AreaChart, Area, CartesianGrid, ReferenceLine,
+  XAxis, YAxis, Tooltip, ResponsiveContainer,
+  AreaChart, Area, CartesianGrid,
 } from 'recharts'
 import {
-  Building2, User, Calendar, TrendingUp, CheckCircle2, Clock,
-  DollarSign, ChevronDown, ChevronUp, Award, AlertTriangle, FileDown,
+  Building2, User, Calendar, TrendingUp, Clock,
+  DollarSign, ChevronDown, ChevronUp, FileDown,
 } from 'lucide-react'
 import { api, formatARS, formatFecha } from '../lib/api'
 import { useAuthStore } from '../store/auth'
@@ -68,71 +68,12 @@ function AnalyticsPanel({ propiedadId }: { propiedadId: string }) {
   if (isLoading) return <div className="p-6 text-center text-piedra text-sm">Cargando análisis...</div>
   if (!data) return null
 
-  const { demoraPorMes, statsInquilino, statsGlobal, flujoCaja, proximoAjuste } = data
-  const pctATiempo = statsInquilino.totalPagos ? +((statsInquilino.pagadosATiempo / statsInquilino.totalPagos) * 100).toFixed(0) : 0
-  const mejorQuePromedio = statsInquilino.promedioDiasDemora <= statsGlobal.promedioDiasDemora
+  const { flujoCaja, proximoAjuste } = data
   const disponible = flujoCaja.reduce((a, f) => a + (f.neto - f.transferido), 0)
 
   return (
     <div className="border-t border-crema bg-gray-50/50 p-5 space-y-6">
 
-      {/* ── Fila 1: Stats del inquilino ──────────────────────────────────────── */}
-      <div>
-        <p className="text-xs font-semibold text-piedra uppercase tracking-wider mb-3">Comportamiento del inquilino</p>
-        <div className="grid grid-cols-2 gap-3 mb-4">
-          <div className="bg-white rounded-xl border border-crema p-4">
-            <div className="flex items-center justify-between mb-2">
-              <p className="text-xs text-piedra">Pagos a tiempo</p>
-              <CheckCircle2 size={14} className="text-green-500" />
-            </div>
-            <p className="font-display text-2xl text-carbon">{pctATiempo}%</p>
-            <p className="text-xs text-piedra mt-1">{statsInquilino.pagadosATiempo} de {statsInquilino.totalPagos} pagos</p>
-            <div className="mt-2 h-1.5 bg-crema rounded-full overflow-hidden">
-              <div className="h-full bg-green-400 rounded-full" style={{ width: `${pctATiempo}%` }} />
-            </div>
-          </div>
-
-          <div className={`rounded-xl border p-4 ${mejorQuePromedio ? 'bg-green-50 border-green-200' : 'bg-amber-50 border-amber-200'}`}>
-            <div className="flex items-center justify-between mb-2">
-              <p className="text-xs text-piedra">vs. otros inquilinos</p>
-              {mejorQuePromedio ? <Award size={14} className="text-green-600" /> : <AlertTriangle size={14} className="text-amber-600" />}
-            </div>
-            <p className={`font-display text-2xl ${mejorQuePromedio ? 'text-green-700' : 'text-amber-700'}`}>
-              {statsInquilino.promedioDiasDemora}d
-            </p>
-            <p className="text-xs text-piedra mt-1">promedio demora · Base: {statsGlobal.promedioDiasDemora}d</p>
-            {statsGlobal.porcentajeInquilinosConMejorComportamiento !== null && (
-              <p className={`text-xs font-medium mt-1 ${mejorQuePromedio ? 'text-green-700' : 'text-amber-700'}`}>
-                {mejorQuePromedio
-                  ? `Mejor que el ${100 - (statsGlobal.porcentajeInquilinosConMejorComportamiento ?? 0)}% del mercado`
-                  : `El ${statsGlobal.porcentajeInquilinosConMejorComportamiento}% paga antes`}
-              </p>
-            )}
-          </div>
-        </div>
-
-        {/* Gráfico de demora por mes */}
-        {demoraPorMes.length > 0 && (
-          <div className="bg-white rounded-xl border border-crema p-4">
-            <p className="text-xs font-medium text-carbon mb-3">Días de demora por mes</p>
-            <ResponsiveContainer width="100%" height={120}>
-              <BarChart data={demoraPorMes} barSize={20}>
-                <XAxis dataKey="mes" tick={{ fontSize: 10, fill: '#9B9B9B' }} axisLine={false} tickLine={false} />
-                <YAxis hide />
-                <Tooltip content={<TooltipARS />} />
-                <ReferenceLine y={statsGlobal.promedioDiasDemora} stroke="#F59E0B" strokeDasharray="4 4" />
-                <Bar
-                  dataKey="diasDemora"
-                  radius={[4, 4, 0, 0]}
-                  name="días"
-                  fill="#4ADE80"
-                />
-              </BarChart>
-            </ResponsiveContainer>
-            <p className="text-[10px] text-piedra mt-1">— línea amarilla: promedio general ({statsGlobal.promedioDiasDemora}d)</p>
-          </div>
-        )}
-      </div>
 
       {/* ── Fila 2: Flujo de caja ─────────────────────────────────────────────── */}
       <div>
