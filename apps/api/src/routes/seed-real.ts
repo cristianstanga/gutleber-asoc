@@ -11,42 +11,19 @@ const EMAIL_PROP    = 'cristianstanga@gmail.com'
 // Idempotente: limpia y recrea si ya existen.
 router.post('/', async (_req, res) => {
   try {
-    // ── Limpiar datos demo (si existen) ─────────────────────────────────────
-    const EMAIL_DEMO = 'demo.propietario@gutleberyasociados.com'
-    const demoUser = await prisma.usuario.findUnique({ where: { email: EMAIL_DEMO }, include: { persona: true } })
-    if (demoUser?.personaId) {
-      const demoProps = await prisma.propiedad.findMany({ where: { propietarioId: demoUser.personaId } })
-      const demoPropIds = demoProps.map(p => p.id)
-      await prisma.visita.deleteMany({ where: { propiedadId: { in: demoPropIds } } })
-      await prisma.gasto.deleteMany({ where: { propiedadId: { in: demoPropIds } } })
-      await prisma.pago.deleteMany({ where: { propiedadId: { in: demoPropIds } } })
-      await prisma.vinculo.deleteMany({ where: { propiedadId: { in: demoPropIds } } })
-      await prisma.propiedad.deleteMany({ where: { propietarioId: demoUser.personaId } })
-      const dnisDemo = ['30111001','31222002','28333003','33444004','29555005','34666006','27777007']
-      await prisma.persona.deleteMany({ where: { dni: { in: dnisDemo } } })
-    }
-    if (demoUser) await prisma.usuario.delete({ where: { email: EMAIL_DEMO } })
-    if (demoUser?.personaId) await prisma.persona.delete({ where: { id: demoUser.personaId } }).catch(() => {})
-
-    // ── Limpiar datos reales previos ─────────────────────────────────────────
-    const propExistente = await prisma.usuario.findUnique({
-      where: { email: EMAIL_PROP },
-      include: { persona: true },
-    })
-    if (propExistente?.personaId) {
-      const pId = propExistente.personaId
-      const props = await prisma.propiedad.findMany({ where: { propietarioId: pId } })
-      const propIds = props.map(p => p.id)
-      await prisma.visita.deleteMany({ where: { propiedadId: { in: propIds } } })
-      await prisma.gasto.deleteMany({ where: { propiedadId: { in: propIds } } })
-      await prisma.pago.deleteMany({ where: { propiedadId: { in: propIds } } })
-      await prisma.vinculo.deleteMany({ where: { propiedadId: { in: propIds } } })
-      await prisma.propiedad.deleteMany({ where: { propietarioId: pId } })
-      const dnisInq = ['41001001','41001002','41001003','41001004','41001005','41001006','41001007','41001008']
-      await prisma.persona.deleteMany({ where: { dni: { in: dnisInq } } })
-    }
-    if (propExistente) await prisma.usuario.delete({ where: { email: EMAIL_PROP } })
-    if (propExistente?.personaId) await prisma.persona.delete({ where: { id: propExistente.personaId } }).catch(() => {})
+    // ── Limpieza total ───────────────────────────────────────────────────────
+    // Borra toda la data operativa; preserva solo la cuenta admin de Cintia.
+    await prisma.visita.deleteMany({})
+    await prisma.gasto.deleteMany({})
+    await prisma.pago.deleteMany({})
+    await prisma.vinculo.deleteMany({})
+    await prisma.propiedad.deleteMany({})
+    await prisma.inboxItem.deleteMany({})
+    await prisma.conversacion.deleteMany({})
+    // Usuarios que no son Cintia
+    await prisma.usuario.deleteMany({ where: { email: { not: EMAIL_ADMIN } } })
+    // Personas: borrar todas las de tipo PROPIETARIO/INQUILINO (data operativa)
+    await prisma.persona.deleteMany({ where: { tipo: { in: ['PROPIETARIO', 'INQUILINO'] } } }).catch(() => {})
 
     // ── Cintia Gutleber — ADMIN (siempre resetea contraseña) ────────────────
     const hashAdmin = await bcrypt.hash('Gutleber2026!', 10)
