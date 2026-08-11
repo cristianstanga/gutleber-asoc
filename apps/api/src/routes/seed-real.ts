@@ -132,7 +132,7 @@ router.post('/', async (_req, res) => {
           monto: prop.alquilerBase!,
           periodo: '2026-08',
           estado: 'PENDIENTE',
-          fechaVencimiento: new Date('2026-08-31'),
+          fechaVencimiento: new Date('2026-08-10'),
           totalConExtras: prop.alquilerBase!,
           pagadoAlPropietario: false,
           propiedadId: prop.id,

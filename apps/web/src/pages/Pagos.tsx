@@ -119,8 +119,8 @@ interface ModalCobroProps {
 function calcularMora(pago: Pago): { dias: number; monto: number } | null {
   if (pago.estado !== 'MORA') return null
   const venc = new Date(pago.fechaVencimiento)
-  const firstDay = new Date(Date.UTC(venc.getUTCFullYear(), venc.getUTCMonth(), 1))
-  const dias = Math.floor((Date.now() - firstDay.getTime()) / 86400000) + 1
+  // Día 1 de mora = día siguiente al vencimiento (ej. vence el 10, mora desde el 11)
+  const dias = Math.max(1, Math.floor((Date.now() - venc.getTime()) / 86400000))
   return { dias, monto: Math.round(pago.monto * dias / 100) }
 }
 
@@ -199,7 +199,7 @@ function ModalCobro({ pago, vinculo, onClose, onCobrado }: ModalCobroProps) {
               <div className="bg-red-50 border border-red-200 rounded-xl px-4 py-3 flex items-start gap-3">
                 <AlertTriangle size={16} className="text-red-500 flex-shrink-0 mt-0.5" />
                 <div className="text-xs text-red-700">
-                  <p className="font-semibold">Pago en mora — {mora.dias} días desde el 1° del mes ({mora.dias}%)</p>
+                  <p className="font-semibold">Pago en mora — {mora.dias} día{mora.dias !== 1 ? 's' : ''} desde el vencimiento ({mora.dias}%)</p>
                   <p className="text-red-500 mt-0.5">La mora sugerida es {formatARS(mora.monto)}. Podés ajustarla en "Conceptos adicionales".</p>
                 </div>
               </div>

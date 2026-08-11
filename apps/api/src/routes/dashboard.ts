@@ -119,8 +119,7 @@ router.get('/', async (_req, res) => {
 
   for (const p of pagosEnMoraDetalle) {
     if (!p.personaId) continue
-    const firstDay = new Date(p.fechaVencimiento.getFullYear(), p.fechaVencimiento.getMonth(), 1)
-    const diasMora = Math.floor((hoy.getTime() - firstDay.getTime()) / 86400000) + 1
+    const diasMora = Math.max(1, Math.floor((hoy.getTime() - p.fechaVencimiento.getTime()) / 86400000))
     const montoMora = Math.round(p.monto * diasMora / 100)
 
     if (!deudoresMap.has(p.personaId)) {
