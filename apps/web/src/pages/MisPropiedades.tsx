@@ -138,9 +138,9 @@ function AnalyticsPanel({ propiedadId }: { propiedadId: string }) {
       <div>
         <div className="flex items-center justify-between mb-3">
           <p className="text-xs font-semibold text-piedra uppercase tracking-wider">Flujo de caja</p>
-          <div className={`flex items-center gap-1.5 text-sm font-medium px-3 py-1 rounded-full ${disponible > 0 ? 'bg-green-50 text-green-700' : 'bg-gray-100 text-piedra'}`}>
+          <div className={`flex items-center gap-1.5 text-sm font-medium px-3 py-1 rounded-full ${disponible > 0 ? 'bg-amber-50 text-amber-700' : 'bg-gray-100 text-piedra'}`}>
             <DollarSign size={12} />
-            {formatARS(disponible)} disponible
+            {formatARS(disponible)} {disponible > 0 ? 'por acreditar' : 'al día'}
           </div>
         </div>
         <div className="bg-white rounded-xl border border-crema p-4">
