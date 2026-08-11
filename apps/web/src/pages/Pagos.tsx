@@ -998,14 +998,7 @@ function PanelPagos({ vinculo, onBack }: PanelPagosProps) {
     onError: () => toast2('Error al eliminar'),
   })
 
-  const generarRetroactivos = useMutation({
-    mutationFn: () => api.post(`/vinculos/${vinculo.id}/generar-retroactivos`),
-    onSuccess: (res) => {
-      qc.invalidateQueries({ queryKey: ['pagos', vinculo.id] })
-      toast2(`${res.data.generados} pagos generados ✓`)
-    },
-    onError: () => toast2('Error al generar pagos'),
-  })
+
 
   function toast2(msg: string) {
     setToast(msg)
