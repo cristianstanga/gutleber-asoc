@@ -1080,23 +1080,9 @@ function PanelPagos({ vinculo, onBack }: PanelPagosProps) {
         {!isLoading && pagosOrdenados.length === 0 && (
           <div className="p-8">
             {vinculo.tipo === 'ALQUILER' ? (
-              <div className="border border-amber-200 bg-amber-50 rounded-xl p-5 flex flex-col items-center gap-3 text-center">
-                <AlertTriangle size={28} className="text-amber-500" />
-                <div>
-                  <p className="font-semibold text-carbon">Este contrato no tiene pagos generados</p>
-                  <p className="text-xs text-piedra mt-1">
-                    El contrato inició el {formatFecha(vinculo.fechaInicio)}. Podés generar todos los meses
-                    faltantes automáticamente — los anteriores al mes actual quedarán en <strong>mora</strong>.
-                  </p>
-                </div>
-                <button
-                  onClick={() => generarRetroactivos.mutate()}
-                  disabled={generarRetroactivos.isPending}
-                  className="btn-primary flex items-center gap-2"
-                >
-                  <Receipt size={14} />
-                  {generarRetroactivos.isPending ? 'Generando...' : `Generar pagos desde ${formatFecha(vinculo.fechaInicio)}`}
-                </button>
+              <div className="text-center text-piedra text-sm py-6">
+                <p>Sin pagos registrados para este contrato.</p>
+                <p className="text-xs mt-1">El sistema genera el pago mensual automáticamente el día 1 de cada mes.</p>
               </div>
             ) : (
               <div className="text-center text-piedra text-sm py-8">
