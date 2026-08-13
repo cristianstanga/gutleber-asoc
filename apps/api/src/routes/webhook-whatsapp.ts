@@ -106,13 +106,19 @@ async function handleIncoming(msg: Record<string, unknown>, contact?: Record<str
 
   if (!texto || texto === '[media]') return
 
+  // Si el agente está desactivado (operador tomó el control), no responder automáticamente
+  if (!conv.agenteActivo) {
+    logger.info(`🔇 Agente pausado para ${from} — mensaje en inbox sin respuesta automática`)
+    return
+  }
+
   // Enrutar según tipo de persona
   if (persona?.tipo === 'PROPIETARIO') {
-    await manejarPropietario(from, texto, persona).catch(err =>
+    await manejarPropietario(from, texto, persona, conv.id).catch(err =>
       logger.error({ err }, '❌ Respuesta propietario WA')
     )
   } else if (persona?.tipo === 'INQUILINO') {
-    await manejarInquilino(from, texto, persona).catch(err =>
+    await manejarInquilino(from, texto, persona, conv.id).catch(err =>
       logger.error({ err }, '❌ Respuesta inquilino WA')
     )
   } else {
@@ -122,17 +128,34 @@ async function handleIncoming(msg: Record<string, unknown>, contact?: Record<str
   }
 }
 
+async function saveOutgoing(convId: string, from: string, texto: string) {
+  await prisma.inboxItem.create({
+    data: {
+      canal: 'WHATSAPP',
+      mensaje: texto,
+      tipo: 'SALIENTE',
+      numero: from,
+      conversacionId: convId,
+      leido: true,
+    },
+  })
+  await prisma.conversacion.update({
+    where: { id: convId },
+    data: { ultimoMensaje: new Date() },
+  })
+}
+
 // ── Embudo PROPIETARIO ────────────────────────────────────────────────────────
 
-async function manejarPropietario(from: string, texto: string, persona: Persona) {
+async function manejarPropietario(from: string, texto: string, persona: Persona, convId: string) {
   const msg = texto.trim().toLowerCase()
   const quiereCintia = msg === '2' || /cintia|hablar|comunicar|person/i.test(msg)
   const quiereEstado = msg === '1' || /propiedad|pago|estado|cobr|alquiler|liquida|transfer/i.test(msg)
 
   if (quiereCintia) {
-    await sendText(from,
-      `Para hablar directamente con Cintia Gutleber podés escribirle a:\n\n📱 *${CINTIA_TEL}*\n\nTe va a responder a la brevedad. 🙌`
-    )
+    const respuesta = `Para hablar directamente con Cintia Gutleber podés escribirle a:\n\n📱 *${CINTIA_TEL}*\n\nTe va a responder a la brevedad. 🙌`
+    await sendText(from, respuesta)
+    await saveOutgoing(convId, from, respuesta)
     return
   }
 
@@ -150,9 +173,9 @@ async function manejarPropietario(from: string, texto: string, persona: Persona)
     })
 
     if (propiedades.length === 0) {
-      await sendText(from,
-        `Hola ${persona.nombre}! No encontré propiedades asignadas a tu cuenta.\n\nContactá a Cintia al *${CINTIA_TEL}*`
-      )
+      const respuesta = `Hola ${persona.nombre}! No encontré propiedades asignadas a tu cuenta.\n\nContactá a Cintia al *${CINTIA_TEL}*`
+      await sendText(from, respuesta)
+      await saveOutgoing(convId, from, respuesta)
       return
     }
 
@@ -179,34 +202,34 @@ async function manejarPropietario(from: string, texto: string, persona: Persona)
       return `📍 *${p.direccion}*\n   Inquilino: ${inquilino}\n   ${estadoLinea}`
     }).join('\n\n')
 
-    await sendText(from,
-      `Hola ${persona.nombre}! Tus propiedades este mes:\n\n${lineas}\n\n` +
+    const respuesta = `Hola ${persona.nombre}! Tus propiedades este mes:\n\n${lineas}\n\n` +
       `Para más detalle o consultas escribile a Cintia al *${CINTIA_TEL}*`
-    )
+    await sendText(from, respuesta)
+    await saveOutgoing(convId, from, respuesta)
     return
   }
 
   // Menú inicial (primer mensaje o mensaje no reconocido)
-  await sendText(from,
-    `Hola ${persona.nombre}! 👋 Soy el asistente de *Gutleber & Asociados*.\n\n` +
+  const respuesta = `Hola ${persona.nombre}! 👋 Soy el asistente de *Gutleber & Asociados*.\n\n` +
     `¿En qué te puedo ayudar?\n\n` +
     `*1* — Estado de mis propiedades\n` +
     `*2* — Hablar con Cintia\n\n` +
     `Respondé con el número de la opción.`
-  )
+  await sendText(from, respuesta)
+  await saveOutgoing(convId, from, respuesta)
 }
 
 // ── Embudo INQUILINO ──────────────────────────────────────────────────────────
 
-async function manejarInquilino(from: string, texto: string, persona: Persona) {
+async function manejarInquilino(from: string, texto: string, persona: Persona, convId: string) {
   const msg = texto.trim().toLowerCase()
   const quiereCintia = msg === '2' || /cintia|hablar|comunicar|person/i.test(msg)
   const quiereEstado = msg === '1' || /pago|deuda|alquiler|estado|mora|cuanto|debo|venci/i.test(msg)
 
   if (quiereCintia) {
-    await sendText(from,
-      `Para hablar directamente con Cintia Gutleber podés escribirle a:\n\n📱 *${CINTIA_TEL}*\n\nTe va a responder a la brevedad. 🙌`
-    )
+    const respuesta = `Para hablar directamente con Cintia Gutleber podés escribirle a:\n\n📱 *${CINTIA_TEL}*\n\nTe va a responder a la brevedad. 🙌`
+    await sendText(from, respuesta)
+    await saveOutgoing(convId, from, respuesta)
     return
   }
 
@@ -218,9 +241,9 @@ async function manejarInquilino(from: string, texto: string, persona: Persona) {
     })
 
     if (!pago) {
-      await sendText(from,
-        `Hola ${persona.nombre}! No encontré pagos registrados.\n\nContactá a Cintia al *${CINTIA_TEL}*`
-      )
+      const respuesta = `Hola ${persona.nombre}! No encontré pagos registrados.\n\nContactá a Cintia al *${CINTIA_TEL}*`
+      await sendText(from, respuesta)
+      await saveOutgoing(convId, from, respuesta)
       return
     }
 
@@ -259,17 +282,18 @@ async function manejarInquilino(from: string, texto: string, persona: Persona) {
 
     respuesta += `\n\nPara pagar o consultas escribile a Cintia al *${CINTIA_TEL}*`
     await sendText(from, respuesta)
+    await saveOutgoing(convId, from, respuesta)
     return
   }
 
   // Menú inicial
-  await sendText(from,
-    `Hola ${persona.nombre}! 👋 Soy el asistente de *Gutleber & Asociados*.\n\n` +
+  const respuesta = `Hola ${persona.nombre}! 👋 Soy el asistente de *Gutleber & Asociados*.\n\n` +
     `¿En qué te puedo ayudar?\n\n` +
     `*1* — Estado de mi alquiler\n` +
     `*2* — Hablar con Cintia\n\n` +
     `Respondé con el número de la opción.`
-  )
+  await sendText(from, respuesta)
+  await saveOutgoing(convId, from, respuesta)
 }
 
 export default router
