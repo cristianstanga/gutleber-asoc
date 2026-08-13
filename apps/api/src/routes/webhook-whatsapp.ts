@@ -64,8 +64,10 @@ async function handleIncoming(msg: Record<string, unknown>, contact?: Record<str
 
   logger.info(`📨 Meta WA entrante [${from}] "${pushName}": ${texto?.substring(0, 60)}`)
 
+  // Meta envía sin "+". La DB puede tener con o sin "+". Cubrimos ambos.
+  const stripped = from.replace(/^\+/, '')
   const persona = await prisma.persona.findFirst({
-    where: { whatsapp: { in: [from, `+${from}`] } },
+    where: { whatsapp: { in: [stripped, `+${stripped}`] } },
   })
 
   let conv = await prisma.conversacion.findUnique({ where: { numero: from } })
