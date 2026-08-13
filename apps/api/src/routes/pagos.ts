@@ -175,6 +175,8 @@ async function buildDatosLiquidacion(pagoId: string): Promise<DatosLiquidacion |
     gastos: [],
     conceptosInquilino,
     formaPago: pago.formaPago || 'Efectivo',
+    moraMontoFinal: pago.moraMontoFinal,
+    moraParaInmobiliaria: pago.moraParaInmobiliaria,
   }
 }
 
@@ -530,7 +532,9 @@ router.post('/:id/liquidacion', async (req, res) => {
   const totalGastosAplicados = gastosExtra.reduce((s, g) => s + g.monto, 0)
   const conceptosProp = (datos.conceptosInquilino ?? []).filter(c => !c.esInmobiliaria)
   const extrasParaProp = conceptosProp.reduce((s, c) => s + c.monto, 0)
-  const montoPropietario = (alquilerBase - honorariosAplicados) + extrasParaProp - totalGastosAplicados
+  // Mora al propietario solo si moraParaInmobiliaria = false
+  const moraParaProp = (!datos.moraParaInmobiliaria && datos.moraMontoFinal) ? datos.moraMontoFinal : 0
+  const montoPropietario = (alquilerBase - honorariosAplicados) + extrasParaProp + moraParaProp - totalGastosAplicados
 
   await prisma.pago.update({
     where: { id: req.params.id },

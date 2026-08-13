@@ -74,13 +74,13 @@ router.get('/', async (_req, res) => {
     prisma.pago.count({ where: { estado: EstadoPago.PENDIENTE } }),
     prisma.pago.count({ where: { estado: EstadoPago.MORA } }),
     prisma.pago.count({ where: { estado: EstadoPago.VENCIDO } }),
-    prisma.pago.aggregate({
+    prisma.pago.findMany({
       where: { estado: EstadoPago.PAGADO, fechaPago: { gte: inicioMes, lte: finMes } },
-      _sum: { monto: true },
+      select: { monto: true, totalConExtras: true, moraMontoFinal: true },
     }),
-    prisma.pago.aggregate({
+    prisma.pago.findMany({
       where: { estado: EstadoPago.PAGADO, fechaPago: { gte: inicioHoy, lt: finHoy } },
-      _sum: { monto: true },
+      select: { monto: true, totalConExtras: true, moraMontoFinal: true },
     }),
     // Total esperado este mes (todos los pagos con vencimiento en el mes)
     prisma.pago.aggregate({
@@ -181,6 +181,11 @@ router.get('/', async (_req, res) => {
     }),
   ])
 
+  const sumarPagos = (pagos: { monto: number; totalConExtras: number | null; moraMontoFinal: number | null }[]) =>
+    pagos.reduce((s, p) => s + (p.totalConExtras ?? p.monto) + (p.moraMontoFinal ?? 0), 0)
+
+  const totalRecaudadoMes = sumarPagos(recaudadoMes)
+  const totalRecaudadoHoy = sumarPagos(recaudadoHoy)
   const esperadoMesTotal = esperadoMes._sum.monto || 0
   const esperadoMesCuenta = esperadoMes._count || 0
 
@@ -188,13 +193,13 @@ router.get('/', async (_req, res) => {
     kpis: {
       totalPropiedades, propEnAlquiler, propEnVenta, totalInquilinos,
       pagosPendientes, pagosEnMora, pagosVencidos,
-      recaudadoMes: recaudadoMes._sum.monto || 0,
-      recaudadoHoy: recaudadoHoy._sum.monto || 0,
+      recaudadoMes: totalRecaudadoMes,
+      recaudadoHoy: totalRecaudadoHoy,
       contratosVencer, inboxNoLeidos,
     },
     cobrosDelMes: {
       esperado: esperadoMesTotal,
-      cobrado: recaudadoMes._sum.monto || 0,
+      cobrado: totalRecaudadoMes,
       totalCuenta: esperadoMesCuenta,
       cobradoCuenta: pagadosMesCuenta,
       pendienteCuenta: esperadoMesCuenta - pagadosMesCuenta,

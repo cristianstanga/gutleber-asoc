@@ -62,6 +62,8 @@ export interface DatosLiquidacion {
   gastos?: { descripcion: string; monto: number }[]
   conceptosInquilino?: { descripcion: string; monto: number; esInmobiliaria?: boolean }[]
   formaPago: string
+  moraMontoFinal?: number | null
+  moraParaInmobiliaria?: boolean
 }
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
@@ -288,7 +290,9 @@ function dibujarLiquidacion(
   const honorariosPct    = d.honorariosPct ?? 8
   const honorarios       = Math.round(alquilerBase * honorariosPct / 100)
   const extrasParaProp   = conceptosProp.reduce((s, c) => s + c.monto, 0)
-  const totalATransferir = (alquilerBase - honorarios) + extrasParaProp - totalGastos
+  // Mora para propietario: se incluye solo si moraParaInmobiliaria = false
+  const moraParaProp     = (!d.moraParaInmobiliaria && d.moraMontoFinal) ? d.moraMontoFinal : 0
+  const totalATransferir = (alquilerBase - honorarios) + extrasParaProp + moraParaProp - totalGastos
 
   const AX = M + W - 104
   const AW = 100
@@ -369,6 +373,17 @@ function dibujarLiquidacion(
        .text('Total cobrado al inquilino', DX, y + 3, { width: DW })
     doc.fillColor(CARBON).font('Helvetica-Bold').fontSize(8)
        .text(formatARS(alquilerBase + extrasParaProp), AX, y + 2.5, { width: AW, align: 'right' })
+    y += 13
+  }
+
+  // Mora para propietario (no se muestra si va a la inmobiliaria)
+  if (moraParaProp > 0) {
+    doc.rect(M, y, W, 13).fill('#FEF3C7')
+    doc.rect(M, y, W, 13).stroke(ARENA)
+    doc.fillColor(CARBON).font('Helvetica').fontSize(8)
+       .text('Mora cobrada al inquilino', DX + 4, y + 2.5, { width: DW - 4 })
+    doc.fillColor('#92400E').font('Helvetica-Bold').fontSize(8)
+       .text(`+ ${formatARS(moraParaProp)}`, AX, y + 2.5, { width: AW, align: 'right' })
     y += 13
   }
 
