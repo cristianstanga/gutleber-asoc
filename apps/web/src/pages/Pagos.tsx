@@ -72,6 +72,7 @@ interface Pago {
   moraParaInmobiliaria?: boolean
   anticipadoAlPropietario?: boolean
   fechaAnticipo?: string
+  vinculoId?: string
   persona?: Persona
   propiedad?: { direccion: string; propietario?: { nombre: string; apellido: string } }
 }
@@ -1465,12 +1466,24 @@ export default function Pagos() {
   const vinculoIdDesdeNav = (location.state as { vinculoId?: string } | null)?.vinculoId
   const [vinculoSeleccionado, setVinculoSeleccionado] = useState<Vinculo | null>(null)
   const [filtroActivo, setFiltroActivo] = useState(true)
+  const [vistaCobrosMes, setVistaCobrosMes] = useState(false)
+
+  const hoy = new Date()
+  const mesCobro = `${hoy.getFullYear()}-${String(hoy.getMonth() + 1).padStart(2, '0')}`
+  const mesLabel = hoy.toLocaleDateString('es-AR', { month: 'long' }).replace(/^\w/, c => c.toUpperCase())
 
   const { data: vinculos = [], isLoading } = useQuery<Vinculo[]>({
     queryKey: ['vinculos-alquiler', filtroActivo],
     queryFn: () =>
       api.get('/vinculos', { params: { tipo: 'ALQUILER', activo: filtroActivo } })
         .then(r => r.data),
+  })
+
+  const { data: cobrosMes = [], isLoading: loadingCobros } = useQuery<Pago[]>({
+    queryKey: ['cobros-mes', mesCobro],
+    queryFn: () =>
+      api.get('/pagos', { params: { estado: 'PAGADO', mesCobro } }).then(r => r.data),
+    enabled: vistaCobrosMes,
   })
 
   // Auto-seleccionar si se llegó desde el Dashboard via búsqueda
@@ -1501,34 +1514,75 @@ export default function Pagos() {
       <div className={`flex-shrink-0 border-r border-arena flex-col bg-white w-full md:w-80 ${vinculoSeleccionado ? 'hidden md:flex' : 'flex'}`}>
         {/* Header */}
         <div className="px-4 py-4 border-b border-arena">
-          <h1 className="font-display text-lg text-carbon">Contratos</h1>
-          <p className="text-xs text-piedra mt-0.5">{vinculos.length} alquileres</p>
-          <div className="flex gap-2 mt-3">
+          <h1 className="font-display text-lg text-carbon">
+            {vistaCobrosMes ? `Cobros de ${mesLabel}` : 'Contratos'}
+          </h1>
+          <p className="text-xs text-piedra mt-0.5">
+            {vistaCobrosMes ? `${cobrosMes.length} pagos cobrados` : `${vinculos.length} alquileres`}
+          </p>
+          <div className="flex gap-2 mt-3 flex-wrap">
             <button
-              onClick={() => setFiltroActivo(true)}
+              onClick={() => { setVistaCobrosMes(false); setFiltroActivo(true) }}
               className={`text-xs px-3 py-1 rounded-full transition-colors ${
-                filtroActivo
-                  ? 'bg-carbon text-white'
-                  : 'bg-crema text-piedra hover:bg-arena/30'
+                !vistaCobrosMes && filtroActivo ? 'bg-carbon text-white' : 'bg-crema text-piedra hover:bg-arena/30'
               }`}
             >
               Activos
             </button>
             <button
-              onClick={() => setFiltroActivo(false)}
+              onClick={() => { setVistaCobrosMes(false); setFiltroActivo(false) }}
               className={`text-xs px-3 py-1 rounded-full transition-colors ${
-                !filtroActivo
-                  ? 'bg-carbon text-white'
-                  : 'bg-crema text-piedra hover:bg-arena/30'
+                !vistaCobrosMes && !filtroActivo ? 'bg-carbon text-white' : 'bg-crema text-piedra hover:bg-arena/30'
               }`}
             >
               Inactivos
             </button>
+            <button
+              onClick={() => setVistaCobrosMes(true)}
+              className={`text-xs px-3 py-1 rounded-full transition-colors ${
+                vistaCobrosMes ? 'bg-green-600 text-white' : 'bg-green-50 text-green-700 hover:bg-green-100'
+              }`}
+            >
+              Cobros {mesLabel.slice(0, 3)}.
+            </button>
           </div>
         </div>
 
-        {/* Lista */}
-        <div className="flex-1 overflow-y-auto divide-y divide-crema">
+        {/* Lista cobros del mes */}
+        {vistaCobrosMes && (
+          <div className="flex-1 overflow-y-auto divide-y divide-crema">
+            {loadingCobros && <p className="p-4 text-sm text-piedra animate-pulse">Cargando cobros...</p>}
+            {!loadingCobros && cobrosMes.length === 0 && (
+              <p className="p-6 text-sm text-piedra text-center">Sin cobros en {mesLabel}</p>
+            )}
+            {cobrosMes.map(p => (
+              <button
+                key={p.id}
+                onClick={() => { const v = vinculos.find(v => v.id === p.vinculoId); if (v) setVinculoSeleccionado(v) }}
+                className="w-full text-left px-4 py-3 hover:bg-crema/60 transition-colors"
+              >
+                <div className="flex items-start justify-between gap-2">
+                  <div className="min-w-0">
+                    <p className="text-xs font-semibold text-carbon truncate">{p.propiedad?.direccion ?? '—'}</p>
+                    <p className="text-xs text-piedra truncate">{p.persona?.nombre} {p.persona?.apellido}</p>
+                    {p.fechaPago && (
+                      <p className="text-[10px] text-piedra/70 mt-0.5">{formatFecha(p.fechaPago)}</p>
+                    )}
+                  </div>
+                  <div className="text-right flex-shrink-0">
+                    <p className="text-sm font-semibold text-green-700">{formatARS(p.totalConExtras ?? p.monto)}</p>
+                    <span className={`text-[10px] font-semibold ${p.pagadoAlPropietario ? 'text-blue-600' : 'text-amber-600'}`}>
+                      {p.pagadoAlPropietario ? '✓ Liquidado' : 'Sin liquidar'}
+                    </span>
+                  </div>
+                </div>
+              </button>
+            ))}
+          </div>
+        )}
+
+        {/* Lista contratos */}
+        <div className={`flex-1 overflow-y-auto divide-y divide-crema ${vistaCobrosMes ? 'hidden' : ''}`}>
           {isLoading && (
             <p className="p-4 text-sm text-piedra animate-pulse">Cargando contratos...</p>
           )}

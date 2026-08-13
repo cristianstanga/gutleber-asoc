@@ -181,13 +181,17 @@ async function buildDatosLiquidacion(pagoId: string): Promise<DatosLiquidacion |
 // ─── Rutas ────────────────────────────────────────────────────────────────────
 
 router.get('/', async (req, res) => {
-  const { estado, propiedadId, personaId, periodo, vinculoId } = req.query
+  const { estado, propiedadId, personaId, periodo, vinculoId, mesCobro } = req.query
   const where: Record<string, unknown> = {}
   if (estado) where.estado = estado
   if (propiedadId) where.propiedadId = propiedadId
   if (personaId) where.personaId = personaId
   if (periodo) where.periodo = periodo
   if (vinculoId) where.vinculoId = vinculoId
+  if (mesCobro) {
+    const [y, m] = (mesCobro as string).split('-').map(Number)
+    where.fechaPago = { gte: new Date(y, m - 1, 1), lt: new Date(y, m, 1) }
+  }
 
   const pagos = await prisma.pago.findMany({
     where,
