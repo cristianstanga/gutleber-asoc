@@ -275,8 +275,8 @@ router.patch('/:id/marcar-pagado', async (req, res) => {
   })
   res.json(pago)
 
-  // Notificar al propietario que se cobró — sin bloquear la respuesta
-  if (pago.tipo === 'ALQUILER' && pago.propiedadId) {
+  // Notificar al propietario que se cobró — se omite si ya recibió anticipo (ya tiene su plata)
+  if (pago.tipo === 'ALQUILER' && pago.propiedadId && !pago.anticipadoAlPropietario) {
     // Buscar propietario: primero por vínculo ADMINISTRACION, fallback al campo propietario de la propiedad
     const vAdmin = await prisma.vinculo.findFirst({
       where: { propiedadId: pago.propiedadId, tipo: 'ADMINISTRACION', activo: true },
