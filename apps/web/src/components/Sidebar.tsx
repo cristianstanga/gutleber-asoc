@@ -1,5 +1,5 @@
 import { NavLink } from 'react-router-dom'
-import { LayoutDashboard, Building2, Users, FileText, CreditCard, TrendingUp, MessageSquare, Smartphone, LogOut, Sparkles, FilePlus2, ShieldCheck, Bot, CalendarCheck, KanbanSquare, X, LucideIcon } from 'lucide-react'
+import { LayoutDashboard, Building2, Users, FileText, CreditCard, TrendingUp, MessageSquare, Smartphone, LogOut, Sparkles, FilePlus2, ShieldCheck, Bot, CalendarCheck, KanbanSquare, X, LucideIcon, Newspaper } from 'lucide-react'
 import { useAuthStore } from '../store/auth'
 import { useQuery } from '@tanstack/react-query'
 import { api } from '../lib/api'
@@ -17,6 +17,7 @@ const navAdmin: NavItem[] = [
   { to: '/inbox',        label: 'WhatsApp CRM', Icon: MessageSquare, badge: 'inbox' },
   { to: '/visitas',      label: 'Visitas',      Icon: CalendarCheck, badge: 'visitas' },
   { to: '/config-agente', label: 'Agente IA',   Icon: Bot },
+  { to: '/blog',         label: 'Blog',         Icon: Newspaper },
   { to: '/whatsapp',     label: 'WhatsApp',     Icon: Smartphone },
   { to: '/tarjetas',     label: 'Placas',       Icon: Sparkles },
   { to: '/contrato-gen', label: 'Contratos IA', Icon: FilePlus2 },

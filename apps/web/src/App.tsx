@@ -20,6 +20,7 @@ import Visitas from './pages/Visitas'
 import Pipeline from './pages/Pipeline'
 import MisPropiedades from './pages/MisPropiedades'
 import MiContrato from './pages/MiContrato'
+import Blog from './pages/Blog'
 
 function ProtectedRoute({ children, roles }: { children: React.ReactNode; roles?: RolUsuario[] }) {
   const { token, usuario } = useAuthStore()
@@ -66,6 +67,7 @@ export default function App() {
           <Route path="config-agente" element={<ProtectedRoute roles={['ADMIN','OPERADOR']}><ConfigAgente /></ProtectedRoute>} />
           <Route path="visitas"   element={<ProtectedRoute roles={['ADMIN','OPERADOR']}><Visitas /></ProtectedRoute>} />
           <Route path="pipeline"  element={<ProtectedRoute roles={['ADMIN','OPERADOR']}><Pipeline /></ProtectedRoute>} />
+          <Route path="blog"      element={<ProtectedRoute roles={['ADMIN','OPERADOR']}><Blog /></ProtectedRoute>} />
 
           {/* Solo Admin */}
           <Route path="usuarios" element={<ProtectedRoute roles={['ADMIN']}><Usuarios /></ProtectedRoute>} />

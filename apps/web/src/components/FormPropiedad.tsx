@@ -2,7 +2,7 @@ import { Component, useState, useEffect, useRef, useCallback, lazy, Suspense } f
 import type { ReactNode, ErrorInfo } from 'react'
 import { useQueryClient, useQuery } from '@tanstack/react-query'
 import { api } from '../lib/api'
-import { X, ChevronRight, ChevronLeft, Upload, Trash2, Sparkles, MapPin, Check, Loader2, Video, Key, ExternalLink } from 'lucide-react'
+import { X, ChevronRight, ChevronLeft, Upload, Trash2, Sparkles, MapPin, Check, Loader2, Video, Key, ExternalLink, View, Star } from 'lucide-react'
 
 const MapPickerLeaflet = lazy(() => import('./MapPickerLeaflet'))
 
@@ -46,12 +46,15 @@ interface PropForm {
   lng: number | null
   barrio: string
   propietarioId: string
+  destacada: boolean
+  amenities: string[]
 }
 
 interface PersonaSimple { id: string; nombre: string; apellido: string; tipo: string }
 
 interface Imagen { id: string; url: string; orden: number }
 interface VideoItem { id: string; url: string; orden: number; titulo?: string }
+interface Tour360Item { id: string; url: string; orden: number; etiqueta?: string | null }
 
 // Accept both '' (empty string from form) and undefined (from API) for numeric fields
 interface PropiedadConMedia {
@@ -76,8 +79,11 @@ interface PropiedadConMedia {
   lng?: number | null
   barrio?: string | null
   propietarioId?: string | null
+  destacada?: boolean
+  amenities?: string[]
   imagenes?: Imagen[]
   videos?: VideoItem[]
+  tours360?: Tour360Item[]
 }
 
 interface Props {
@@ -108,6 +114,8 @@ function fromProp(p?: PropiedadConMedia | null): PropForm {
     lng: p?.lng ?? null,
     barrio: p?.barrio ?? '',
     propietarioId: p?.propietarioId ?? '',
+    destacada: p?.destacada ?? false,
+    amenities: p?.amenities ?? [],
   }
 }
 
@@ -124,8 +132,10 @@ const INDICES = [
 ]
 
 const CARACTS = ['Cochera', 'Pileta', 'Jardín', 'Terraza', 'Balcón', 'Parrilla', 'Seguridad', 'Amueblado', 'Calefacción']
+const AMENITIES_SUGERIDAS = ['Pileta', 'Portería 24hs', 'Ascensor', 'Cochera', 'Parrilla', 'Seguridad', 'Gimnasio', 'SUM', 'Terraza', 'Balcón', 'Aire acondicionado', 'Calefacción']
 const MAX_FOTOS  = 14
 const MAX_VIDEOS = 2
+const MAX_TOURS360 = 20
 
 // ── Section label ─────────────────────────────────────────────────────────────
 function SL({ children }: { children: React.ReactNode }) {
@@ -155,8 +165,11 @@ export default function FormPropiedad({ propiedad, onClose }: Props) {
   const [savedId, setSavedId] = useState<string | undefined>(propiedad?.id)
   const [imagenes, setImagenes] = useState<Imagen[]>(propiedad?.imagenes ?? [])
   const [videos,   setVideos]   = useState<VideoItem[]>(propiedad?.videos ?? [])
+  const [tours360, setTours360] = useState<Tour360Item[]>(propiedad?.tours360 ?? [])
   const [uploadingImg, setUploadingImg] = useState(false)
   const [uploadingVid, setUploadingVid] = useState(false)
+  const [uploadingTour, setUploadingTour] = useState(false)
+  const [amenityInput, setAmenityInput] = useState('')
   const [geocoding, setGeocoding] = useState(false)
   const [geocodeQ, setGeocodeQ] = useState('')
   const [geocodeResults, setGeocodeResults] = useState<Array<{ lat: string; lon: string; display_name: string }>>([])
@@ -169,9 +182,13 @@ export default function FormPropiedad({ propiedad, onClose }: Props) {
   const [saveError, setSaveError] = useState('')
   const imgInputRef = useRef<HTMLInputElement>(null)
   const vidInputRef = useRef<HTMLInputElement>(null)
+  const tourInputRef = useRef<HTMLInputElement>(null)
   const geocodeTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
 
-  useEffect(() => { setForm(fromProp(propiedad)); setSavedId(propiedad?.id); setImagenes(propiedad?.imagenes ?? []); setVideos(propiedad?.videos ?? []) }, [propiedad])
+  useEffect(() => {
+    setForm(fromProp(propiedad)); setSavedId(propiedad?.id)
+    setImagenes(propiedad?.imagenes ?? []); setVideos(propiedad?.videos ?? []); setTours360(propiedad?.tours360 ?? [])
+  }, [propiedad])
 
   const set = useCallback(<K extends keyof PropForm>(k: K, v: PropForm[K]) => setForm(f => ({ ...f, [k]: v })), [])
 
@@ -288,6 +305,30 @@ export default function FormPropiedad({ propiedad, onClose }: Props) {
     if (!savedId) return
     await api.delete(`/propiedades/${savedId}/videos/${id}`)
     setVideos(prev => prev.filter(v => v.id !== id))
+    qc.invalidateQueries({ queryKey: ['propiedades'] })
+  }
+
+  // ── Upload fotos 360° ─────────────────────────────────────────────────────
+  async function handleTours360(files: FileList | null) {
+    if (!files || !files.length || !savedId) return
+    const disponibles = MAX_TOURS360 - tours360.length
+    if (disponibles <= 0) return
+    const toUpload = Array.from(files).slice(0, disponibles)
+    setUploadingTour(true)
+    const fd = new FormData()
+    toUpload.forEach(f => fd.append('tours360', f))
+    try {
+      const r = await api.post(`/propiedades/${savedId}/tours360`, fd, { headers: { 'Content-Type': 'multipart/form-data' } })
+      setTours360(prev => [...prev, ...(r.data ?? [])])
+      qc.invalidateQueries({ queryKey: ['propiedades'] })
+    } catch { /* silently fail */ }
+    finally { setUploadingTour(false) }
+  }
+
+  async function deleteTour360(id: string) {
+    if (!savedId) return
+    await api.delete(`/propiedades/${savedId}/tours360/${id}`)
+    setTours360(prev => prev.filter(t => t.id !== id))
     qc.invalidateQueries({ queryKey: ['propiedades'] })
   }
 
@@ -466,7 +507,50 @@ export default function FormPropiedad({ propiedad, onClose }: Props) {
                         form[k] ? 'bg-piedra text-white border-piedra' : 'border-white/25 text-white/70 hover:border-arena/60'
                       }`}>{l}</button>
                   ))}
+                  <button onClick={() => set('destacada', !form.destacada)}
+                    className={`flex items-center gap-1 px-3 py-1.5 rounded-full text-xs font-semibold border transition-colors ${
+                      form.destacada ? 'bg-amber-500 text-carbon border-amber-500' : 'border-white/25 text-white/70 hover:border-arena/60'
+                    }`}>
+                    <Star size={11} fill={form.destacada ? 'currentColor' : 'none'} /> Destacada
+                  </button>
                 </div>
+                <p className="text-[11px] text-white/40 mt-1">Destacada = aparece resaltada en la home del sitio público.</p>
+              </Field>
+
+              <Field label="Comodidades (sitio público)">
+                <div className="flex flex-wrap gap-1.5 mb-2">
+                  {AMENITIES_SUGERIDAS.map((a) => {
+                    const activo = form.amenities.includes(a)
+                    return (
+                      <button key={a}
+                        onClick={() => set('amenities', activo ? form.amenities.filter(x => x !== a) : [...form.amenities, a])}
+                        className={`px-2.5 py-1 rounded-full text-[11px] font-semibold border transition-colors ${
+                          activo ? 'bg-piedra text-white border-piedra' : 'border-white/25 text-white/60 hover:border-arena/60'
+                        }`}>{a}</button>
+                    )
+                  })}
+                </div>
+                <div className="flex gap-2">
+                  <input className={INPUT} value={amenityInput} placeholder="Otra comodidad..."
+                    onChange={e => setAmenityInput(e.target.value)}
+                    onKeyDown={e => {
+                      if (e.key === 'Enter' && amenityInput.trim()) {
+                        e.preventDefault()
+                        if (!form.amenities.includes(amenityInput.trim())) set('amenities', [...form.amenities, amenityInput.trim()])
+                        setAmenityInput('')
+                      }
+                    }} />
+                </div>
+                {form.amenities.filter(a => !AMENITIES_SUGERIDAS.includes(a)).length > 0 && (
+                  <div className="flex flex-wrap gap-1.5 mt-2">
+                    {form.amenities.filter(a => !AMENITIES_SUGERIDAS.includes(a)).map(a => (
+                      <span key={a} className="flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] font-semibold bg-piedra text-white">
+                        {a}
+                        <button onClick={() => set('amenities', form.amenities.filter(x => x !== a))}><X size={10} /></button>
+                      </span>
+                    ))}
+                  </div>
+                )}
               </Field>
 
               {form.enAlquiler && (
@@ -670,6 +754,55 @@ export default function FormPropiedad({ propiedad, onClose }: Props) {
                   </>
                 ) : (
                   <p className="text-xs text-red-400 text-center py-2">Límite de {MAX_VIDEOS} videos alcanzado</p>
+                )}
+              </div>
+
+              <div className="h-px bg-white/10" />
+
+              {/* ── TOUR 360° ── */}
+              <div>
+                <div className="flex items-center justify-between mb-2">
+                  <SL>Fotos 360° (tour virtual)</SL>
+                  <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${
+                    tours360.length >= MAX_TOURS360 ? 'bg-red-900/50 text-red-400' : 'bg-white/8 text-white/50'
+                  }`}>{tours360.length} / {MAX_TOURS360}</span>
+                </div>
+                {tours360.length > 0 && (
+                  <div className="space-y-2 mb-3">
+                    {tours360.map((t, idx) => (
+                      <div key={t.id} className="flex items-center gap-2 bg-white/5 border border-white/10 rounded-lg px-3 py-2 group">
+                        <View size={14} className="text-arena shrink-0" />
+                        <span className="flex-1 text-xs text-white/70 truncate">{t.etiqueta || `Vista ${idx + 1}`}</span>
+                        <button onClick={() => deleteTour360(t.id)}
+                          className="text-red-400 hover:text-red-300 opacity-0 group-hover:opacity-100 transition-opacity">
+                          <Trash2 size={13} />
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+                {tours360.length < MAX_TOURS360 ? (
+                  <>
+                    <div onClick={() => tourInputRef.current?.click()} onDragOver={e => e.preventDefault()}
+                      onDrop={e => { e.preventDefault(); handleTours360(e.dataTransfer.files) }}
+                      className="border-2 border-dashed border-white/20 rounded-xl p-4 text-center cursor-pointer hover:border-arena/50 transition-colors">
+                      {uploadingTour ? (
+                        <div className="flex items-center justify-center gap-2 text-arena text-sm">
+                          <Loader2 size={14} className="animate-spin" /> Subiendo fotos 360°...
+                        </div>
+                      ) : (
+                        <>
+                          <View size={18} className="text-white/40 mx-auto mb-1" />
+                          <p className="text-sm text-white/70">Arrastrá fotos 360° o hacé clic</p>
+                          <p className="text-xs text-white/40 mt-0.5">Equirectangulares · JPG · PNG · máx. {MAX_TOURS360 - tours360.length} más</p>
+                        </>
+                      )}
+                    </div>
+                    <input ref={tourInputRef} type="file" accept="image/jpeg,image/png,image/webp" multiple className="hidden"
+                      onChange={e => handleTours360(e.target.files)} />
+                  </>
+                ) : (
+                  <p className="text-xs text-red-400 text-center py-2">Límite de {MAX_TOURS360} vistas 360° alcanzado</p>
                 )}
               </div>
 

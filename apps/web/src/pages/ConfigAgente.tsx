@@ -1,17 +1,23 @@
 import { useState, useEffect } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { Bot, Save, Info } from 'lucide-react'
+import { Bot, Save, Info, Globe } from 'lucide-react'
 import { api } from '../lib/api'
 
 const CLAVES = {
   REQUISITOS_ALQUILER: 'requisitos_alquiler',
   HORARIOS_ATENCION: 'horarios_atencion',
+  CONTACTO_EMAIL: 'contacto_email',
+  TEXTO_NOSOTROS: 'texto_nosotros',
+  TEXTO_SERVICIOS: 'texto_servicios',
 }
 
 export default function ConfigAgente() {
   const qc = useQueryClient()
   const [requisitos, setRequisitos] = useState('')
   const [horarios, setHorarios] = useState('')
+  const [email, setEmail] = useState('')
+  const [textoNosotros, setTextoNosotros] = useState('')
+  const [textoServicios, setTextoServicios] = useState('')
   const [toast, setToast] = useState('')
 
   const { data, isLoading } = useQuery<Record<string, string>>({
@@ -23,6 +29,9 @@ export default function ConfigAgente() {
     if (data) {
       setRequisitos(data[CLAVES.REQUISITOS_ALQUILER] || '')
       setHorarios(data[CLAVES.HORARIOS_ATENCION] || '')
+      setEmail(data[CLAVES.CONTACTO_EMAIL] || '')
+      setTextoNosotros(data[CLAVES.TEXTO_NOSOTROS] || '')
+      setTextoServicios(data[CLAVES.TEXTO_SERVICIOS] || '')
     }
   }, [data])
 
@@ -34,6 +43,19 @@ export default function ConfigAgente() {
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['config'] })
       mostrarToast('Configuración guardada — el agente la usa desde el próximo mensaje')
+    },
+    onError: () => mostrarToast('Error al guardar'),
+  })
+
+  const guardarSitio = useMutation({
+    mutationFn: async () => {
+      await api.put(`/config/${CLAVES.CONTACTO_EMAIL}`, { valor: email })
+      await api.put(`/config/${CLAVES.TEXTO_NOSOTROS}`, { valor: textoNosotros })
+      await api.put(`/config/${CLAVES.TEXTO_SERVICIOS}`, { valor: textoServicios })
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['config'] })
+      mostrarToast('Contenido del sitio público guardado')
     },
     onError: () => mostrarToast('Error al guardar'),
   })
@@ -101,6 +123,58 @@ export default function ConfigAgente() {
         >
           <Save size={14} />
           {guardar.isPending ? 'Guardando...' : 'Guardar cambios'}
+        </button>
+      </div>
+
+      <div className="mb-6 mt-10">
+        <h2 className="font-display text-xl text-carbon flex items-center gap-2">
+          <Globe size={20} className="text-piedra" /> Contenido del sitio público
+        </h2>
+        <p className="text-piedra text-sm mt-1">
+          Textos que se muestran en las páginas Nosotros y Servicios de gutleberyasociados.com.
+        </p>
+      </div>
+
+      <div className="card p-6 space-y-6">
+        <div>
+          <label className="form-label">Email de contacto</label>
+          <input
+            type="email"
+            className="form-input text-sm"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            placeholder="contacto@gutleberyasociados.com"
+          />
+        </div>
+
+        <div>
+          <label className="form-label">Texto "Nosotros"</label>
+          <p className="text-xs text-piedra mb-2">Si lo dejás vacío, el sitio muestra un texto genérico por defecto.</p>
+          <textarea
+            className="form-input resize-none text-sm"
+            rows={5}
+            value={textoNosotros}
+            onChange={(e) => setTextoNosotros(e.target.value)}
+          />
+        </div>
+
+        <div>
+          <label className="form-label">Texto "Servicios"</label>
+          <textarea
+            className="form-input resize-none text-sm"
+            rows={3}
+            value={textoServicios}
+            onChange={(e) => setTextoServicios(e.target.value)}
+          />
+        </div>
+
+        <button
+          onClick={() => guardarSitio.mutate()}
+          disabled={guardarSitio.isPending}
+          className="btn-primary flex items-center gap-2"
+        >
+          <Save size={14} />
+          {guardarSitio.isPending ? 'Guardando...' : 'Guardar contenido del sitio'}
         </button>
       </div>
     </div>
