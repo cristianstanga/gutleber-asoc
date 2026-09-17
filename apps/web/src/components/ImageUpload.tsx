@@ -1,25 +1,30 @@
 import { useRef, useState } from 'react'
-import { Upload, Trash2, Play, Image as ImageIcon, Video } from 'lucide-react'
+import { Upload, Trash2, Play, Image as ImageIcon, Video, View } from 'lucide-react'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { api } from '../lib/api'
 
 interface Imagen { id: string; url: string; orden: number }
 interface VideoItem { id: string; url: string; orden: number; titulo?: string }
+interface Tour360Item { id: string; url: string; orden: number; etiqueta?: string | null }
 
 interface Props {
   propiedadId: string
   imagenes: Imagen[]
   videos?: VideoItem[]
+  tours360?: Tour360Item[]
 }
 
-export default function ImageUpload({ propiedadId, imagenes, videos = [] }: Props) {
+export default function ImageUpload({ propiedadId, imagenes, videos = [], tours360 = [] }: Props) {
   const qc = useQueryClient()
   const inputImgRef = useRef<HTMLInputElement>(null)
   const inputVidRef = useRef<HTMLInputElement>(null)
+  const inputTourRef = useRef<HTMLInputElement>(null)
   const [uploadingImg, setUploadingImg] = useState(false)
   const [uploadingVid, setUploadingVid] = useState(false)
+  const [uploadingTour, setUploadingTour] = useState(false)
   const [errorImg, setErrorImg] = useState('')
   const [errorVid, setErrorVid] = useState('')
+  const [errorTour, setErrorTour] = useState('')
 
   const eliminarImg = useMutation({
     mutationFn: (imagenId: string) => api.delete(`/propiedades/${propiedadId}/imagenes/${imagenId}`),
@@ -28,6 +33,11 @@ export default function ImageUpload({ propiedadId, imagenes, videos = [] }: Prop
 
   const eliminarVid = useMutation({
     mutationFn: (videoId: string) => api.delete(`/propiedades/${propiedadId}/videos/${videoId}`),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['propiedades'] }),
+  })
+
+  const eliminarTour = useMutation({
+    mutationFn: (tourId: string) => api.delete(`/propiedades/${propiedadId}/tours360/${tourId}`),
     onSuccess: () => qc.invalidateQueries({ queryKey: ['propiedades'] }),
   })
 
@@ -64,6 +74,24 @@ export default function ImageUpload({ propiedadId, imagenes, videos = [] }: Prop
       setErrorVid('Error al subir el video. Verificá que sea MP4, MOV o WEBM (máx. 200 MB).')
     } finally {
       setUploadingVid(false)
+    }
+  }
+
+  async function handleTours360(files: FileList | null) {
+    if (!files || files.length === 0) return
+    setUploadingTour(true)
+    setErrorTour('')
+    try {
+      const form = new FormData()
+      Array.from(files).forEach((f) => form.append('tours360', f))
+      await api.post(`/propiedades/${propiedadId}/tours360`, form, {
+        headers: { 'Content-Type': 'multipart/form-data' },
+      })
+      qc.invalidateQueries({ queryKey: ['propiedades'] })
+    } catch {
+      setErrorTour('Error al subir la foto 360°. Verificá que sea JPG, PNG o WEBP (máx. 20 MB).')
+    } finally {
+      setUploadingTour(false)
     }
   }
 
@@ -194,6 +222,60 @@ export default function ImageUpload({ propiedadId, imagenes, videos = [] }: Prop
           onChange={(e) => handleVideos(e.target.files)}
         />
         {errorVid && <p className="text-red-600 text-xs mt-1">{errorVid}</p>}
+      </div>
+
+      {/* ── TOUR 360° ─────────────────────────────────────────────────────── */}
+      <div>
+        <div className="flex items-center gap-2 mb-2">
+          <View size={14} className="text-piedra" />
+          <p className="text-xs font-semibold text-carbon uppercase tracking-wide">
+            Fotos 360° {tours360.length > 0 && <span className="text-muted font-normal normal-case">({tours360.length})</span>}
+          </p>
+        </div>
+
+        {tours360.length > 0 && (
+          <div className="space-y-2 mb-3">
+            {tours360.map((t, idx) => (
+              <div key={t.id} className="flex items-center gap-2 bg-crema rounded-lg px-3 py-2 group">
+                <View size={14} className="text-piedra shrink-0" />
+                <span className="flex-1 text-xs text-carbon truncate">{t.etiqueta || `Vista ${idx + 1}`}</span>
+                <button
+                  onClick={() => eliminarTour.mutate(t.id)}
+                  className="text-red-400 hover:text-red-600 opacity-0 group-hover:opacity-100 transition-opacity shrink-0"
+                  title="Eliminar vista 360°"
+                >
+                  <Trash2 size={14} />
+                </button>
+              </div>
+            ))}
+          </div>
+        )}
+
+        <div
+          onClick={() => inputTourRef.current?.click()}
+          onDragOver={(e) => e.preventDefault()}
+          onDrop={(e) => { e.preventDefault(); handleTours360(e.dataTransfer.files) }}
+          className="border-2 border-dashed border-arena rounded-lg p-4 text-center cursor-pointer hover:border-piedra hover:bg-crema transition-colors"
+        >
+          {uploadingTour ? (
+            <div className="text-piedra text-sm animate-pulse">Subiendo fotos 360°...</div>
+          ) : (
+            <>
+              <View size={18} className="text-muted mx-auto mb-1.5" />
+              <p className="text-xs text-piedra">Arrastrá fotos 360° (equirectangulares) o hacé clic</p>
+              <p className="text-[10px] text-muted mt-0.5">JPG, PNG, WEBP — máx. 20 MB</p>
+            </>
+          )}
+        </div>
+        <input
+          ref={inputTourRef}
+          type="file"
+          accept="image/jpeg,image/png,image/webp"
+          multiple
+          className="hidden"
+          onChange={(e) => handleTours360(e.target.files)}
+        />
+        {errorTour && <p className="text-red-600 text-xs mt-1">{errorTour}</p>}
       </div>
 
     </div>

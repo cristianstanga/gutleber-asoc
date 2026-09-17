@@ -8,6 +8,7 @@ import ImageUpload from '../components/ImageUpload'
 
 interface Imagen { id: string; url: string; orden: number }
 interface VideoItem { id: string; url: string; orden: number; titulo?: string }
+interface Tour360Item { id: string; url: string; orden: number; etiqueta?: string | null }
 
 interface Propiedad {
   id: string
@@ -31,8 +32,11 @@ interface Propiedad {
   lat?: number
   lng?: number
   barrio?: string
+  destacada?: boolean
+  amenities?: string[]
   imagenes: Imagen[]
   videos: VideoItem[]
+  tours360?: Tour360Item[]
   vinculos?: Array<{ id: string; persona: { nombre: string; apellido: string }; alquilerActual?: number; tipo: string }>
 }
 
@@ -64,6 +68,20 @@ export default function Propiedades() {
     mutationFn: (id: string) => api.delete(`/propiedades/${id}`),
     onSuccess: () => { qc.invalidateQueries({ queryKey: ['propiedades'] }); mostrarToast('Propiedad eliminada') },
   })
+
+  const toggleDestacada = useMutation({
+    mutationFn: ({ id, destacada }: { id: string; destacada: boolean }) =>
+      api.put(`/propiedades/${id}`, { destacada }),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['propiedades'] }),
+  })
+
+  const guardarAmenities = useMutation({
+    mutationFn: ({ id, amenities }: { id: string; amenities: string[] }) =>
+      api.put(`/propiedades/${id}`, { amenities }),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['propiedades'] }),
+  })
+
+  const [amenityInput, setAmenityInput] = useState('')
 
   function mostrarToast(msg: string) {
     setToast(msg)
@@ -325,6 +343,16 @@ export default function Propiedades() {
                 ) : (
                   <span className="inline-flex items-center gap-1 text-xs px-2 py-0.5 rounded-full bg-amber-100 text-amber-700">● Ocupada</span>
                 )}
+                <button
+                  onClick={() => toggleDestacada.mutate({ id: prop.id, destacada: !prop.destacada })}
+                  disabled={toggleDestacada.isPending}
+                  className={`inline-flex items-center gap-1 text-xs font-semibold px-2 py-0.5 rounded-full transition-colors ${
+                    prop.destacada ? 'bg-amber-400 text-carbon' : 'bg-crema text-piedra hover:bg-amber-100'
+                  }`}
+                  title="Se muestra resaltada en la home del sitio público"
+                >
+                  ★ {prop.destacada ? 'Destacada' : 'Marcar como destacada'}
+                </button>
               </div>
 
               {/* Precio — prominente */}
@@ -384,6 +412,43 @@ export default function Propiedades() {
                 )}
               </div>
 
+              {/* Comodidades (amenities) — se muestran en la ficha del sitio público */}
+              <div className="mt-5 pt-4 border-t border-crema">
+                <p className="text-xs text-piedra uppercase tracking-wide mb-2">Comodidades (sitio público)</p>
+                <div className="flex flex-wrap gap-2 mb-2">
+                  {(prop.amenities || []).map((a) => (
+                    <span key={a} className="inline-flex items-center gap-1 bg-crema px-2.5 py-1 rounded-full text-xs text-carbon">
+                      {a}
+                      <button
+                        onClick={() => guardarAmenities.mutate({ id: prop.id, amenities: (prop.amenities || []).filter((x) => x !== a) })}
+                        className="text-piedra hover:text-red-500"
+                      >
+                        <X size={11} />
+                      </button>
+                    </span>
+                  ))}
+                  {(prop.amenities || []).length === 0 && <p className="text-xs text-muted">Sin comodidades cargadas</p>}
+                </div>
+                <div className="flex gap-2">
+                  <input
+                    className="form-input text-xs flex-1 max-w-[220px]"
+                    placeholder="Ej: Pileta, Portería 24hs..."
+                    value={amenityInput}
+                    onChange={(e) => setAmenityInput(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter' && amenityInput.trim()) {
+                        e.preventDefault()
+                        const actuales = prop.amenities || []
+                        if (!actuales.includes(amenityInput.trim())) {
+                          guardarAmenities.mutate({ id: prop.id, amenities: [...actuales, amenityInput.trim()] })
+                        }
+                        setAmenityInput('')
+                      }
+                    }}
+                  />
+                </div>
+              </div>
+
               {prop.descripcion && (
                 <div className="mt-5 pt-4 border-t border-crema">
                   <p className="text-xs text-piedra uppercase tracking-wide mb-2">Descripción pública</p>
@@ -406,11 +471,11 @@ export default function Propiedades() {
                 <h3 className="font-semibold text-carbon">
                   Multimedia
                   <span className="text-muted font-normal text-xs ml-2">
-                    {prop.imagenes.length} foto{prop.imagenes.length !== 1 ? 's' : ''} · {(prop.videos || []).length} video{(prop.videos || []).length !== 1 ? 's' : ''}
+                    {prop.imagenes.length} foto{prop.imagenes.length !== 1 ? 's' : ''} · {(prop.videos || []).length} video{(prop.videos || []).length !== 1 ? 's' : ''} · {(prop.tours360 || []).length} 360°
                   </span>
                 </h3>
               </div>
-              <ImageUpload propiedadId={prop.id} imagenes={prop.imagenes} videos={prop.videos || []} />
+              <ImageUpload propiedadId={prop.id} imagenes={prop.imagenes} videos={prop.videos || []} tours360={prop.tours360 || []} />
             </div>
 
             {/* Contratos activos */}
