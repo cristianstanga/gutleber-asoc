@@ -4,14 +4,15 @@ export default {
   theme: {
     extend: {
       colors: {
-        petroleo:   '#0D3B4E',  // primario
-        acero:      '#7FA1BB',  // acento
-        crema:      '#E7EBEE',  // fondo neutro
-        blancoRoto: '#F7F7F5',  // fondo claro
+        // Marca "Gutleber & Co." (2026-09-17) — monocromática
+        petroleo:   '#000000',  // negro — primario (antes azul petróleo)
+        acero:      '#8A8A8A',  // gris medio — acento (antes azul acero)
+        crema:      '#E9E9E7',  // fondo neutro — gris claro
+        blancoRoto: '#F7F7F5',  // fondo claro — sin cambios
       },
       fontFamily: {
-        display: ['Georgia', 'serif'],
-        sans: ['system-ui', '-apple-system', 'BlinkMacSystemFont', 'Segoe UI', 'Helvetica Neue', 'sans-serif'],
+        display: ['Poppins', 'system-ui', 'sans-serif'],
+        sans: ['Poppins', 'system-ui', '-apple-system', 'BlinkMacSystemFont', 'Segoe UI', 'Helvetica Neue', 'sans-serif'],
       },
     },
   },

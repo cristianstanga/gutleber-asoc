@@ -12,7 +12,7 @@ export default function Nosotros() {
       ) : (
         <div className="text-petroleo/80 leading-relaxed space-y-4">
           <p>
-            Gutleber & Asociados es una inmobiliaria en Posadas, Misiones, dedicada a acompañar a propietarios
+            Gutleber & Co. es una inmobiliaria en Posadas, Misiones, dedicada a acompañar a propietarios
             e inversores en la compra, venta y alquiler de propiedades.
           </p>
           <p>

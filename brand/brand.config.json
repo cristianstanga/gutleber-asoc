@@ -1,40 +1,47 @@
 {
-  "$schema": "brand config — Gutleber & Asociados",
-  "nombre": "Gutleber & Asociados",
-  "descriptor": "Negocios Inmobiliarios",
-  "tagline": "gestión · velocidad · transparencia",
+  "$schema": "brand config — Gutleber & Co.",
+  "nombre": "Gutleber & Co.",
+  "nombre_anterior": "Gutleber & Asociados (retirado 2026-09-17, no usar más)",
+  "descriptor": "Bienes Raíces",
   "colores": {
-    "petroleo": "#0D3B4E",
-    "acero_claro": "#7FA1BB",
-    "gris_claro": "#E7EBEE",
+    "negro": "#121212",
+    "gris_oscuro": "#2B2B2B",
+    "gris_medio": "#A0A0A0",
+    "gris_claro": "#E9E9E7",
     "blanco_roto": "#F7F7F5"
   },
+  "colores_funcionales_panel_interno": {
+    "nota": "Solo para el panel de gestión interno (apps/web) — alertas y estados de pago. NO son colores de marca, son semántica estándar de Tailwind, ya usados en el código sin cambios.",
+    "pagado_al_dia": "verde (green-100/green-700 de Tailwind)",
+    "vencido_mora": "rojo (red-100/red-700 de Tailwind)",
+    "pendiente": "ámbar (amber-100/amber-700 de Tailwind)"
+  },
   "tipografia": {
-    "display": "Georgia",
-    "cuerpo": "Arial, Inter"
+    "display": "Poppins (aproximación — no es el archivo de fuente original del logo, ver notas)",
+    "cuerpo": "Poppins, system-ui",
+    "pesos_usados": [300, 400, 500, 600, 700],
+    "carga": "Google Fonts (https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700)"
   },
   "logo": {
-    "emblema_claro_svg": "brand/logo/gutleber_emblema.svg",
-    "emblema_oscuro_svg": "brand/logo/gutleber_emblema_oscuro.svg",
-    "emblema_monocromo_svg": "brand/logo/gutleber_emblema_monocromo.svg",
-    "horizontal_png": "brand/logo/gutleber_logo_horizontal_2x.png",
-    "vertical_png": "brand/logo/gutleber_logo_vertical_2x.png"
+    "referencia_original": "Imagen provista por el cliente 2026-09-17 — wordmark 'Gutleber & Co.' + 'BIENES RAÍCES', negro sobre blanco, sin ícono/emblema",
+    "estado": "Recreado por aproximación (tipografía Poppins) — falta el archivo vectorial original del diseñador para un match exacto",
+    "emblema_claro_svg": "apps/web/public/emblema.svg (pin negro, para fondos claros)",
+    "emblema_oscuro_svg": "apps/web/public/emblema_oscuro.svg (pin blanco, para fondos oscuros)",
+    "logo_login_svg": "apps/web/public/logo-login.svg (lockup completo, fondo oscuro)",
+    "favicon_svg": "apps/web/public/favicon.svg y apps/web-publico/public/favicon.svg",
+    "nota": "El logo de referencia es un wordmark puro sin ícono — el pin+casa que usamos en el panel/favicon es una adaptación nuestra para contextos donde se necesita una marca compacta (favicon, sidebar). No viene de la imagen original."
   },
   "contacto": {
     "whatsapp_display": "+54 9 3765 41-0765",
     "whatsapp_wa_me": "5493765410765",
     "instagram_handle": "@gutleberasociados",
-    "whatsapp_integracion": "apps/api/src/services/whatsapp-meta.ts (Meta Cloud API oficial)"
-  },
-  "instagram": {
-    "username": "gutleberasociados",
-    "username_alternativo": "gutleber.asoc",
-    "nombre_visible": "Gutleber & Asociados",
-    "categoria_cuenta": "Agencia inmobiliaria",
-    "bio": "Gutleber & Asociados — negocios inmobiliarios en Posadas, Misiones. Gestión, velocidad y transparencia en cada propiedad. El propietario siempre sabe qué pasa con su propiedad."
+    "whatsapp_integracion": "apps/api/src/services/whatsapp-meta.ts (Meta Cloud API oficial)",
+    "nota": "El handle de Instagram y el dominio (gutleberyasociados.com) NO se tocaron en este rebrand — son decisiones de contenido/infraestructura separadas, pendientes de confirmar con el cliente."
   },
   "notas": {
-    "no_usar": "Paleta anterior petróleo #0F2233 / champagne #C8A96B (y antes de esa, navy #0F172A / copper #B45309, y la paleta tierra Carbón/Piedra/Arena/Crema del brief original) — todas descartadas. El champagne/dorado queda retirado por completo de la marca desde 2026-07-06.",
-    "documento_referencia": "brand/manual/Gutleber_Manual_Identidad_Visual.pdf (documento madre único; Gutleber_Ecosistema_Marca.docx fue eliminado el 2026-07-06 tras fusionarse en el manual)"
+    "cambio_2026_09_17": "Rebrand completo: 'Gutleber & Asociados' (azul petróleo/acero, Georgia+Arial) → 'Gutleber & Co.' (monocromático negro/blanco/gris, Poppins). Confirmado por el cliente con imagen de logo de referencia. Reemplazo total del nombre en toda la interfaz.",
+    "no_usar": "Ninguna paleta de color anterior: azul petróleo #0D3B4E/acero #7FA1BB (2026-07 a 2026-09), navy #0F172A/copper #B45309, tierra Carbón/Piedra/Arena/Crema del brief original, dorado/champagne (retirado 2026-07-06, sigue retirado). Tampoco 'Negocios Inmobiliarios' ni 'Inmobiliaria Boutique' como descriptor — ahora es 'Bienes Raíces'.",
+    "pendiente_backend": "El código de negocio (mensajes de WhatsApp del agente IA y cron, PDFs de contratos/liquidaciones, generador de placas para redes) todavía dice 'Gutleber & Asoc.' en ~50 lugares — no se tocó en este pase porque incluye plantillas de WhatsApp ya aprobadas en Meta (requieren re-aprobación si cambian) y documentos legales (contratos). Ver conversación del 2026-09-17 para el inventario completo.",
+    "documento_referencia": "brand/manual/Gutleber_Manual_Identidad_Visual.pdf — DESACTUALIZADO, describe la marca azul anterior. Pendiente de reemplazar por un manual nuevo."
   }
 }

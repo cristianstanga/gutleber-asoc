@@ -38,8 +38,8 @@ export default function MobileHeader({ onMenuClick }: { onMenuClick: () => void 
         <Menu size={20} />
       </button>
 
-      <img src="/emblema.svg" alt="Gutleber" className="w-5 h-auto" />
-      <span className="font-display text-crema text-sm font-bold tracking-wide flex-1">GUTLEBER <span className="text-champagne text-[10px] font-normal tracking-widest align-middle">& ASOCIADOS</span></span>
+      <img src="/emblema_oscuro.svg" alt="Gutleber" className="w-5 h-auto" />
+      <span className="font-display text-crema text-sm font-bold tracking-wide flex-1">GUTLEBER <span className="text-champagne text-[10px] font-normal tracking-widest align-middle">& CO.</span></span>
 
       {isStaff && (
         <>

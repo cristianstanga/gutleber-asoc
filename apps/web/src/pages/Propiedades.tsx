@@ -163,7 +163,7 @@ export default function Propiedades() {
     ].filter(Boolean)
     if (atribs.length) lineas.push('📐 ' + atribs.join(' · '))
     lineas.push('', `📸 Ver fotos: ${urlPublica}`)
-    lineas.push('', '📞 Gutleber & Asoc. · Posadas, Misiones')
+    lineas.push('', '📞 Gutleber & Co. · Posadas, Misiones')
     const texto = encodeURIComponent(lineas.join('\n'))
     window.open(`https://wa.me/?text=${texto}`, '_blank')
     setModalCompartir(null)

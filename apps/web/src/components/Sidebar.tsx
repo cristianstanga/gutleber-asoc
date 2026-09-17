@@ -71,11 +71,11 @@ export default function Sidebar({ onClose }: { onClose?: () => void } = {}) {
     <aside className="w-64 md:w-56 h-full min-h-screen bg-carbon flex flex-col" style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}>
       <div className="px-4 py-5 border-b border-white/10 flex items-start justify-between">
         <div className="flex items-center gap-3">
-          <img src="/emblema.svg" alt="Gutleber & Asoc." className="w-9 h-auto flex-shrink-0" />
+          <img src="/emblema_oscuro.svg" alt="Gutleber & Co." className="w-9 h-auto flex-shrink-0" />
           <div>
             <p className="font-display text-crema text-[13px] font-bold tracking-wider leading-tight">GUTLEBER</p>
-            <p className="font-display text-crema text-[13px] font-bold tracking-wider leading-tight">&amp; ASOCIADOS</p>
-            <p className="text-champagne text-[8px] tracking-[0.18em] mt-0.5 opacity-80">NEGOCIOS INMOBILIARIOS</p>
+            <p className="font-display text-crema text-[13px] font-bold tracking-wider leading-tight">&amp; CO.</p>
+            <p className="text-champagne text-[8px] tracking-[0.18em] mt-0.5 opacity-80">BIENES RAÍCES</p>
           </div>
         </div>
         {onClose && (

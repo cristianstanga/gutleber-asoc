@@ -148,7 +148,7 @@ export default function PropiedadDetalle() {
             >
               <MessageCircle size={18} /> Consultar por WhatsApp
             </a>
-            <p className="text-xs text-petroleo/50 mt-3 text-center">Gutleber & Asociados — Posadas, Misiones</p>
+            <p className="text-xs text-petroleo/50 mt-3 text-center">Gutleber & Co. — Posadas, Misiones</p>
           </div>
         </aside>
       </div>

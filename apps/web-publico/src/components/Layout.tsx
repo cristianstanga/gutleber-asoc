@@ -24,8 +24,8 @@ export default function Layout() {
       <header className="bg-petroleo text-blancoRoto sticky top-0 z-40 shadow-sm">
         <div className="max-w-6xl mx-auto px-4 sm:px-6 h-16 flex items-center justify-between">
           <Link to="/" className="flex items-center gap-2 shrink-0">
-            <img src="/emblema_oscuro.svg" alt="Gutleber & Asociados" className="h-9 w-9" />
-            <span className="font-display text-lg tracking-wide hidden sm:block">Gutleber & Asociados</span>
+            <img src="/emblema_oscuro.svg" alt="Gutleber & Co." className="h-9 w-9" />
+            <span className="font-display text-lg tracking-wide hidden sm:block">Gutleber & Co.</span>
           </Link>
 
           <nav className="hidden md:flex items-center gap-6">
@@ -83,9 +83,9 @@ export default function Layout() {
           <div>
             <div className="flex items-center gap-2 mb-3">
               <img src="/emblema_oscuro.svg" alt="" className="h-8 w-8" />
-              <span className="font-display text-base text-blancoRoto">Gutleber & Asociados</span>
+              <span className="font-display text-base text-blancoRoto">Gutleber & Co.</span>
             </div>
-            <p className="text-sm">Negocios Inmobiliarios — Posadas, Misiones.</p>
+            <p className="text-sm">Bienes Raíces — Posadas, Misiones.</p>
           </div>
           <div>
             <h3 className="text-blancoRoto font-semibold mb-2 text-sm uppercase tracking-wide">Navegación</h3>
@@ -119,7 +119,7 @@ export default function Layout() {
           </div>
         </div>
         <div className="border-t border-blancoRoto/10 text-center text-xs py-4">
-          © {new Date().getFullYear()} Gutleber & Asociados. Todos los derechos reservados.
+          © {new Date().getFullYear()} Gutleber & Co. Todos los derechos reservados.
         </div>
       </footer>
 

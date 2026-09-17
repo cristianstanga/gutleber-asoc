@@ -39,7 +39,7 @@ export default function Home() {
       <section className="bg-petroleo text-blancoRoto">
         <div className="max-w-6xl mx-auto px-4 sm:px-6 py-16 sm:py-24 text-center">
           <h1 className="font-display text-3xl sm:text-5xl leading-tight max-w-3xl mx-auto">
-            Negocios inmobiliarios en Posadas, Misiones
+            Bienes raíces en Posadas, Misiones
           </h1>
           <p className="mt-4 text-blancoRoto/80 max-w-xl mx-auto">
             Gestión, velocidad y transparencia en cada propiedad.

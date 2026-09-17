@@ -36,7 +36,7 @@ export default function Login() {
       <div className="w-full max-w-sm">
         {/* Logo */}
         <div className="flex justify-center mb-8">
-          <img src="/logo-login.svg" alt="Gutleber & Asoc." className="h-16 w-auto" />
+          <img src="/logo-login.svg" alt="Gutleber & Co." className="h-16 w-auto" />
         </div>
 
         <div className="card p-6">
