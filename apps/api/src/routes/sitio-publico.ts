@@ -37,7 +37,7 @@ function filtrarDisponibles<T extends { enAlquiler: boolean; enVenta: boolean; v
 router.get('/propiedades', async (req, res) => {
   const { operacion, tipo, barrio, precioMin, precioMax, dormitorios, destacada } = req.query as Record<string, string>
 
-  const where: any = { OR: [{ enAlquiler: true }, { enVenta: true }] }
+  const where: any = { publicadaWeb: true, OR: [{ enAlquiler: true }, { enVenta: true }] }
   if (operacion === 'venta') where.enVenta = true
   if (operacion === 'alquiler') where.enAlquiler = true
   if (tipo) where.tipo = tipo
@@ -64,6 +64,7 @@ router.get('/propiedades/:id', async (req, res) => {
     include: includePublico,
   })
   if (!prop) return res.status(404).json({ error: 'Propiedad no encontrada' })
+  if (!prop.publicadaWeb) return res.status(404).json({ error: 'Propiedad no disponible' })
   if (!filtrarDisponibles([prop]).length) return res.status(404).json({ error: 'Propiedad no disponible' })
 
   prisma.propiedad.update({ where: { id: prop.id }, data: { vistas: { increment: 1 } } }).catch(() => {})
@@ -72,6 +73,7 @@ router.get('/propiedades/:id', async (req, res) => {
     where: {
       id: { not: prop.id },
       tipo: prop.tipo,
+      publicadaWeb: true,
       OR: [{ enAlquiler: true }, { enVenta: true }],
       ...(prop.barrio ? { barrio: prop.barrio } : {}),
     },

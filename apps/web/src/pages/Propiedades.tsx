@@ -34,6 +34,7 @@ interface Propiedad {
   barrio?: string
   destacada?: boolean
   amenities?: string[]
+  publicadaWeb?: boolean
   imagenes: Imagen[]
   videos: VideoItem[]
   tours360?: Tour360Item[]
@@ -73,6 +74,15 @@ export default function Propiedades() {
     mutationFn: ({ id, destacada }: { id: string; destacada: boolean }) =>
       api.put(`/propiedades/${id}`, { destacada }),
     onSuccess: () => qc.invalidateQueries({ queryKey: ['propiedades'] }),
+  })
+
+  const togglePublicadaWeb = useMutation({
+    mutationFn: ({ id, publicadaWeb }: { id: string; publicadaWeb: boolean }) =>
+      api.put(`/propiedades/${id}`, { publicadaWeb }),
+    onSuccess: (_data, vars) => {
+      qc.invalidateQueries({ queryKey: ['propiedades'] })
+      mostrarToast(vars.publicadaWeb ? '🌐 Publicada en el sitio web' : '🚫 Bajada del sitio web')
+    },
   })
 
   const guardarAmenities = useMutation({
@@ -505,6 +515,27 @@ export default function Propiedades() {
           {/* ── Acciones — columna derecha ───────────────────────────────── */}
           <div className="space-y-3">
 
+            {/* Publicar / bajar del sitio web */}
+            <div className={`card p-5 space-y-2 border-2 ${prop.publicadaWeb === false ? 'border-amber-300' : 'border-transparent'}`}>
+              <h3 className="font-semibold text-carbon text-sm mb-1">Sitio web público</h3>
+              <p className="text-xs text-piedra mb-2">
+                {prop.publicadaWeb === false
+                  ? 'Esta propiedad está oculta — no aparece en gutleberyasociados.com aunque esté en alquiler/venta.'
+                  : 'Visible en gutleberyasociados.com (si está en alquiler/venta y disponible).'}
+              </p>
+              <button
+                onClick={() => togglePublicadaWeb.mutate({ id: prop.id, publicadaWeb: prop.publicadaWeb === false })}
+                disabled={togglePublicadaWeb.isPending}
+                className={`w-full flex items-center justify-center gap-2 rounded-lg py-2.5 text-sm font-semibold transition-colors ${
+                  prop.publicadaWeb === false
+                    ? 'bg-piedra text-white hover:bg-piedra/90'
+                    : 'bg-crema text-carbon hover:bg-amber-100 border border-arena'
+                }`}
+              >
+                {prop.publicadaWeb === false ? <>🌐 Publicar en la web</> : <>🚫 Bajar de la web</>}
+              </button>
+            </div>
+
             {/* Compartir */}
             <div className="card p-5 space-y-2">
               <h3 className="font-semibold text-carbon text-sm mb-3">Compartir</h3>
@@ -642,6 +673,11 @@ export default function Propiedades() {
                 {esDisponible(p) && (
                   <span className="inline-flex items-center gap-0.5 text-[10px] font-semibold px-1.5 py-0.5 rounded-full bg-green-100 text-green-700">
                     ● Disponible
+                  </span>
+                )}
+                {p.publicadaWeb === false && (
+                  <span className="inline-flex items-center gap-0.5 text-[10px] font-semibold px-1.5 py-0.5 rounded-full bg-amber-100 text-amber-700">
+                    🚫 Oculta de la web
                   </span>
                 )}
               </div>

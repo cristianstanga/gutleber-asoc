@@ -108,6 +108,7 @@ model Propiedad {
   barrio           String?
   destacada        Boolean           @default(false) // resaltar en home del sitio público
   amenities        String[]          @default([])    // comodidades: pileta, portería 24hs, ascensor, etc.
+  publicadaWeb     Boolean           @default(true)  // visible en el sitio público — apagar la "baja" sin tocar enAlquiler/enVenta
   propietarioId         String?
   propietario           Persona?          @relation("PropietarioDePropiedades", fields: [propietarioId], references: [id])
   imagenes              PropiedadImagen[]
