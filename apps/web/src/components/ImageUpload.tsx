@@ -2,6 +2,7 @@ import { useRef, useState } from 'react'
 import { Upload, Trash2, Play, Image as ImageIcon, Video, View } from 'lucide-react'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { api } from '../lib/api'
+import { confirmarSiNoSonPanoramicas } from '../lib/checkPanorama'
 
 interface Imagen { id: string; url: string; orden: number }
 interface VideoItem { id: string; url: string; orden: number; titulo?: string }
@@ -79,8 +80,12 @@ export default function ImageUpload({ propiedadId, imagenes, videos = [], tours3
 
   async function handleTours360(files: FileList | null) {
     if (!files || files.length === 0) return
-    setUploadingTour(true)
     setErrorTour('')
+
+    const sigue = await confirmarSiNoSonPanoramicas(Array.from(files))
+    if (!sigue) return
+
+    setUploadingTour(true)
     try {
       const form = new FormData()
       Array.from(files).forEach((f) => form.append('tours360', f))

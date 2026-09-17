@@ -2,6 +2,7 @@ import { Component, useState, useEffect, useRef, useCallback, lazy, Suspense } f
 import type { ReactNode, ErrorInfo } from 'react'
 import { useQueryClient, useQuery } from '@tanstack/react-query'
 import { api } from '../lib/api'
+import { confirmarSiNoSonPanoramicas } from '../lib/checkPanorama'
 import { X, ChevronRight, ChevronLeft, Upload, Trash2, Sparkles, MapPin, Check, Loader2, Video, Key, ExternalLink, View, Star } from 'lucide-react'
 
 const MapPickerLeaflet = lazy(() => import('./MapPickerLeaflet'))
@@ -314,6 +315,10 @@ export default function FormPropiedad({ propiedad, onClose }: Props) {
     const disponibles = MAX_TOURS360 - tours360.length
     if (disponibles <= 0) return
     const toUpload = Array.from(files).slice(0, disponibles)
+
+    const sigue = await confirmarSiNoSonPanoramicas(toUpload)
+    if (!sigue) return
+
     setUploadingTour(true)
     const fd = new FormData()
     toUpload.forEach(f => fd.append('tours360', f))
