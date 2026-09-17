@@ -45,6 +45,14 @@ export const uploadVideo = multer({
   limits: { fileSize: 200 * 1024 * 1024 }, // 200 MB
 })
 
+// ── Fotos 360° (equirectangulares, suelen pesar más que una foto normal) ──────
+
+export const uploadTour360 = multer({
+  storage,
+  fileFilter: imageFilter,
+  limits: { fileSize: 20 * 1024 * 1024 }, // 20 MB
+})
+
 // ── URL pública ───────────────────────────────────────────────────────────────
 
 export function getPublicUrl(filename: string): string {

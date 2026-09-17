@@ -106,10 +106,13 @@ model Propiedad {
   lat              Float?
   lng              Float?
   barrio           String?
+  destacada        Boolean           @default(false) // resaltar en home del sitio público
+  amenities        String[]          @default([])    // comodidades: pileta, portería 24hs, ascensor, etc.
   propietarioId         String?
   propietario           Persona?          @relation("PropietarioDePropiedades", fields: [propietarioId], references: [id])
   imagenes              PropiedadImagen[]
   videos                PropiedadVideo[]
+  tours360              PropiedadTour360[]
   vinculos              Vinculo[]
   pagos                 Pago[]
   gastos                Gasto[]
@@ -139,6 +142,30 @@ model PropiedadVideo {
   orden       Int       @default(0)
   propiedad   Propiedad @relation(fields: [propiedadId], references: [id], onDelete: Cascade)
   createdAt   DateTime  @default(now())
+}
+
+model PropiedadTour360 {
+  id          String    @id @default(cuid())
+  propiedadId String
+  url         String
+  nombre      String    // filename en disco
+  etiqueta    String?   // "Living", "Dormitorio 1", etc.
+  orden       Int       @default(0)
+  propiedad   Propiedad @relation(fields: [propiedadId], references: [id], onDelete: Cascade)
+  createdAt   DateTime  @default(now())
+}
+
+model BlogPost {
+  id            String    @id @default(cuid())
+  titulo        String
+  slug          String    @unique
+  resumen       String?
+  contenido     String
+  imagenPortada String?
+  publicado     Boolean   @default(false)
+  publicadoEn   DateTime?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
 }
 
 model Persona {

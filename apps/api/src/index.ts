@@ -9,6 +9,8 @@ import authRouter from './routes/auth'
 import dashboardRouter from './routes/dashboard'
 import propiedadesRouter from './routes/propiedades'
 import tarjetaPublicaRouter from './routes/tarjeta-publica'
+import sitioPublicoRouter from './routes/sitio-publico'
+import blogRouter from './routes/blog'
 import personasRouter from './routes/personas'
 import vinculosRouter from './routes/vinculos'
 import pagosRouter from './routes/pagos'
@@ -36,7 +38,11 @@ export const logger = pino({ transport: { target: 'pino-pretty' } })
 const app = express()
 const PORT = process.env.PORT || 3001
 
-app.use(cors({ origin: process.env.CORS_ORIGIN || 'http://localhost:5173', credentials: true }))
+// CORS_ORIGIN acepta uno o varios orígenes separados por coma (panel interno + sitio público)
+const corsOrigins = (process.env.CORS_ORIGIN || 'http://localhost:5173,http://localhost:5174')
+  .split(',')
+  .map((o) => o.trim())
+app.use(cors({ origin: corsOrigins, credentials: true }))
 app.use(express.json())
 app.use('/uploads', express.static(path.join(process.cwd(), 'uploads')))
 
@@ -46,8 +52,9 @@ app.get('/health', (_req, res) => res.json({ ok: true, ts: new Date().toISOStrin
 // Auth (sin middleware)
 app.use('/api/auth', authRouter)
 
-// Tarjeta pública (sin auth — para preview y compartir)
+// Tarjeta pública (sin auth — para preview y compartir) + API del sitio público
 app.use('/api/public', tarjetaPublicaRouter)
+app.use('/api/public', sitioPublicoRouter)
 
 // WhatsApp — sin auth para diagnóstico
 app.get('/api/whatsapp/debug', (_req, res) => res.json(getWAStatus()))
@@ -130,6 +137,7 @@ app.use('/api/ia', authMiddleware, iaRouter)
 app.use('/api/catalogo', authMiddleware, catalogoRouter)
 app.use('/api/usuarios', authMiddleware, requireAdminOrOperador, usuariosRouter)
 app.use('/api/config', authMiddleware, requireAdminOrOperador, configRouter)
+app.use('/api/blog', authMiddleware, requireAdminOrOperador, blogRouter)
 app.use('/api/visitas', authMiddleware, requireAdminOrOperador, visitasRouter)
 app.use('/api/stats', authMiddleware, requireAdminOrOperador, statsRouter)
 app.use('/api/seed-demo', authMiddleware, seedDemoRouter)

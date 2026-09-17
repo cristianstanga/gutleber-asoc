@@ -1,0 +1,27 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 130" width="120" height="130">
+  <title>Gutleber &amp; Asociados — Emblema</title>
+  <defs>
+    <clipPath id="pin-clip">
+      <path d="M16,52 A44,44 0 1,1 104,52 L60,124 Z"/>
+    </clipPath>
+  </defs>
+  <!-- PIN fondo navy -->
+  <path d="M16,52 A44,44 0 1,1 104,52 L60,124 Z" fill="#0F172A"/>
+  <!-- Casa cobre + barras crema — clipeados al PIN -->
+  <g clip-path="url(#pin-clip)">
+    <!-- Casa cobre relleno -->
+    <polygon points="60,24 102,62 94,98 26,98 18,62" fill="#B45309"/>
+    <!-- Barras ascendentes crema -->
+    <rect x="34" y="80" width="10" height="18" rx="2" fill="#F8F7F4" opacity="0.35"/>
+    <rect x="47" y="72" width="10" height="26" rx="2" fill="#F8F7F4" opacity="0.55"/>
+    <rect x="60" y="64" width="10" height="34" rx="2" fill="#F8F7F4" opacity="0.78"/>
+    <rect x="73" y="56" width="10" height="42" rx="2" fill="#F8F7F4"/>
+    <!-- Baseline -->
+    <line x1="30" y1="98" x2="88" y2="98" stroke="#F8F7F4" stroke-width="1" opacity="0.25"/>
+  </g>
+  <!-- Techo crema encima — clipeado -->
+  <polyline points="14,62 60,24 106,62"
+    fill="none" stroke="#F8F7F4" stroke-width="3.5"
+    stroke-linecap="round" stroke-linejoin="round"
+    clip-path="url(#pin-clip)"/>
+</svg>

@@ -42,7 +42,7 @@ services:
       JWT_EXPIRES_IN: 7d
       NODE_ENV: production
       PORT: 3001
-      CORS_ORIGIN: ${CORS_ORIGIN:-https://app.gutleberyasociados.com}
+      CORS_ORIGIN: ${CORS_ORIGIN:-https://app.gutleberyasociados.com,https://gutleberyasociados.com,https://www.gutleberyasociados.com}
       PUBLIC_URL: ${APP_URL:-https://app.gutleberyasociados.com}
       APP_URL: ${APP_URL:-https://app.gutleberyasociados.com}
       ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY}
@@ -75,6 +75,18 @@ services:
       - gutleber-internal
     ports:
       - "8082:80"        # Acceso: http://IP:8082
+    depends_on:
+      - gutleber-api
+    restart: unless-stopped
+
+  gutleber-web-publico:
+    build:
+      context: .
+      dockerfile: apps/web-publico/Dockerfile
+    networks:
+      - gutleber-internal
+    ports:
+      - "8083:80"        # Acceso: http://IP:8083 — en Dokploy, mapear el dominio gutleberyasociados.com a este servicio
     depends_on:
       - gutleber-api
     restart: unless-stopped

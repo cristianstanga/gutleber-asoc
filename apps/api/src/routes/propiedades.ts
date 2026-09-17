@@ -2,7 +2,7 @@ import { Router } from 'express'
 import fs from 'fs'
 import path from 'path'
 import { prisma } from '../index'
-import { upload, uploadVideo, getPublicUrl } from '../services/upload'
+import { upload, uploadVideo, uploadTour360, getPublicUrl } from '../services/upload'
 import { publicarPropiedad } from '../services/instagram'
 import { generarTarjeta } from '../services/tarjeta'
 import { sendImage } from '../services/whatsapp-meta'
@@ -14,6 +14,7 @@ const router = Router()
 const includeCompleto = {
   imagenes: { orderBy: { orden: 'asc' as const } },
   videos: { orderBy: { orden: 'asc' as const } },
+  tours360: { orderBy: { orden: 'asc' as const } },
   vinculos: { where: { activo: true }, include: { persona: true } },
   propietario: true,
   _count: { select: { pagos: true } },
@@ -252,6 +253,8 @@ router.get('/:id', async (req, res) => {
     where: { id: req.params.id },
     include: {
       imagenes: { orderBy: { orden: 'asc' } },
+      videos: { orderBy: { orden: 'asc' } },
+      tours360: { orderBy: { orden: 'asc' } },
       vinculos: { include: { persona: true } },
       pagos: { include: { persona: true }, orderBy: { fechaVencimiento: 'desc' }, take: 20 },
     },
@@ -357,6 +360,48 @@ router.delete('/:id/videos/:videoId', requireAdmin, async (req: AuthRequest, res
   if (fs.existsSync(filePath)) fs.unlinkSync(filePath)
 
   await prisma.propiedadVideo.delete({ where: { id: req.params.videoId } })
+  res.json({ ok: true })
+})
+
+// ─── Tour 360° ────────────────────────────────────────────────────────────────
+
+router.post('/:id/tours360', uploadTour360.array('tours360', 20), async (req, res) => {
+  const files = req.files as Express.Multer.File[]
+  if (!files || files.length === 0) return res.status(400).json({ error: 'Sin archivos' })
+
+  const etiquetas = ([] as string[]).concat(req.body.etiquetas ?? [])
+  const existentes = await prisma.propiedadTour360.count({ where: { propiedadId: req.params.id } })
+
+  const creados = await Promise.all(
+    files.map((file, i) =>
+      prisma.propiedadTour360.create({
+        data: {
+          propiedadId: req.params.id,
+          url: getPublicUrl(file.filename),
+          nombre: file.filename,
+          etiqueta: etiquetas[i] || null,
+          orden: existentes + i,
+        },
+      })
+    )
+  )
+  res.status(201).json(creados)
+})
+
+router.delete('/:id/tours360/:tourId', requireAdmin, async (req: AuthRequest, res) => {
+  const tour = await prisma.propiedadTour360.findUnique({ where: { id: req.params.tourId } })
+  if (!tour) return res.status(404).json({ error: 'Vista 360° no encontrada' })
+
+  const filePath = path.join(process.cwd(), 'uploads', tour.nombre)
+  if (fs.existsSync(filePath)) fs.unlinkSync(filePath)
+
+  await prisma.propiedadTour360.delete({ where: { id: req.params.tourId } })
+  res.json({ ok: true })
+})
+
+router.patch('/:id/tours360/reordenar', async (req, res) => {
+  const { orden } = req.body as { orden: { id: string; orden: number }[] }
+  await Promise.all(orden.map((item) => prisma.propiedadTour360.update({ where: { id: item.id }, data: { orden: item.orden } })))
   res.json({ ok: true })
 })
 
