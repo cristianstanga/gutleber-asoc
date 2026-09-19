@@ -112,7 +112,7 @@ app.get('/api/whatsapp/templates', async (_req, res) => {
   const wabaId = '1748009346185242'
   if (!token) return res.status(500).json({ error: 'Token no configurado' })
   try {
-    const r = await fetch(`https://graph.facebook.com/v25.0/${wabaId}/message_templates?fields=name,language,status&limit=50`, {
+    const r = await fetch(`https://graph.facebook.com/v25.0/${wabaId}/message_templates?fields=name,language,status,components&limit=50`, {
       headers: { Authorization: `Bearer ${token}` },
     })
     res.json(await r.json())
