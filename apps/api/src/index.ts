@@ -76,7 +76,7 @@ app.post('/api/whatsapp/crear-recibo-template', async (_req, res) => {
       category: 'UTILITY',
       components: [{
         type: 'BODY',
-        text: 'Hola {{1}}, su comprobante de pago del período {{2}} está disponible. Inmueble: {{4}} Monto: {{3}} Gracias por su pago. Gutleber & Asoc.',
+        text: 'Hola {{1}}, su comprobante de pago del período {{2}} está disponible. Inmueble: {{4}} Monto: {{3}} Gracias por su pago. Gutleber & Co.',
         example: { body_text: [['Juan', 'Junio de 2026', '$ 150.000', 'Mitre 450 Oberá']] },
       }],
     }),
@@ -98,12 +98,56 @@ app.post('/api/whatsapp/crear-contacto-template', async (_req, res) => {
       category: 'UTILITY',
       components: [{
         type: 'BODY',
-        text: 'Hola {{1}}, le escribimos desde Gutleber & Asoc. para conversar sobre {{2}}. Quedamos a disposición.',
+        text: 'Hola {{1}}, le escribimos desde Gutleber & Co. para conversar sobre {{2}}. Quedamos a disposición.',
         example: { body_text: [['Juan', 'su contrato de alquiler']] },
       }],
     }),
   })
   res.json({ ok: r.ok, status: r.status, response: await r.json() })
+})
+
+// Renombra las 4 plantillas ya aprobadas de "Gutleber & Asoc." a "Gutleber & Co."
+// (one-time — editar una plantilla existente la manda de nuevo a revisión de Meta,
+// pero mantiene el mismo nombre/id, así que no hay que tocar los sendTemplate(...) del código)
+app.post('/api/whatsapp/renombrar-plantillas', async (_req, res) => {
+  const token = process.env.WHATSAPP_ACCESS_TOKEN
+  if (!token) return res.status(500).json({ error: 'Token no configurado' })
+
+  const ediciones = [
+    {
+      id: '1334746771938444', // gutleber_contacto
+      text: 'Hola {{1}}, le escribimos desde Gutleber & Co. para conversar sobre {{2}}. Quedamos a disposición.',
+      example: ['Juan', 'su contrato de alquiler'],
+    },
+    {
+      id: '2185678405547532', // gutleber_recibo
+      text: 'Hola {{1}}, su comprobante de pago del período {{2}} está disponible. Inmueble: {{4}} Monto: {{3}} Gracias por su pago. Gutleber & Co.',
+      example: ['Juan', 'Junio de 2026', '$ 150.000', 'Mitre 450 Oberá'],
+    },
+    {
+      id: '1324653125697709', // gutleber_transferencia
+      text: 'Hola {{1}}, se procesó la transferencia de su propiedad. 📍 {{2}} 📅 {{3}} Alquiler cobrado: {{4}} Honorarios ({{5}}%): -{{6}} Total transferido: {{7}} Gutleber & Co.',
+      example: ['Francisco', 'Mitre 450', '10 jun 2026', '$ 150.000', '8', '$ 12.000', '$ 138.000'],
+    },
+    {
+      id: '1482621693114316', // gutleber_pago_cobrado
+      text: 'Hola {{1}}, le informamos que se registró el cobro del alquiler. 📍 {{2}} 📅 {{3}} 💰 {{4}} En breve procesamos la liquidación y transferencia. Gutleber & Co.',
+      example: ['Francisco', 'Mitre 450 Oberá', '10 de junio de 2026', '$ 150.000'],
+    },
+  ]
+
+  const resultados = []
+  for (const ed of ediciones) {
+    const r = await fetch(`https://graph.facebook.com/v25.0/${ed.id}`, {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        components: [{ type: 'BODY', text: ed.text, example: { body_text: [ed.example] } }],
+      }),
+    })
+    resultados.push({ id: ed.id, ok: r.ok, status: r.status, response: await r.json() })
+  }
+  res.json(resultados)
 })
 
 // Lista templates del WABA correcto — diagnóstico
