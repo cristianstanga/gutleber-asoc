@@ -204,7 +204,7 @@ async function ejecutarHerramienta(
     const diaHorario = String(input.diaHorario || '')
     sendText(
       numeroDestino,
-      `Hola, ${visita.nombreContacto}. Recibimos tu pedido de cambio para el ${diaHorario}. Nuestro equipo lo va a confirmar en breve. — Gutleber & Asociados`,
+      `Hola, ${visita.nombreContacto}. Recibimos tu pedido de cambio para el ${diaHorario}. Nuestro equipo lo va a confirmar en breve. — Gutleber & Co.`,
     ).catch(() => {})
 
     return 'Pedido de reprogramación registrado. El sistema mandó aviso de recepción. La confirmación definitiva la envía el operador desde el CRM. Cerrá con una frase muy corta, ej: "¡Listo, [nombre]! Te confirmamos el cambio en breve."'
@@ -246,7 +246,7 @@ async function ejecutarHerramienta(
     const diaRecib = String(input.diaHorario || '')
     sendText(
       numeroDestino,
-      `Hola, ${nombreRecib}. Recibimos tu solicitud de visita para el ${diaRecib}. Nuestro equipo la va a confirmar en breve. — Gutleber & Asociados`,
+      `Hola, ${nombreRecib}. Recibimos tu solicitud de visita para el ${diaRecib}. Nuestro equipo la va a confirmar en breve. — Gutleber & Co.`,
     ).catch(() => {})
 
     return 'Solicitud registrada. El sistema mandó aviso de recepción. La confirmación definitiva (con fecha, hora y Calendar) la envía el operador desde el CRM. Cerrá con una frase muy corta, ej: "¡Listo, [nombre]! Te avisamos en cuanto confirmemos."'
@@ -334,7 +334,7 @@ ${requisitos}` : ''
       })
     }).join('\n')
 
-    const system = `Sos el agente de ventas virtual de Gutleber & Asoc., inmobiliaria boutique en Posadas, Misiones, Argentina. Atendés consultas 24/7 sobre propiedades en ${operacion}, hablando por WhatsApp.
+    const system = `Sos el agente de ventas virtual de Gutleber & Co., inmobiliaria en Posadas, Misiones, Argentina. Atendés consultas 24/7 sobre propiedades en ${operacion}, hablando por WhatsApp.
 
 Hoy es ${hoyStr}. Son las ${horaStr} (hora de Argentina). Usá esta fecha y hora para interpretar referencias como "hoy", "el sábado" o "mañana".
 

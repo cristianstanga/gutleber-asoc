@@ -210,7 +210,7 @@ async function manejarPropietario(from: string, texto: string, persona: Persona,
   }
 
   // Menú inicial (primer mensaje o mensaje no reconocido)
-  const respuesta = `Hola ${persona.nombre}! 👋 Soy el asistente de *Gutleber & Asociados*.\n\n` +
+  const respuesta = `Hola ${persona.nombre}! 👋 Soy el asistente de *Gutleber & Co.*\n\n` +
     `¿En qué te puedo ayudar?\n\n` +
     `*1* — Estado de mis propiedades\n` +
     `*2* — Hablar con Cintia\n\n` +
@@ -287,7 +287,7 @@ async function manejarInquilino(from: string, texto: string, persona: Persona, c
   }
 
   // Menú inicial
-  const respuesta = `Hola ${persona.nombre}! 👋 Soy el asistente de *Gutleber & Asociados*.\n\n` +
+  const respuesta = `Hola ${persona.nombre}! 👋 Soy el asistente de *Gutleber & Co.*\n\n` +
     `¿En qué te puedo ayudar?\n\n` +
     `*1* — Estado de mi alquiler\n` +
     `*2* — Hablar con Cintia\n\n` +

@@ -3,7 +3,7 @@
  * Usa pdfkit para generar un documento profesional pre-llenado
  * con los datos del vínculo, persona e inmueble.
  *
- * Gutleber & Asoc. — Posadas, Misiones
+ * Gutleber & Co. — Posadas, Misiones
  */
 
 import PDFDocument from 'pdfkit'
@@ -80,9 +80,10 @@ export function generarContratoPDF(datos: DatosContrato): Promise<Buffer> {
     const W = doc.page.width - 120  // ancho útil
 
     // ── Paleta ────────────────────────────────────────────────────────────────
-    const CARBON  = '#2C2C2A'
-    const PIEDRA  = '#8C7B6B'
-    const ARENA   = '#C4B09A'
+    // Monocromático — marca "Gutleber & Co." 2026-09-17 (antes tierra Carbón/Piedra/Arena)
+    const CARBON  = '#121212'
+    const PIEDRA  = '#5A5A5A'
+    const ARENA   = '#CFCFCF'
     const CREMA   = '#F0E8DC'
 
     // ── Header ────────────────────────────────────────────────────────────────
@@ -90,10 +91,10 @@ export function generarContratoPDF(datos: DatosContrato): Promise<Buffer> {
     doc.rect(0, 0, doc.page.width, 72).fill(CARBON)
 
     doc.fillColor('#FFFFFF').fontSize(18).font('Helvetica-Bold')
-       .text('GUTLEBER & ASOC.', 60, 20)
+       .text('GUTLEBER & CO.', 60, 20)
 
     doc.fillColor(ARENA).fontSize(8).font('Helvetica')
-       .text('GESTIÓN · INVERSIÓN · PATRIMONIO', 60, 44)
+       .text('BIENES RAÍCES', 60, 44)
        .text('Posadas, Misiones  |  gutleber.com.ar', 0, 44, { align: 'right', width: doc.page.width - 60 })
 
     doc.y = 100
@@ -266,13 +267,13 @@ export function generarContratoPDF(datos: DatosContrato): Promise<Buffer> {
     const locadorNombre = propietario ? `${propietario.nombre} ${propietario.apellido}` : 'LOCADOR'
     firmaCol(60, locadorNombre, 'Locador / Propietario')
     firmaCol(60 + colW, `${inquilino.nombre} ${inquilino.apellido}`, 'Locatario / Inquilino')
-    firmaCol(60 + colW * 2, 'Gutleber & Asoc.', 'Inmobiliaria Interviniente')
+    firmaCol(60 + colW * 2, 'Gutleber & Co.', 'Inmobiliaria Interviniente')
 
     // ── Footer ────────────────────────────────────────────────────────────────
     const footerY = doc.page.height - 40
     doc.rect(0, footerY - 8, doc.page.width, 48).fill('#F5F0EA')
     doc.fillColor(PIEDRA).fontSize(7).font('Helvetica')
-       .text('Gutleber & Asoc. — Posadas, Misiones, Argentina — gutleber.com.ar', 60, footerY)
+       .text('Gutleber & Co. — Posadas, Misiones, Argentina — gutleber.com.ar', 60, footerY)
        .text(`Generado el ${formatFecha(new Date())}`, 0, footerY, { align: 'right', width: doc.page.width - 60 })
 
     doc.end()

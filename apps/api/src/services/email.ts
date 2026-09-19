@@ -26,18 +26,18 @@ export async function sendPasswordResetEmail(email: string, token: string) {
   const transporter = createTransport()
 
   await transporter.sendMail({
-    from: `"Gutleber & Asoc." <${from}>`,
+    from: `"Gutleber & Co." <${from}>`,
     to: email,
-    subject: 'Recuperación de contraseña — Gutleber & Asoc.',
+    subject: 'Recuperación de contraseña — Gutleber & Co.',
     html: `
       <div style="font-family:sans-serif;max-width:480px;margin:0 auto;padding:24px">
-        <h2 style="color:#1a1a2e;margin-bottom:8px">Recuperación de contraseña</h2>
+        <h2 style="color:#121212;margin-bottom:8px">Recuperación de contraseña</h2>
         <p style="color:#555;margin-bottom:24px">
           Recibimos una solicitud para restablecer la contraseña de tu cuenta.
           Si no la solicitaste, podés ignorar este email.
         </p>
         <a href="${resetUrl}"
-           style="display:inline-block;background:#1a1a2e;color:#fff;padding:12px 28px;
+           style="display:inline-block;background:#121212;color:#fff;padding:12px 28px;
                   border-radius:8px;text-decoration:none;font-weight:600;font-size:15px">
           Restablecer contraseña
         </a>
@@ -46,7 +46,7 @@ export async function sendPasswordResetEmail(email: string, token: string) {
           Si el botón no funciona, copiá este enlace: ${resetUrl}
         </p>
         <hr style="border:none;border-top:1px solid #eee;margin-top:32px">
-        <p style="color:#bbb;font-size:11px">Gutleber &amp; Asoc. · Posadas, Misiones</p>
+        <p style="color:#bbb;font-size:11px">Gutleber &amp; Co. · Posadas, Misiones</p>
       </div>
     `,
   })

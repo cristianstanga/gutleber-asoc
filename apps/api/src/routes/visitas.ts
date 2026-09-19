@@ -89,7 +89,7 @@ router.patch('/:id/confirmar', async (req, res) => {
     `Tu visita a *${visita.propiedad?.direccion || 'la propiedad'}* quedó confirmada para:\n` +
     `📅 ${fechaStr}\n\n` +
     `Te esperamos. Cualquier consulta, escribinos.\n` +
-    `— *Gutleber & Asoc.*`
+    `— *Gutleber & Co.*`
 
   try {
     await sendText(visita.numeroContacto, msg)

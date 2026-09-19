@@ -37,6 +37,9 @@ router.post('/enviar', async (req, res) => {
   if (!persona?.whatsapp) return res.status(400).json({ error: 'Sin WhatsApp' })
 
   const mensajeFinal = usarTemplate
+    // OJO: este texto es solo el espejo que se guarda en el CRM — el mensaje real lo define
+    // la plantilla 'gutleber_contacto' ya aprobada en Meta, que todavía dice "Gutleber & Asoc."
+    // No cambiar acá hasta resubir la plantilla a Meta Business Manager y que se apruebe.
     ? `Hola ${persona.nombre}, le escribimos desde Gutleber & Asoc. para conversar sobre ${motivo || 'una consulta'}. Quedamos a disposición.`
     : mensaje
 

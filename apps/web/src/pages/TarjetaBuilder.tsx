@@ -3,16 +3,16 @@ import { useSearchParams } from 'react-router-dom'
 import { Download, RotateCcw, ImagePlus, X, ChevronLeft, ChevronRight, Layers, Pencil } from 'lucide-react'
 import { api } from '../lib/api'
 
-// ── Paleta de marca ───────────────────────────────────────────────────────────
+// ── Paleta de marca (monocromática — "Gutleber & Co." 2026-09-17) ─────────────
 const C = {
-  petroleo:   '#0D3B4E',
-  acero:      '#7FA1BB',
-  crema:      '#E7EBEE',
-  carbon:     '#091E2E',
+  petroleo:   '#000000',
+  acero:      '#A0A0A0',
+  crema:      '#E9E9E7',
+  carbon:     '#121212',
   white:      '#F7F7F5',
-  headerBg:   'rgba(13,59,78,0.90)',
-  panelBg:    'rgba(13,59,78,0.93)',
-  aceroD:     'rgba(127,161,187,0.85)',
+  headerBg:   'rgba(0,0,0,0.90)',
+  panelBg:    'rgba(0,0,0,0.93)',
+  aceroD:     'rgba(160,160,160,0.85)',
 }
 
 // ── Catálogos ─────────────────────────────────────────────────────────────────
@@ -54,9 +54,8 @@ async function ensureFonts() {
   if (fontsLoaded) return
   try {
     await Promise.all([
-      new FontFace('WorkSans', 'url(/fonts/WorkSans-Regular.ttf)').load().then(f => document.fonts.add(f)),
-      new FontFace('WorkSans', 'url(/fonts/WorkSans-Bold.ttf)', { weight: 'bold' }).load().then(f => document.fonts.add(f)),
-      new FontFace('Lora',     'url(/fonts/Lora-Regular.ttf)').load().then(f => document.fonts.add(f)),
+      new FontFace('Poppins', 'url(/fonts/Poppins-Regular.ttf)').load().then(f => document.fonts.add(f)),
+      new FontFace('Poppins', 'url(/fonts/Poppins-Bold.ttf)', { weight: 'bold' }).load().then(f => document.fonts.add(f)),
     ])
     fontsLoaded = true
   } catch { /* usa sistema si falla */ }
@@ -104,21 +103,21 @@ function drawCard(
     ctx.restore()
   } else {
     const g = ctx.createLinearGradient(0, 0, W, H)
-    g.addColorStop(0, '#1C3A52'); g.addColorStop(1, '#0A1A28')
+    g.addColorStop(0, '#1A1A1A'); g.addColorStop(1, '#0A0A0A')
     ctx.fillStyle = g; ctx.fillRect(0, 0, W, H)
   }
 
   // ── Gradiente arriba — para el ribbon ─────────────────────────────────────
   const gT = ctx.createLinearGradient(0, 0, 0, H * 0.18)
-  gT.addColorStop(0, 'rgba(8,18,28,0.55)'); gT.addColorStop(1, 'rgba(0,0,0,0)')
+  gT.addColorStop(0, 'rgba(0,0,0,0.55)'); gT.addColorStop(1, 'rgba(0,0,0,0)')
   ctx.fillStyle = gT; ctx.fillRect(0, 0, W, H * 0.18)
 
   // ── Degrade petróleo desde ~63% → sólido al final ────────────────────────
   const gStrip = ctx.createLinearGradient(0, H * 0.63, 0, H)
-  gStrip.addColorStop(0,    'rgba(15,34,51,0)')
-  gStrip.addColorStop(0.28, 'rgba(15,34,51,0.70)')
-  gStrip.addColorStop(0.58, 'rgba(15,34,51,0.93)')
-  gStrip.addColorStop(1,    'rgba(15,34,51,0.98)')
+  gStrip.addColorStop(0,    'rgba(0,0,0,0)')
+  gStrip.addColorStop(0.28, 'rgba(0,0,0,0.70)')
+  gStrip.addColorStop(0.58, 'rgba(0,0,0,0.93)')
+  gStrip.addColorStop(1,    'rgba(0,0,0,0.98)')
   ctx.fillStyle = gStrip; ctx.fillRect(0, H * 0.63, W, H * 0.37)
 
   // ── Ribbon diagonal — top-right ───────────────────────────────────────────
@@ -131,7 +130,7 @@ function drawCard(
   const rBW = Math.round(W * 0.42), rBH = Math.round(W * 0.062), rCY = Math.round(W * 0.155)
   ctx.fillStyle = rBg
   ctx.fillRect(-rBW / 2, rCY - rBH / 2, rBW, rBH)
-  ctx.font = `bold ${Math.round(rBH * 0.50)}px WorkSans`
+  ctx.font = `bold ${Math.round(rBH * 0.50)}px Poppins`
   ctx.fillStyle = C.carbon; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'
   ctx.fillText(rlabel, 0, rCY)
   ctx.restore()
@@ -141,13 +140,13 @@ function drawCard(
 
   // Dirección — texto hero (60%)
   const dirFsz2 = Math.round(W * 0.052)
-  ctx.font = `bold ${dirFsz2}px Lora`
+  ctx.font = `bold ${dirFsz2}px Poppins`
   ctx.fillStyle = C.white; ctx.textBaseline = 'alphabetic'; ctx.textAlign = 'left'
   ctx.fillText(s.direccion || 'Dirección de la propiedad', M, PH - Math.round(W * 0.040))
 
   // Tipo — label pequeño encima (40%)
   const tipoFsz = Math.round(W * 0.022)
-  ctx.font = `bold ${tipoFsz}px WorkSans`
+  ctx.font = `bold ${tipoFsz}px Poppins`
   ctx.fillStyle = C.acero; ctx.globalAlpha = 0.88
   ctx.fillText(s.tipo.toUpperCase(), M, PH - Math.round(W * 0.040) - dirFsz2 - Math.round(W * 0.010))
   ctx.globalAlpha = 1
@@ -160,7 +159,7 @@ function drawCard(
       ? `AR$ ${new Intl.NumberFormat('es-AR', { maximumFractionDigits: 0 }).format(+s.precio)}`
       : `USD ${new Intl.NumberFormat('es-AR').format(+s.precio)}`
     const pFsz = Math.round(W * 0.025)
-    ctx.font = `bold ${pFsz}px WorkSans`
+    ctx.font = `bold ${pFsz}px Poppins`
     const pW = ctx.measureText(pFmt).width + 36, pH2 = pFsz + 24
     const pX = W - M - pW, pY = PH - Math.round(W * 0.128)
     ctx.fillStyle = C.petroleo; ctx.globalAlpha = 0.88
@@ -169,7 +168,7 @@ function drawCard(
     ctx.fillStyle = C.acero; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'
     ctx.fillText(pFmt, pX + pW / 2, pY + pH2 / 2)
     if (s.operacion !== 'venta') {
-      ctx.font = `${Math.round(pFsz * 0.64)}px WorkSans`
+      ctx.font = `${Math.round(pFsz * 0.64)}px Poppins`
       ctx.fillStyle = C.crema; ctx.globalAlpha = 0.62
       ctx.fillText('/ mes', pX + pW / 2, pY + pH2 / 2 + pFsz * 0.88)
       ctx.globalAlpha = 1
@@ -179,7 +178,7 @@ function drawCard(
 
   // ── Franja datos (flotando sobre el degrade) ──────────────────────────────
   // NO hay fillRect sólido — el degrade de arriba ya da el fondo
-  // Línea decorativa champagne muy sutil
+  // Línea decorativa gris muy sutil
   ctx.fillStyle = C.acero; ctx.globalAlpha = 0.25
   ctx.fillRect(M, PH + Math.round(STRIP_H * 0.08), W - M * 2, 1)
   ctx.globalAlpha = 1
@@ -206,7 +205,7 @@ function drawCard(
   atribs.slice(0, COLS * ROWS).forEach((a, i) => {
     const col = i % COLS
     const row = Math.floor(i / COLS)
-    ctx.font         = `bold ${aFsz}px WorkSans`
+    ctx.font         = `bold ${aFsz}px Poppins`
     ctx.fillStyle    = row === 0 ? C.acero : C.crema
     ctx.globalAlpha  = row === 0 ? 1 : 0.85
     ctx.textAlign    = 'left'; ctx.textBaseline = 'alphabetic'
@@ -223,13 +222,13 @@ function drawCard(
   }
   const fFsz = Math.round(W * 0.018)
   const firmX = logoX - 12
-  ctx.font = `bold ${fFsz}px WorkSans`
+  ctx.font = `bold ${fFsz}px Poppins`
   ctx.fillStyle = C.crema; ctx.textAlign = 'right'; ctx.textBaseline = 'alphabetic'
   ctx.fillText('GUTLEBER', firmX, SMY - fFsz * 0.15)
-  ctx.fillText('& ASOCIADOS', firmX, SMY + fFsz * 1.25)
-  ctx.font = `${Math.round(fFsz * 0.72)}px WorkSans`
+  ctx.fillText('& CO.', firmX, SMY + fFsz * 1.25)
+  ctx.font = `${Math.round(fFsz * 0.72)}px Poppins`
   ctx.fillStyle = C.acero; ctx.globalAlpha = 0.76
-  ctx.fillText('NEGOCIOS INMOBILIARIOS', firmX, SMY + fFsz * 2.55)
+  ctx.fillText('BIENES RAÍCES', firmX, SMY + fFsz * 2.55)
   ctx.globalAlpha = 1
 }
 
@@ -419,7 +418,7 @@ export default function TarjetaBuilder() {
             {propNombre}
           </span>
         ) : (
-          <span className="text-arena/70 text-xs">Gutleber &amp; Asoc.</span>
+          <span className="text-arena/70 text-xs">Gutleber &amp; Co.</span>
         )}
         <div className="ml-auto flex gap-2">
           {([1, 2, 3] as const).map(n => (

@@ -1,5 +1,5 @@
 /**
- * Generadores de documentos PDF — Gutleber & Asoc.
+ * Generadores de documentos PDF — Gutleber & Co.
  *
  * Replica exactamente el formato del sistema actual:
  *   generarReciboPDF()     → recibo al inquilino (original + duplicado en A4)
@@ -12,11 +12,12 @@ import PDFDocument from 'pdfkit'
 
 // ─── Paleta ───────────────────────────────────────────────────────────────────
 
-const CARBON  = '#2C2C2A'
-const PIEDRA  = '#8C7B6B'
-const ARENA   = '#C4B09A'
+// Monocromático — marca "Gutleber & Co." 2026-09-17 (antes tierra Carbón/Piedra/Arena)
+const CARBON  = '#121212'
+const PIEDRA  = '#5A5A5A'
+const ARENA   = '#CFCFCF'
 const WHITE   = '#FFFFFF'
-const CREMA   = '#F5F0EA'
+const CREMA   = '#F0F0EE'
 
 // ─── Tipos ───────────────────────────────────────────────────────────────────
 
@@ -123,7 +124,7 @@ function header(
   // Banda izquierda carbón con logo
   doc.rect(M, y, 198, 70).fill(CARBON)
   doc.fillColor(WHITE).font('Helvetica-Bold').fontSize(14).text('GUTLEBER', M + 10, y + 8)
-  doc.fillColor(ARENA).font('Helvetica').fontSize(7).text('PROPIEDADES', M + 10, y + 26)
+  doc.fillColor(ARENA).font('Helvetica').fontSize(7).text('& CO.', M + 10, y + 26)
   doc.fillColor(CREMA).fontSize(6).text('Av. Mitre 1.782 | Tel:', M + 10, y + 38)
   doc.fillColor(CREMA).fontSize(6).text('(3300) Posadas | Misiones |  |', M + 10, y + 47)
   doc.fillColor(ARENA).fontSize(6).text('Responsable Monotributo', M + 10, y + 57)
@@ -503,7 +504,7 @@ export function generarResumenPropietarioPDF(d: DatosResumenPropietario): Promis
     // ── Cabecera ──────────────────────────────────────────────────────────────
     doc.rect(M, y, W, 64).fill(CARBON)
     doc.fillColor(WHITE).font('Helvetica-Bold').fontSize(16).text('GUTLEBER', M + 14, y + 10)
-    doc.fillColor(ARENA).font('Helvetica').fontSize(7.5).text('& ASOCIADOS  —  INMOBILIARIA BOUTIQUE', M + 14, y + 30)
+    doc.fillColor(ARENA).font('Helvetica').fontSize(7.5).text('& CO.  —  BIENES RAÍCES', M + 14, y + 30)
     doc.fillColor(CREMA).fontSize(6.5).text('Av. Mitre 1.782 · Posadas, Misiones · Argentina', M + 14, y + 42)
 
     doc.fillColor(ARENA).font('Helvetica-Bold').fontSize(11)
@@ -551,7 +552,7 @@ export function generarResumenPropietarioPDF(d: DatosResumenPropietario): Promis
     // Filas
     let totalCobrado = 0, totalNeto = 0, totalTransferido = 0
     d.flujoCaja.forEach((f, idx) => {
-      const bg = idx % 2 === 0 ? WHITE : '#F9F6F2'
+      const bg = idx % 2 === 0 ? WHITE : '#F5F5F3'
       const honorarios = f.cobrado > 0 ? +(f.cobrado * d.honorariosPct / 100).toFixed(0) : 0
       const saldo = f.neto - f.transferido
       totalCobrado += f.cobrado; totalNeto += f.neto; totalTransferido += f.transferido
@@ -623,7 +624,7 @@ export function generarResumenPropietarioPDF(d: DatosResumenPropietario): Promis
     // ── Pie de página ─────────────────────────────────────────────────────────
     doc.rect(M, PH - 38, W, 0.5).fill(ARENA)
     doc.fillColor(PIEDRA).font('Helvetica').fontSize(6.5)
-       .text('Gutleber & Asociados — Gestión · Inversión · Patrimonio — Posadas, Misiones — Argentina', M, PH - 28, { width: W, align: 'center' })
+       .text('Gutleber & Co. — Bienes Raíces — Posadas, Misiones — Argentina', M, PH - 28, { width: W, align: 'center' })
     doc.fillColor(ARENA).fontSize(6)
        .text('Documento informativo. No válido como comprobante fiscal.', M, PH - 18, { width: W, align: 'center' })
 

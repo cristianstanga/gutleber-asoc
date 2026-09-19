@@ -1,24 +1,23 @@
 /**
- * Generador de tarjetas de propiedad — Gutleber & Asociados
+ * Generador de tarjetas de propiedad — Gutleber & Co.
  * Canvas 1080×1080 px — Instagram / WhatsApp
  *
- * Paleta vigente (brand.config.json 2026):
- *   Petróleo  #0D3B4E  |  Acero Claro  #7FA1BB
- *   Gris Claro #E7EBEE |  Blanco Roto  #F7F7F5
+ * Paleta vigente (brand.config.json 2026-09-17, monocromática):
+ *   Negro #000000 | Gris medio #A0A0A0 | Gris claro #E9E9E7 | Blanco roto #F7F7F5
  *
  * Layout:
  *   ┌────────────────────────────────────────┐
- *   │  [emblema  GUTLEBER & Asociados]       │  header pill petróleo
+ *   │  [emblema  GUTLEBER & Co.]             │  header pill negro
  *   │                                        │
  *   │         FOTO  FULL-BLEED               │
  *   │         (vigneta fuerte desde abajo)   │
  *   │                                        │
- *   │  [EN ALQUILER] [EN VENTA]              │  badges champagne
- *   │  RIVADAVIA 1450                        │  serif bold blanco
- *   │  Centro · Posadas                      │  champagne italic
+ *   │  [EN ALQUILER] [EN VENTA]              │  badges gris medio
+ *   │  RIVADAVIA 1450                        │  Poppins bold blanco
+ *   │  Centro · Posadas                      │  gris medio italic
  *   │  $450.000/mes   USD 95.000             │  precios (ambos si aplica)
  *   │  120 m²  ·  3 dorm.  ·  2 baños       │  atributos
- *   │  ──────────────────────────────────    │  línea champagne
+ *   │  ──────────────────────────────────    │  línea gris medio
  *   │  @gutleberasociados · Posadas          │  footer
  *   └────────────────────────────────────────┘
  */
@@ -29,11 +28,14 @@ import path from 'path'
 import fs from 'fs'
 
 // ── Fuentes ────────────────────────────────────────────────────────────────────
+// Poppins (OFL) — marca "Gutleber & Co." 2026-09-17. WorkSans/Lora (marca azul
+// anterior) quedan como .ttf sueltos en el repo por si hace falta revertir.
 const FONTS_DIR = path.join(__dirname, '../../assets/fonts')
-GlobalFonts.registerFromPath(path.join(FONTS_DIR, 'WorkSans-Regular.ttf'), 'WorkSans')
-GlobalFonts.registerFromPath(path.join(FONTS_DIR, 'WorkSans-Bold.ttf'),    'WorkSans')
-GlobalFonts.registerFromPath(path.join(FONTS_DIR, 'Lora-Regular.ttf'),     'Lora')
-GlobalFonts.registerFromPath(path.join(FONTS_DIR, 'Lora-Italic.ttf'),      'Lora')
+GlobalFonts.registerFromPath(path.join(FONTS_DIR, 'Poppins-Regular.ttf'), 'Poppins')
+GlobalFonts.registerFromPath(path.join(FONTS_DIR, 'Poppins-Medium.ttf'),  'Poppins Medium')
+GlobalFonts.registerFromPath(path.join(FONTS_DIR, 'Poppins-Bold.ttf'),    'Poppins')
+GlobalFonts.registerFromPath(path.join(FONTS_DIR, 'Poppins-Italic.ttf'),  'Poppins')
+GlobalFonts.registerFromPath(path.join(FONTS_DIR, 'Poppins-Light.ttf'),   'Poppins Light')
 
 const IMGS_DIR = path.join(__dirname, '../../assets/img')
 
@@ -44,15 +46,16 @@ const M  = 40     // margen exterior
 const P  = 32     // padding interior del panel
 
 // ── Paleta ─────────────────────────────────────────────────────────────────────
+// Monocromática — marca "Gutleber & Co." 2026-09-17 (antes azul Petróleo/Acero)
 const C = {
-  petroleo:    '#0D3B4E',
-  acero:       '#7FA1BB',
-  crema:       '#E7EBEE',
-  carbon:      '#091E2E',
+  petroleo:    '#000000',
+  acero:       '#A0A0A0',
+  crema:       '#E9E9E7',
+  carbon:      '#121212',
   white:       '#F7F7F5',
-  panelBg:     'rgba(13,59,78,0.93)',
-  headerBg:    'rgba(13,59,78,0.90)',
-  aceroD:      'rgba(127,161,187,0.85)',
+  panelBg:     'rgba(0,0,0,0.93)',
+  headerBg:    'rgba(0,0,0,0.90)',
+  aceroD:      'rgba(160,160,160,0.85)',
 }
 
 const TIPO_LABEL: Record<string, string> = {
@@ -116,7 +119,7 @@ function badge(
   bg: string, fg: string,
   fontSize = 17, padH = 18, padV = 10,
 ): number {
-  ctx.font = `bold ${fontSize}px WorkSans`
+  ctx.font = `bold ${fontSize}px Poppins`
   const tw = ctx.measureText(label).width
   const bw = tw + padH * 2
   const bh = fontSize + padV * 2
@@ -167,21 +170,21 @@ export async function generarTarjeta(datos: DatosTarjeta): Promise<Buffer> {
   } catch {
     // Fallback: gradiente si no hay foto
     const g = ctx.createLinearGradient(0, 0, W, H)
-    g.addColorStop(0, '#1C3A52')
-    g.addColorStop(1, '#0A1A28')
+    g.addColorStop(0, '#1A1A1A')
+    g.addColorStop(1, '#0A0A0A')
     ctx.fillStyle = g
     ctx.fillRect(0, 0, W, H)
   }
 
   // ── 2. Vigneta — fuerte desde abajo, suave arriba ────────────────────────────
   const gTop = ctx.createLinearGradient(0, 0, 0, 320)
-  gTop.addColorStop(0, 'rgba(15,34,51,0.70)')
+  gTop.addColorStop(0, 'rgba(0,0,0,0.70)')
   gTop.addColorStop(1, 'rgba(0,0,0,0)')
   ctx.fillStyle = gTop
   ctx.fillRect(0, 0, W, 320)
 
   const gBot = ctx.createLinearGradient(0, H, 0, H - 520)
-  gBot.addColorStop(0, 'rgba(10,20,35,0.95)')
+  gBot.addColorStop(0, 'rgba(0,0,0,0.95)')
   gBot.addColorStop(1, 'rgba(0,0,0,0)')
   ctx.fillStyle = gBot
   ctx.fillRect(0, H - 520, W, 520)
@@ -200,21 +203,21 @@ export async function generarTarjeta(datos: DatosTarjeta): Promise<Buffer> {
 
     // Texto firma
     const TX = HX + 20 + ew + 16
-    ctx.font         = 'bold 22px WorkSans'
+    ctx.font         = 'bold 22px Poppins'
     ctx.fillStyle    = C.crema
     ctx.textBaseline = 'alphabetic'
     ctx.textAlign    = 'left'
-    ctx.fillText('GUTLEBER & Asociados', TX, HY + 36)
-    ctx.font         = '11px WorkSans'
+    ctx.fillText('GUTLEBER & Co.', TX, HY + 36)
+    ctx.font         = '11px Poppins'
     ctx.fillStyle    = C.acero
     ctx.globalAlpha  = 0.80
-    ctx.fillText('NEGOCIOS INMOBILIARIOS  ·  POSADAS, MISIONES', TX, HY + 56)
+    ctx.fillText('BIENES RAÍCES  ·  POSADAS, MISIONES', TX, HY + 56)
     ctx.globalAlpha  = 1
   }
 
   // ── 4. Panel inferior ────────────────────────────────────────────────────────
   // Calcular alturas dinámicamente
-  ctx.font = 'bold 48px Lora'
+  ctx.font = 'bold 48px Poppins'
   const dirLines = wrapText(ctx, datos.direccion, W - M * 2 - P * 2)
   const nDirLines = Math.min(dirLines.length, 2)
 
@@ -263,7 +266,7 @@ export async function generarTarjeta(datos: DatosTarjeta): Promise<Buffer> {
 
   // ── Tipo chip pequeño ────────────────────────────────────────────────────────
   const tipoLabel = TIPO_LABEL[datos.tipo] || datos.tipo
-  ctx.font         = '13px WorkSans'
+  ctx.font         = '13px Poppins'
   ctx.fillStyle    = C.aceroD
   ctx.textBaseline = 'top'
   ctx.textAlign    = 'left'
@@ -271,7 +274,7 @@ export async function generarTarjeta(datos: DatosTarjeta): Promise<Buffer> {
   cy += 20
 
   // ── Dirección ─────────────────────────────────────────────────────────────────
-  ctx.font         = 'bold 48px Lora'
+  ctx.font         = 'bold 48px Poppins'
   ctx.fillStyle    = C.white
   ctx.textBaseline = 'top'
   for (let i = 0; i < nDirLines; i++) {
@@ -282,7 +285,7 @@ export async function generarTarjeta(datos: DatosTarjeta): Promise<Buffer> {
 
   // ── Barrio ────────────────────────────────────────────────────────────────────
   if (hasBarrio) {
-    ctx.font         = 'italic 22px Lora'
+    ctx.font         = 'italic 22px Poppins'
     ctx.fillStyle    = C.acero
     ctx.textBaseline = 'top'
     ctx.fillText(`${datos.barrio}  ·  Posadas, Misiones`, PX + P, cy)
@@ -291,13 +294,13 @@ export async function generarTarjeta(datos: DatosTarjeta): Promise<Buffer> {
 
   // ── Precios ───────────────────────────────────────────────────────────────────
   if (hasAlq) {
-    ctx.font         = 'bold 44px Lora'
+    ctx.font         = 'bold 44px Poppins'
     ctx.fillStyle    = C.acero
     ctx.textBaseline = 'top'
     const txt = fmtARS(datos.alquilerBase!)
     ctx.fillText(txt, PX + P, cy)
     const tw = ctx.measureText(txt).width
-    ctx.font         = '18px WorkSans'
+    ctx.font         = '18px Poppins'
     ctx.fillStyle    = C.crema
     ctx.textBaseline = 'alphabetic'
     ctx.globalAlpha  = 0.70
@@ -306,7 +309,7 @@ export async function generarTarjeta(datos: DatosTarjeta): Promise<Buffer> {
     cy += 58 + 8
   }
   if (hasVta) {
-    ctx.font         = hasBoth ? 'bold 36px Lora' : 'bold 44px Lora'
+    ctx.font         = hasBoth ? 'bold 36px Poppins' : 'bold 44px Poppins'
     ctx.fillStyle    = hasBoth ? C.crema : C.acero
     ctx.textBaseline = 'top'
     ctx.fillText(`USD ${datos.valorVenta!.toLocaleString('es-AR')}`, PX + P, cy)
@@ -319,7 +322,7 @@ export async function generarTarjeta(datos: DatosTarjeta): Promise<Buffer> {
     ctx.textAlign    = 'left'
     let ax = PX + P
     for (let i = 0; i < atribs.length; i++) {
-      ctx.font      = '20px WorkSans'
+      ctx.font      = '20px Poppins'
       ctx.fillStyle = C.crema
       ctx.fillText(atribs[i], ax, cy)
       ax += ctx.measureText(atribs[i]).width
@@ -340,7 +343,7 @@ export async function generarTarjeta(datos: DatosTarjeta): Promise<Buffer> {
   cy += 20
 
   // ── Footer ────────────────────────────────────────────────────────────────────
-  ctx.font         = '18px WorkSans'
+  ctx.font         = '18px Poppins'
   ctx.fillStyle    = C.acero
   ctx.textBaseline = 'top'
   ctx.textAlign    = 'left'

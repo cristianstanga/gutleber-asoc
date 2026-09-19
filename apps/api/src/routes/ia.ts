@@ -37,7 +37,7 @@ router.post('/generar-descripcion', async (req, res) => {
   const operacion = enAlquiler && enVenta ? 'alquiler y venta'
     : enAlquiler ? 'alquiler' : 'venta'
 
-  const prompt = `Sos el redactor de una inmobiliaria boutique argentina llamada "Gutleber & Asoc." con sede en Posadas, Misiones. Tu estilo es elegante, sobrio y directo — sin frases hechas ni adjetivos vacíos.
+  const prompt = `Sos el redactor de una inmobiliaria argentina llamada "Gutleber & Co." con sede en Posadas, Misiones. Tu estilo es elegante, sobrio y directo — sin frases hechas ni adjetivos vacíos.
 
 Generá tres textos para una propiedad en ${operacion}:
 

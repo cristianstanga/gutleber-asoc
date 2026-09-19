@@ -28,7 +28,7 @@ async function buildDatosRecibo(pagoId: string): Promise<DatosRecibo | null> {
   if (!pago || !pago.persona || !pago.propiedad) return null
 
   // Buscar propietario: vínculo ADMINISTRACION en la misma propiedad
-  let propietarioNombre = 'GUTLEBER y asoc.'
+  let propietarioNombre = 'GUTLEBER & CO.'
   if (pago.propiedadId) {
     const vAdmin = await prisma.vinculo.findFirst({
       where: { propiedadId: pago.propiedadId, tipo: 'ADMINISTRACION', activo: true },
@@ -107,7 +107,7 @@ async function buildDatosLiquidacion(pagoId: string): Promise<DatosLiquidacion |
 
   // Propietario: vínculo ADMINISTRACION en la misma propiedad
   let propietario = {
-    nombre: 'GUTLEBER', apellido: 'y asoc.',
+    nombre: 'GUTLEBER', apellido: '& CO.',
     cuit: null as string | null,
     iva: 'Responsable Monotributo' as string | null,
     direccion: null as string | null,
@@ -305,7 +305,7 @@ router.patch('/:id/marcar-pagado', async (req, res) => {
           const msg =
             `✅ *Hola ${nombre}, se cobró el alquiler*\n\n` +
             `📍 ${dir}\n📅 ${fecha}\n💰 *${fmt(montoTotal)}*\n\n` +
-            `En breve procesamos la liquidación.\n_Gutleber & Asoc._`
+            `En breve procesamos la liquidación.\n_Gutleber & Co._`
           sendMetaText(tel, msg).catch((e) => logger.error({ err: String(e) }, '❌ Fallback texto libre también falló'))
         })
     }
@@ -372,7 +372,7 @@ router.patch('/:id/pagar-propietario', async (req, res) => {
             `💸 *Hola ${nombre}, transferencia procesada*\n\n` +
             `📍 ${dir}\n📅 ${fecha}\n\n` +
             `Alquiler: ${fmt(pago.monto)}\nHonorarios (${honorariosPct}%): -${fmt(honorarios)}\n` +
-            `━━━━━━━━━━━\n*Total transferido: ${fmt(totalTransferir)}*\n\n_Gutleber & Asoc._`
+            `━━━━━━━━━━━\n*Total transferido: ${fmt(totalTransferir)}*\n\n_Gutleber & Co._`
           sendMetaText(tel, msg).catch((e) => logger.error({ err: String(e) }, '❌ Fallback texto libre también falló'))
         })
     }

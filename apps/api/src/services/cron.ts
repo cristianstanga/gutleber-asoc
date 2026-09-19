@@ -1,5 +1,5 @@
 /**
- * Cron jobs automáticos — Gutleber & Asoc.
+ * Cron jobs automáticos — Gutleber & Co.
  *
  * Schedules:
  *   Día 1 08:00  → generar pagos del mes
@@ -157,7 +157,7 @@ async function recordatorioInquilinoVencimiento() {
       `📍 *${p.propiedad?.direccion}*\n` +
       `💰 *${monto}*\n\n` +
       `Ante cualquier consulta, estamos a disposición.\n` +
-      `— *Gutleber & Asoc.* 🏢`
+      `— *Gutleber & Co.* 🏢`
     await enviarWA(p.persona?.whatsapp, msg, `inquilino ${p.persona?.nombre}`)
     await pausaEntreEnvios()
   }
@@ -210,7 +210,7 @@ async function avisarPropietarioMora() {
         `Le informamos que el alquiler de *${p.propiedad?.direccion}* ` +
         `correspondiente a *${mesStr()}* (${monto}) aún figura como impago.\n\n` +
         `Estamos gestionando el cobro con el inquilino. Le mantendremos informado.\n` +
-        `— *Gutleber & Asoc.* 🏢`
+        `— *Gutleber & Co.* 🏢`
       await enviarWA(propietario.whatsapp, msg, `propietario ${propietario.nombre}`)
       await pausaEntreEnvios()
     }
@@ -253,7 +253,7 @@ async function marcarMora() {
         `El alquiler de *${p.propiedad?.direccion}* por *${monto}* ` +
         `se encuentra en mora desde el ${p.fechaVencimiento.toLocaleDateString('es-AR')}.\n\n` +
         `Le pedimos que regularice la situación a la brevedad.\n` +
-        `*Gutleber & Asoc.* — Tel: 376 4XXX-XXXX`
+        `*Gutleber & Co.* — Tel: 376 4XXX-XXXX`
       await enviarWA(p.persona?.whatsapp, msg, `inquilino en mora ${p.persona?.nombre}`)
       await pausaEntreEnvios()
     }
@@ -346,7 +346,7 @@ async function alertarContratosVencer() {
         `Le informamos que su contrato de alquiler en *${c.propiedad.direccion}* ` +
         `vence el *${venc}* (en aprox. ${label}).\n\n` +
         `Si desea renovarlo, comuníquese con nosotros a la brevedad para coordinar.\n` +
-        `— *Gutleber & Asoc.* 🏢`
+        `— *Gutleber & Co.* 🏢`
       await enviarWA(c.persona.whatsapp, msgInquilino, `inquilino ${c.persona.nombre} (contrato)`)
       await pausaEntreEnvios()
 
@@ -368,7 +368,7 @@ async function alertarContratosVencer() {
           `El contrato de alquiler de *${c.propiedad.direccion}* ` +
           `vence el *${venc}* (en aprox. ${label}).\n\n` +
           `Estamos coordinando la renovación con el inquilino. Le mantendremos informado.\n` +
-          `— *Gutleber & Asoc.* 🏢`
+          `— *Gutleber & Co.* 🏢`
         await enviarWA(propietario.whatsapp, msgProp, `propietario ${propietario.nombre} (contrato)`)
         await pausaEntreEnvios()
       }

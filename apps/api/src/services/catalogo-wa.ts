@@ -48,7 +48,7 @@ function buildCaption(p: { tipo: string; direccion: string; enAlquiler: boolean;
     ...(attrs.length ? [`📐 ${attrs.join('  ·  ')}`] : []),
     ...(precio ? [precio] : []),
     ...(p.descripcion ? [`\n${p.descripcion.slice(0, 180)}`] : []),
-    '\n— *Gutleber & Asoc.*  ·  Consultá por WhatsApp',
+    '\n— *Gutleber & Co.*  ·  Consultá por WhatsApp',
   ]
   return lines.join('\n')
 }
@@ -123,14 +123,14 @@ export async function enviarCatalogoWA(destino?: string): Promise<number> {
   const disponibles = await propiedadesDisponibles()
 
   if (disponibles.length === 0) {
-    await sendText(numero, '📭 No hay propiedades disponibles en este momento.\n— *Gutleber & Asoc.*')
+    await sendText(numero, '📭 No hay propiedades disponibles en este momento.\n— *Gutleber & Co.*')
     return 0
   }
 
   const fecha = new Date().toLocaleDateString('es-AR', { day: '2-digit', month: 'long', year: 'numeric' })
   await sendText(
     numero,
-    `🏘️ *Stock disponible — Gutleber & Asoc.*\n` +
+    `🏘️ *Stock disponible — Gutleber & Co.*\n` +
     `${disponibles.length} propiedad${disponibles.length !== 1 ? 'es' : ''} disponible${disponibles.length !== 1 ? 's' : ''}\n` +
     `_Actualizado: ${fecha}_`,
   )

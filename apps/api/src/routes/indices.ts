@@ -121,7 +121,7 @@ router.post('/:indice/ajustar', async (req, res) => {
           `Nuevo monto: *${formatARS(nuevoMonto)}*\n` +
           `Variación: +${porcentaje}%\n\n` +
           `Este valor aplica a partir del próximo vencimiento.\n` +
-          `— *Gutleber & Asoc.*`
+          `— *Gutleber & Co.*`
         try {
           await sendText(vinculo.persona.whatsapp, msg)
         } catch (err) {

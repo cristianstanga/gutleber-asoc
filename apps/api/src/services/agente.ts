@@ -1,5 +1,5 @@
 /**
- * Agente de ventas digital de Gutleber & Asoc.
+ * Agente de ventas digital de Gutleber & Co. (NO USADO — reemplazado por agente-ia.ts)
  *
  * Máquina de estados conversacional:
  * NUEVO → CONSULTANDO → INTERESADO → RECOPILANDO → VISITA_PENDIENTE → CLIENTE
@@ -134,7 +134,7 @@ function fallbackPorEtapa(ctx: ConvContext, nombre: string): string {
   switch (ctx.etapa) {
     case EtapaConversacion.NUEVO:
       return (
-        `¡Hola! 👋 Soy el asistente de *Gutleber & Asoc.*\n\n` +
+        `¡Hola! 👋 Soy el asistente de *Gutleber & Co.*\n\n` +
         `¿Qué estás buscando?\n` +
         `1️⃣ Alquiler\n2️⃣ Comprar propiedad\n3️⃣ Administrar mi propiedad\n\n` +
         `Respondé con el número o contanos directamente.`
@@ -154,7 +154,7 @@ function fallbackPorEtapa(ctx: ConvContext, nombre: string): string {
     default:
       return (
         `Disculpá, no estoy seguro de entender tu consulta. 🤔\n\n` +
-        `*Gutleber & Asoc.* — Posadas, Misiones\n` +
+        `*Gutleber & Co.* — Posadas, Misiones\n` +
         `Lunes a viernes, 9 a 18 hs.`
       )
   }
@@ -313,9 +313,9 @@ export async function procesarMensaje(
     case 'SALUDO': {
       if (ctx.etapa === EtapaConversacion.NUEVO || ctx.etapa === EtapaConversacion.INACTIVO) {
         respuesta =
-          `¡Buen día! 👋 Bienvenido/a a *Gutleber & Asoc.*\n` +
-          `_GESTIÓN · INVERSIÓN · PATRIMONIO_\n\n` +
-          `Somos una inmobiliaria boutique de Posadas, Misiones.\n` +
+          `¡Buen día! 👋 Bienvenido/a a *Gutleber & Co.*\n` +
+          `_BIENES RAÍCES_\n\n` +
+          `Somos una inmobiliaria de Posadas, Misiones.\n` +
           `¿En qué te puedo ayudar?\n\n` +
           `1️⃣ Busco propiedad en *alquiler*\n` +
           `2️⃣ Busco propiedad para *comprar*\n` +
@@ -644,7 +644,7 @@ export async function procesarMensaje(
         respuesta =
           `Perfecto ${nombre}! 📅\n\n` +
           `Te paso con nuestra asesora *Cintia Gutleber*, quien se comunica con vos a la brevedad para confirmar el horario.\n\n` +
-          `*Gutleber & Asoc.* — Lunes a viernes, 9 a 18 hs.`
+          `*Gutleber & Co.* — Lunes a viernes, 9 a 18 hs.`
       }
       break
     }
@@ -712,7 +712,7 @@ export async function procesarMensaje(
         update.etapa = EtapaConversacion.VISITA_PENDIENTE
         respuesta =
           `¡Listo ${nombre}! Nuestra asesora *Cintia Gutleber* te contacta a la brevedad. 📅\n\n` +
-          `*Gutleber & Asoc.* — Lunes a viernes, 9 a 18 hs.`
+          `*Gutleber & Co.* — Lunes a viernes, 9 a 18 hs.`
       } else {
         respuesta = `¡Excelente! ¿En qué más te puedo ayudar?`
       }
@@ -734,7 +734,7 @@ export async function procesarMensaje(
     case 'AGRADECE': {
       respuesta =
         `¡A vos! 😊 Estamos a tu disposición.\n` +
-        `*Gutleber & Asoc.* — Posadas, Misiones 🏘️`
+        `*Gutleber & Co.* — Posadas, Misiones 🏘️`
       break
     }
 
@@ -743,7 +743,7 @@ export async function procesarMensaje(
       update.etapa = EtapaConversacion.INACTIVO
       respuesta =
         `¡Hasta luego${nombre ? `, ${nombre}` : ''}! 👋 Fue un placer atenderte.\n` +
-        `*Gutleber & Asoc.* — GESTIÓN · INVERSIÓN · PATRIMONIO`
+        `*Gutleber & Co.* — BIENES RAÍCES`
       break
     }
 

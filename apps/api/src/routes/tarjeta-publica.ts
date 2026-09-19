@@ -128,56 +128,59 @@ router.get('/propiedad/:id', async (req, res) => {
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
   <meta property="og:title" content="${tipoLabel[prop.tipo] || prop.tipo} en ${prop.direccion}">
-  <meta property="og:description" content="${prop.descripcion ? prop.descripcion.slice(0, 160) : 'Propiedad en Posadas, Misiones — Gutleber & Asociados'}">
+  <meta property="og:description" content="${prop.descripcion ? prop.descripcion.slice(0, 160) : 'Propiedad en Posadas, Misiones — Gutleber & Co.'}">
   ${ogImage ? `<meta property="og:image" content="${ogImage}">` : ''}
   <meta property="og:type" content="website">
-  <title>${prop.direccion} — Gutleber & Asociados</title>
+  <title>${prop.direccion} — Gutleber & Co.</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;700;800&display=swap" rel="stylesheet">
   <style>
     *,*::before,*::after{margin:0;padding:0;box-sizing:border-box}
-    body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Arial,sans-serif;background:#F7F7F5;color:#0D3B4E;-webkit-tap-highlight-color:transparent;padding-bottom:calc(88px + env(safe-area-inset-bottom))}
+    body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Arial,sans-serif;background:#F7F7F5;color:#000000;-webkit-tap-highlight-color:transparent;padding-bottom:calc(88px + env(safe-area-inset-bottom))}
 
     /* ── Galería ── */
-    .gallery{position:relative;background:#091E2E;width:100%;aspect-ratio:1;overflow:hidden;max-height:92vw}
+    .gallery{position:relative;background:#121212;width:100%;aspect-ratio:1;overflow:hidden;max-height:92vw}
     .slides{display:flex;height:100%;overflow-x:auto;scroll-snap-type:x mandatory;scroll-behavior:smooth;-webkit-overflow-scrolling:touch;scrollbar-width:none}
     .slides::-webkit-scrollbar{display:none}
     .slide{flex:0 0 100%;scroll-snap-align:start;height:100%;position:relative}
     .slide img{width:100%;height:100%;object-fit:cover;display:block}
-    .vid-title{position:absolute;bottom:0;left:0;right:0;padding:8px 12px;font-size:12px;color:#fff;background:linear-gradient(transparent,rgba(13,59,78,.7))}
-    .counter{position:absolute;top:12px;right:12px;background:rgba(9,30,46,.75);color:#fff;font-size:11px;font-weight:700;padding:3px 10px;border-radius:20px;pointer-events:none}
-    .dots-wrap{display:flex;justify-content:center;align-items:center;gap:5px;padding:8px 0;background:#091E2E}
+    .vid-title{position:absolute;bottom:0;left:0;right:0;padding:8px 12px;font-size:12px;color:#fff;background:linear-gradient(transparent,rgba(0,0,0,.7))}
+    .counter{position:absolute;top:12px;right:12px;background:rgba(18,18,18,.75);color:#fff;font-size:11px;font-weight:700;padding:3px 10px;border-radius:20px;pointer-events:none}
+    .dots-wrap{display:flex;justify-content:center;align-items:center;gap:5px;padding:8px 0;background:#121212}
     .dot{width:7px;height:7px;border-radius:50%;background:rgba(255,255,255,.25);border:none;cursor:pointer;padding:0;transition:.2s;font-size:7px;line-height:7px;color:rgba(255,255,255,.4)}
-    .dot.active{background:#7FA1BB;width:20px;border-radius:4px}
+    .dot.active{background:#A0A0A0;width:20px;border-radius:4px}
 
     /* ── Encabezado marca ── */
     .brand-bar{display:flex;align-items:center;justify-content:center;gap:10px;padding:16px 16px 0}
-    .brand-name{font-family:Georgia,serif;font-size:13px;font-weight:700;color:#0D3B4E;letter-spacing:.04em}
-    .brand-sep{color:#7FA1BB;font-size:10px}
-    .brand-desc{font-size:10px;color:#7FA1BB;letter-spacing:.1em;text-transform:uppercase}
+    .brand-name{font-family:'Poppins',system-ui,sans-serif;font-size:13px;font-weight:700;color:#000000;letter-spacing:.04em}
+    .brand-sep{color:#A0A0A0;font-size:10px}
+    .brand-desc{font-size:10px;color:#A0A0A0;letter-spacing:.1em;text-transform:uppercase}
 
     /* ── Info ── */
     .info{padding:12px 16px 0}
-    .tipo-tag{font-size:10px;color:#7FA1BB;text-transform:uppercase;letter-spacing:.1em;font-weight:700;margin-bottom:4px}
-    .dir{font-size:22px;font-weight:800;font-family:Georgia,serif;color:#0D3B4E;line-height:1.2;margin-bottom:4px}
-    .barrio{font-size:13px;color:#7FA1BB;margin-bottom:12px}
+    .tipo-tag{font-size:10px;color:#A0A0A0;text-transform:uppercase;letter-spacing:.1em;font-weight:700;margin-bottom:4px}
+    .dir{font-size:22px;font-weight:800;font-family:'Poppins',system-ui,sans-serif;color:#000000;line-height:1.2;margin-bottom:4px}
+    .barrio{font-size:13px;color:#A0A0A0;margin-bottom:12px}
     .precio-row{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:14px}
     .precio-chip{padding:9px 18px;border-radius:12px;font-size:16px;font-weight:700;line-height:1.2}
-    .chip-alq{background:#0D3B4E;color:#fff}
-    .chip-alq .sub{font-weight:400;font-size:11px;color:#7FA1BB}
-    .chip-vta{background:#E7EBEE;color:#0D3B4E;border:1px solid #7FA1BB}
+    .chip-alq{background:#000000;color:#fff}
+    .chip-alq .sub{font-weight:400;font-size:11px;color:#A0A0A0}
+    .chip-vta{background:#E9E9E7;color:#000000;border:1px solid #A0A0A0}
     .attrs{display:flex;flex-wrap:wrap;gap:6px}
-    .attr{background:#E7EBEE;border:1px solid #c8d6df;font-size:12px;color:#0D3B4E;padding:5px 12px;border-radius:20px;font-weight:500}
+    .attr{background:#E9E9E7;border:1px solid #c8d6df;font-size:12px;color:#000000;padding:5px 12px;border-radius:20px;font-weight:500}
 
     /* ── Descripción ── */
     .section{margin:16px 16px 0}
-    .section-title{font-size:10px;color:#7FA1BB;text-transform:uppercase;letter-spacing:.1em;font-weight:700;margin-bottom:6px}
-    .desc-box{background:#fff;border:1px solid #E7EBEE;border-radius:12px;padding:14px;font-size:14px;color:#0D3B4E;line-height:1.7}
+    .section-title{font-size:10px;color:#A0A0A0;text-transform:uppercase;letter-spacing:.1em;font-weight:700;margin-bottom:6px}
+    .desc-box{background:#fff;border:1px solid #E9E9E7;border-radius:12px;padding:14px;font-size:14px;color:#000000;line-height:1.7}
 
     /* ── Footer ── */
-    .footer{padding:20px 16px 6px;text-align:center;font-size:11px;color:#7FA1BB;letter-spacing:.04em}
-    .footer strong{color:#0D3B4E}
+    .footer{padding:20px 16px 6px;text-align:center;font-size:11px;color:#A0A0A0;letter-spacing:.04em}
+    .footer strong{color:#000000}
 
     /* ── CTA fijo ── */
-    .cta-bar{position:fixed;bottom:0;left:0;right:0;padding:10px 16px;padding-bottom:calc(10px + env(safe-area-inset-bottom));background:rgba(247,247,245,.96);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);border-top:1px solid #E7EBEE}
+    .cta-bar{position:fixed;bottom:0;left:0;right:0;padding:10px 16px;padding-bottom:calc(10px + env(safe-area-inset-bottom));background:rgba(247,247,245,.96);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);border-top:1px solid #E9E9E7}
     .btn-wa{display:flex;align-items:center;justify-content:center;gap:10px;background:#25D366;color:#fff;font-size:16px;font-weight:700;padding:15px 16px;border-radius:14px;text-decoration:none;border:none;width:100%;cursor:pointer;-webkit-tap-highlight-color:transparent}
     .btn-wa svg{width:22px;height:22px;fill:#fff;flex-shrink:0}
   </style>
@@ -187,7 +190,7 @@ router.get('/propiedad/:id', async (req, res) => {
   <!-- Galería fotos + videos -->
   <div class="gallery">
     <div class="slides" id="slides" onscroll="onScroll()">
-      ${media.length > 0 ? slides : '<div style="width:100%;height:100%;display:flex;align-items:center;justify-content:center;color:#7FA1BB;font-size:13px">Sin fotos</div>'}
+      ${media.length > 0 ? slides : '<div style="width:100%;height:100%;display:flex;align-items:center;justify-content:center;color:#A0A0A0;font-size:13px">Sin fotos</div>'}
     </div>
     ${media.length > 1 ? `<div class="counter" id="counter">1 / ${media.length}</div>` : ''}
   </div>
@@ -195,9 +198,9 @@ router.get('/propiedad/:id', async (req, res) => {
 
   <!-- Marca -->
   <div class="brand-bar">
-    <span class="brand-name">GUTLEBER &amp; ASOCIADOS</span>
+    <span class="brand-name">GUTLEBER &amp; CO.</span>
     <span class="brand-sep">·</span>
-    <span class="brand-desc">Negocios Inmobiliarios</span>
+    <span class="brand-desc">Bienes Raíces</span>
   </div>
 
   <div class="info">
@@ -224,7 +227,7 @@ router.get('/propiedad/:id', async (req, res) => {
     <div class="desc-box">${prop.descripcion}</div>
   </div>` : ''}
 
-  <div class="footer"><strong>Gutleber &amp; Asociados</strong> — Posadas, Misiones</div>
+  <div class="footer"><strong>Gutleber &amp; Co.</strong> — Posadas, Misiones</div>
 
   <!-- CTA siempre visible -->
   <div class="cta-bar">
