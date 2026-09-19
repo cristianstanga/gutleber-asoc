@@ -95,7 +95,7 @@ export function generarContratoPDF(datos: DatosContrato): Promise<Buffer> {
 
     doc.fillColor(ARENA).fontSize(8).font('Helvetica')
        .text('BIENES RAÍCES', 60, 44)
-       .text('Posadas, Misiones  |  gutleber.com.ar', 0, 44, { align: 'right', width: doc.page.width - 60 })
+       .text('Posadas, Misiones  |  gutleberyasociados.com', 0, 44, { align: 'right', width: doc.page.width - 60 })
 
     doc.y = 100
 
@@ -273,7 +273,7 @@ export function generarContratoPDF(datos: DatosContrato): Promise<Buffer> {
     const footerY = doc.page.height - 40
     doc.rect(0, footerY - 8, doc.page.width, 48).fill('#F5F0EA')
     doc.fillColor(PIEDRA).fontSize(7).font('Helvetica')
-       .text('Gutleber & Co. — Posadas, Misiones, Argentina — gutleber.com.ar', 60, footerY)
+       .text('Gutleber & Co. — Posadas, Misiones, Argentina — gutleberyasociados.com', 60, footerY)
        .text(`Generado el ${formatFecha(new Date())}`, 0, footerY, { align: 'right', width: doc.page.width - 60 })
 
     doc.end()
